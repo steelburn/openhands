@@ -38,6 +38,7 @@ from openhands.sdk.settings import (
     default_agent_settings,
     validate_agent_settings,
 )
+from openhands.storage.data_models.settings import MarketplaceRegistration
 
 
 def _coerce_value(value: Any) -> Any:
@@ -142,6 +143,17 @@ class Settings(BaseModel):
         description=(
             'Saved LLM profiles and the currently active profile name. '
             'See ``LLMProfiles`` for the profile-management API.'
+        ),
+    )
+    # Marketplace registrations for plugin resolution
+    # Users can register multiple marketplaces with different auto-load behaviors
+    registered_marketplaces: list[MarketplaceRegistration] = Field(
+        default_factory=list,
+        description=(
+            'List of marketplace registrations for plugin resolution. '
+            "Marketplaces with auto_load='all' will have their plugins loaded "
+            'automatically at conversation start. '
+            'See MarketplaceRegistration for details.'
         ),
     )
 
