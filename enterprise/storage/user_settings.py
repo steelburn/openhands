@@ -83,6 +83,9 @@ class UserSettings(Base):
     already_migrated: Mapped[bool | None] = mapped_column(
         nullable=True, default=False
     )  # False = not migrated, True = migrated
+    registered_marketplaces: Mapped[list[dict[str, Any]] | None] = mapped_column(
+        JSON, nullable=True
+    )
 
     def to_settings(self):
         from openhands.app_server.settings.settings_models import Settings
@@ -90,4 +93,5 @@ class UserSettings(Base):
         return Settings(
             agent_settings=self.agent_settings or {},
             conversation_settings=self.conversation_settings or {},
+            registered_marketplaces=self.registered_marketplaces or [],
         )
