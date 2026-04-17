@@ -1223,6 +1223,12 @@
     "uk": "Сервери Stdio",
     "ca": "Servidors Stdio"
   },
+  "SETTINGS$MCP_SEARCH_TITLE": {
+    "en": "Built-in search (Tavily)"
+  },
+  "SETTINGS$MCP_SEARCH_DESCRIPTION": {
+    "en": "Configure the Tavily key that OpenHands uses to add its default search MCP server."
+  },
   "SETTINGS$MCP_API_KEY": {
     "en": "API Key",
     "ja": "APIキー",
