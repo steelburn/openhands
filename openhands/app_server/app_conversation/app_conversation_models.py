@@ -181,8 +181,9 @@ class AppConversationStartRequest(OpenHandsModel):
         description=(
             'Secrets to pass to the conversation. These are merged with any '
             'existing secrets (from database or git providers), with API-provided '
-            'secrets taking precedence. Keys are secret names (e.g., "MY_API_KEY"), '
-            'values are the secret values.'
+            'secrets taking precedence (overriding any existing secret with the same name). '
+            'Keys are secret names (e.g., "MY_API_KEY"), values are the secret values. '
+            'Warning: Providing a secret that already exists will silently override it.'
         ),
     )
 
