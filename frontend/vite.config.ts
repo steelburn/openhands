@@ -92,7 +92,28 @@ export default defineConfig(({ mode }) => {
         ),
       },
     },
+    esbuild: {
+      jsx: "automatic",
+      jsxImportSource: "react",
+    },
     optimizeDeps: {
+      esbuildOptions: {
+        plugins: [
+          {
+            name: "agent-server-gui-shared-module-fallback",
+            setup(build) {
+              build.onResolve({ filter: /^#\// }, (args) => {
+                const resolved = resolveSharedFrontendModule(args.path);
+                if (!resolved) {
+                  return null;
+                }
+
+                return { path: resolved };
+              });
+            },
+          },
+        ],
+      },
       include: [
         // Pre-bundle ALL dependencies to prevent runtime optimization and page reloads
         // These are discovered during initial app load:
@@ -174,6 +195,11 @@ export default defineConfig(({ mode }) => {
       environment: "jsdom",
       setupFiles: ["vitest.setup.ts"],
       exclude: [...configDefaults.exclude, "tests"],
+      server: {
+        deps: {
+          inline: ["@openhands/agent-server-gui"],
+        },
+      },
       coverage: {
         reporter: ["text", "json", "html", "lcov", "text-summary"],
         reportsDirectory: "coverage",

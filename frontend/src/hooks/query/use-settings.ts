@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { AxiosError } from "axios";
 import { useSelectedOrganizationId } from "#/context/use-selected-organization";
 import { useIsOnIntermediatePage } from "#/hooks/use-is-on-intermediate-page";
 import { DEFAULT_SETTINGS } from "#/services/settings";
@@ -129,10 +130,10 @@ export const useSettings = (scope: SettingsScope = "personal") => {
 
   const isOss = config?.app_mode === "oss";
 
-  const query = useQuery({
+  const query = useQuery<Settings, AxiosError>({
     queryKey: ["settings", scope, organizationId],
     queryFn: () => getSettingsQueryFn(scope, organizationId),
-    retry: (_, error) => error.status !== 404,
+    retry: (_, error) => (error.response?.status ?? error.status) !== 404,
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 15,
@@ -149,7 +150,7 @@ export const useSettings = (scope: SettingsScope = "personal") => {
   // options to make their initial save. We don't set the defaults in `initialData` above because
   // that would prepopulate the data to the cache and mess with expectations. Read more:
   // https://tanstack.com/query/latest/docs/framework/react/guides/initial-query-data#using-initialdata-to-prepopulate-a-query
-  if (query.error?.status === 404) {
+  if ((query.error?.response?.status ?? query.error?.status) === 404) {
     // Create a new object with only the properties we need, avoiding rest destructuring
     return {
       data: DEFAULT_SETTINGS,

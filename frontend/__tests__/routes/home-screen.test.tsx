@@ -453,11 +453,13 @@ describe("HomeScreen", () => {
 });
 
 describe("Settings 404", () => {
-  const getConfigSpy = vi.spyOn(OptionService, "getConfig");
-  const getSettingsSpy = vi.spyOn(SettingsService, "getSettings");
+  let getConfigSpy: ReturnType<typeof vi.spyOn>;
+  let getSettingsSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.resetAllMocks();
+    getConfigSpy = vi.spyOn(OptionService, "getConfig");
+    getSettingsSpy = vi.spyOn(SettingsService, "getSettings");
 
     useIsAuthedMock.mockReturnValue({
       data: true,
@@ -541,7 +543,6 @@ describe("Settings 404", () => {
       isLoading: false,
     });
 
-    // @ts-expect-error - we only need app_mode for this test
     getConfigSpy.mockResolvedValue({
       app_mode: "saas",
       feature_flags: DEFAULT_FEATURE_FLAGS,
@@ -556,11 +557,13 @@ describe("Settings 404", () => {
 });
 
 describe("New user welcome toast", () => {
-  const getConfigSpy = vi.spyOn(OptionService, "getConfig");
-  const getSettingsSpy = vi.spyOn(SettingsService, "getSettings");
+  let getConfigSpy: ReturnType<typeof vi.spyOn>;
+  let getSettingsSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    getConfigSpy = vi.spyOn(OptionService, "getConfig");
+    getSettingsSpy = vi.spyOn(SettingsService, "getSettings");
 
     useIsAuthedMock.mockReturnValue({
       data: true,
@@ -625,11 +628,13 @@ describe("New user welcome toast", () => {
 });
 
 describe("HomepageCTA visibility", () => {
-  const getConfigSpy = vi.spyOn(OptionService, "getConfig");
-  const getSettingsSpy = vi.spyOn(SettingsService, "getSettings");
+  let getConfigSpy: ReturnType<typeof vi.spyOn>;
+  let getSettingsSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    getConfigSpy = vi.spyOn(OptionService, "getConfig");
+    getSettingsSpy = vi.spyOn(SettingsService, "getSettings");
 
     vi.spyOn(AuthService, "authenticate").mockResolvedValue(true);
 

@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeAll, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
 import { server } from "#/mocks/node";
 import "@testing-library/jest-dom/vitest";
@@ -15,6 +15,49 @@ class MockResizeObserver {
 
   disconnect = vi.fn();
 }
+
+class MockProgressEvent extends Event {
+  lengthComputable: boolean;
+
+  loaded: number;
+
+  total: number;
+
+  constructor(type: string, init?: ProgressEventInit) {
+    super(type);
+    this.lengthComputable = init?.lengthComputable ?? false;
+    this.loaded = init?.loaded ?? 0;
+    this.total = init?.total ?? 0;
+  }
+}
+
+const installBrowserGlobals = () => {
+  Object.defineProperty(globalThis, "ProgressEvent", {
+    value: MockProgressEvent,
+    writable: true,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, "ResizeObserver", {
+    value: MockResizeObserver,
+    writable: true,
+    configurable: true,
+  });
+
+  if (typeof window !== "undefined") {
+    Object.defineProperty(window, "ProgressEvent", {
+      value: MockProgressEvent,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(window, "ResizeObserver", {
+      value: MockResizeObserver,
+      writable: true,
+      configurable: true,
+    });
+  }
+};
+
+installBrowserGlobals();
 
 // Mock the i18n provider
 vi.mock("react-i18next", async (importOriginal) => ({
@@ -48,12 +91,16 @@ vi.mock("react-router", async (importOriginal) => ({
 // Import the Zustand mock to enable automatic store resets
 vi.mock("zustand");
 
+beforeEach(() => {
+  installBrowserGlobals();
+});
+
 // Mock requests during tests
 beforeAll(() => {
   server.listen({ onUnhandledRequest: "bypass" });
-  vi.stubGlobal("ResizeObserver", MockResizeObserver);
 });
 afterEach(() => {
+  installBrowserGlobals();
   server.resetHandlers();
   // Cleanup the document body after each test
   cleanup();

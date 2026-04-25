@@ -1,5 +1,4 @@
 import React from "react";
-import { AxiosError } from "axios";
 import { useTranslation } from "react-i18next";
 import { BrandButton } from "#/components/features/settings/brand-button";
 import { LlmSettingsInputsSkeleton } from "#/components/features/settings/llm-settings/llm-settings-inputs-skeleton";
@@ -252,7 +251,7 @@ export function SdkSectionPage({
   );
 
   const handleError = React.useCallback(
-    (error: AxiosError) => {
+    (error: Error) => {
       const msg = retrieveAxiosErrorMessage(error);
       displayErrorToast(msg || t(I18nKey.ERROR$GENERIC));
     },

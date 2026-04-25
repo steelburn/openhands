@@ -17,7 +17,11 @@ import { I18nKey } from "#/i18n/declaration";
 import { cn } from "#/utils/utils";
 import { ENABLE_AUTOMATIONS } from "#/utils/feature-flags";
 
-export function Sidebar() {
+interface SidebarProps {
+  allowSettingsModalAutoOpen?: boolean;
+}
+
+export function Sidebar({ allowSettingsModalAutoOpen = true }: SidebarProps) {
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const user = useGitUser();
@@ -34,13 +38,16 @@ export function Sidebar() {
   const [conversationPanelIsOpen, setConversationPanelIsOpen] =
     React.useState(false);
 
+  const settingsErrorStatus =
+    settingsError?.response?.status ?? settingsError?.status;
+
   React.useEffect(() => {
     if (pathname === "/settings") {
       setSettingsModalIsOpen(false);
     } else if (
       !isFetchingSettings &&
       settingsIsError &&
-      settingsError?.status !== 404
+      settingsErrorStatus !== 404
     ) {
       // We don't show toast errors for settings in the global error handler
       // because we have a special case for 404 errors
@@ -48,8 +55,9 @@ export function Sidebar() {
         "Something went wrong while fetching settings. Please reload the page.",
       );
     } else if (
+      allowSettingsModalAutoOpen &&
       config?.app_mode === "oss" &&
-      settingsError?.status === 404 &&
+      settingsErrorStatus === 404 &&
       !config?.feature_flags?.hide_llm_settings
     ) {
       setSettingsModalIsOpen(true);
@@ -58,7 +66,8 @@ export function Sidebar() {
     pathname,
     isFetchingSettings,
     settingsIsError,
-    settingsError,
+    settingsErrorStatus,
+    allowSettingsModalAutoOpen,
     config?.app_mode,
     config?.feature_flags?.hide_llm_settings,
   ]);
