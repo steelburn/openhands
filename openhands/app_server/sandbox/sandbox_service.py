@@ -4,6 +4,8 @@ import time
 from abc import ABC, abstractmethod
 
 import httpx
+from openhands.sdk.utils.models import DiscriminatedUnionMixin
+from openhands.sdk.utils.paging import page_iterator
 
 from openhands.app_server.errors import SandboxError
 from openhands.app_server.sandbox.sandbox_models import (
@@ -16,8 +18,6 @@ from openhands.app_server.services.injector import Injector
 from openhands.app_server.utils.docker_utils import (
     replace_localhost_hostname_for_docker,
 )
-from openhands.sdk.utils.models import DiscriminatedUnionMixin
-from openhands.sdk.utils.paging import page_iterator
 
 _logger = logging.getLogger(__name__)
 
@@ -197,7 +197,7 @@ class SandboxService(ABC):
         Default implementation does nothing (no limits enforced).
         Subclasses can override to implement limit checking.
         """
-        pass
+        return  # Default: no limits enforced
 
     async def pause_old_sandboxes(self, max_num_sandboxes: int) -> list[str]:
         """Pause the oldest sandboxes if there are more than max_num_sandboxes running.

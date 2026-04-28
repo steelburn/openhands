@@ -4,20 +4,21 @@ import logging
 import os
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, AsyncGenerator, Union
+from typing import Any, AsyncGenerator
 from urllib.parse import urlparse
 from uuid import UUID
 
 import base62
 import httpx
 from fastapi import Request
+from openhands.agent_server.models import ConversationInfo, EventPage
+from openhands.agent_server.utils import utc_now
+from openhands.sdk.utils.paging import page_iterator
 from pydantic import Field
 from sqlalchemy import String, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
-from openhands.agent_server.models import ConversationInfo, EventPage
-from openhands.agent_server.utils import utc_now
 from openhands.app_server.app_conversation.app_conversation_info_service import (
     AppConversationInfoService,
 )
@@ -51,7 +52,6 @@ from openhands.app_server.services.injector import InjectorState
 from openhands.app_server.user.specifiy_user_context import ADMIN, USER_CONTEXT_ATTR
 from openhands.app_server.user.user_context import UserContext
 from openhands.app_server.utils.sql_utils import Base, UtcDateTime
-from openhands.sdk.utils.paging import page_iterator
 
 _logger = logging.getLogger(__name__)
 polling_task: asyncio.Task | None = None
@@ -245,10 +245,7 @@ class RemoteSandboxService(SandboxService):
 
             # Check for user-specific override in OrgMember
             org_member = await OrgMemberStore.get_org_member(org_id, UUID(user_id))
-            if (
-                org_member
-                and org_member.max_concurrent_sandboxes_override is not None
-            ):
+            if org_member and org_member.max_concurrent_sandboxes_override is not None:
                 return org_member.max_concurrent_sandboxes_override
 
             # Fall back to org default
@@ -406,7 +403,7 @@ class RemoteSandboxService(SandboxService):
 
         return SandboxPage(items=items, next_page_id=next_page_id)
 
-    async def get_sandbox(self, sandbox_id: str) -> Union[SandboxInfo, None]:
+    async def get_sandbox(self, sandbox_id: str) -> SandboxInfo | None:
         """Get a single sandbox by checking its corresponding runtime."""
         stored_sandbox = await self._get_stored_sandbox(sandbox_id)
         if stored_sandbox is None:
@@ -424,7 +421,7 @@ class RemoteSandboxService(SandboxService):
 
     async def _get_sandbox_by_session_api_key_legacy(
         self, session_api_key: str
-    ) -> Union[SandboxInfo, None]:
+    ) -> SandboxInfo | None:
         """Legacy method to get sandbox by session API key via runtime API.
 
         This is the fallback for sandboxes created before the session_api_key_hash
@@ -480,7 +477,7 @@ class RemoteSandboxService(SandboxService):
 
     async def get_sandbox_by_session_api_key(
         self, session_api_key: str
-    ) -> Union[SandboxInfo, None]:
+    ) -> SandboxInfo | None:
         """Get a single sandbox by session API key.
 
         Uses the stored session_api_key_hash for efficient database lookup instead
@@ -547,7 +544,9 @@ class RemoteSandboxService(SandboxService):
                 _logger.info(
                     f'User has reached sandbox limit: {current_count}/{effective_limit}'
                 )
-                raise ConcurrencyLimitError(limit=effective_limit, current=current_count)
+                raise ConcurrencyLimitError(
+                    limit=effective_limit, current=current_count
+                )
 
             # Enforce sandbox limits by cleaning up old sandboxes if approaching limit
             # Use effective_limit - 1 to leave room for the new sandbox

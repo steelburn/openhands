@@ -6,7 +6,6 @@ This module tests the ConcurrencyLimitError exception including:
 - Limit and current count in response
 """
 
-import pytest
 from fastapi import status
 
 from openhands.app_server.errors import ConcurrencyLimitError
