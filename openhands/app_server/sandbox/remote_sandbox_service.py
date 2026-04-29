@@ -513,57 +513,15 @@ class RemoteSandboxService(SandboxService):
     ) -> SandboxInfo:
         """Start a new sandbox by creating a remote runtime.
 
-        Uses SELECT FOR UPDATE to acquire a row-level lock, preventing race
-        conditions (TOCTOU) when checking concurrency limits. This ensures
-        that concurrent requests from the same user are serialized.
+        Uses SELECT FOR UPDATE within a nested transaction to acquire a row-level
+        lock, preventing race conditions (TOCTOU) when checking concurrency limits.
+        The lock is released after the sandbox record is inserted (before the
+        long-running runtime startup) to avoid blocking concurrent requests.
         """
         from openhands.app_server.errors import ConcurrencyLimitError
 
         try:
-            # Get user id first for locking
-            user_id = await self.user_context.get_user_id()
-
-            # Acquire row-level lock to prevent TOCTOU race condition.
-            # This serializes concurrent sandbox creation requests for the same user.
-            # We lock the user's most recent sandbox row (if any) to coordinate access.
-            # If no sandbox exists, the INSERT below will still serialize due to
-            # unique constraint checks, and the next request will have a row to lock.
-            await self.db_session.execute(
-                select(StoredRemoteSandbox.id)
-                .filter(StoredRemoteSandbox.created_by_user_id == user_id)
-                .order_by(StoredRemoteSandbox.created_at.desc())
-                .limit(1)
-                .with_for_update()
-            )
-
-            # Get user's effective limit and current count (now serialized)
-            effective_limit = await self._get_user_effective_sandbox_limit()
-            current_count = await self._count_user_running_sandboxes()
-
-            # Check if user has reached their limit
-            if current_count >= effective_limit:
-                _logger.info(
-                    f'User has reached sandbox limit: {current_count}/{effective_limit}'
-                )
-                raise ConcurrencyLimitError(
-                    detail={
-                        'error': 'CONCURRENCY_LIMIT_REACHED',
-                        'message': (
-                            f'You have reached your limit of {effective_limit} '
-                            'concurrent conversations. Please close an existing '
-                            'conversation to start a new one.'
-                        ),
-                        'limit': effective_limit,
-                        'current': current_count,
-                    }
-                )
-
-            # Enforce sandbox limits by cleaning up old sandboxes if approaching limit
-            # Use effective_limit - 1 to leave room for the new sandbox
-            if current_count >= effective_limit - 1:
-                await self.pause_old_sandboxes(effective_limit - 1)
-
-            # Get sandbox spec
+            # Get sandbox spec early (before locking) to minimize lock hold time
             if sandbox_spec_id is None:
                 sandbox_spec = (
                     await self.sandbox_spec_service.get_default_sandbox_spec()
@@ -580,14 +538,67 @@ class RemoteSandboxService(SandboxService):
             if sandbox_id is None:
                 sandbox_id = base62.encodebytes(os.urandom(16))
 
-            # Store the sandbox
-            stored_sandbox = StoredRemoteSandbox(
-                id=sandbox_id,
-                created_by_user_id=user_id,
-                sandbox_spec_id=sandbox_spec.id,
-                created_at=utc_now(),
-            )
-            self.db_session.add(stored_sandbox)
+            # Get user id for locking and record creation
+            user_id = await self.user_context.get_user_id()
+
+            # Use a nested transaction (savepoint) for the lock + check + insert.
+            # This allows us to release the row-level lock after inserting the
+            # sandbox record, before the long-running runtime startup begins.
+            # Without this, the lock would be held for the entire request duration
+            # (up to 120s for sandbox startup), blocking concurrent requests.
+            async with self.db_session.begin_nested():
+                # Acquire row-level lock to prevent TOCTOU race condition.
+                # This serializes concurrent sandbox creation requests for the same user.
+                # We lock the user's most recent sandbox row (if any) to coordinate access.
+                # If no sandbox exists, the INSERT below will still serialize due to
+                # unique constraint checks, and the next request will have a row to lock.
+                await self.db_session.execute(
+                    select(StoredRemoteSandbox.id)
+                    .filter(StoredRemoteSandbox.created_by_user_id == user_id)
+                    .order_by(StoredRemoteSandbox.created_at.desc())
+                    .limit(1)
+                    .with_for_update()
+                )
+
+                # Get user's effective limit and current count (now serialized)
+                effective_limit = await self._get_user_effective_sandbox_limit()
+                current_count = await self._count_user_running_sandboxes()
+
+                # Check if user has reached their limit
+                if current_count >= effective_limit:
+                    _logger.info(
+                        f'User has reached sandbox limit: {current_count}/{effective_limit}'
+                    )
+                    raise ConcurrencyLimitError(
+                        detail={
+                            'error': 'CONCURRENCY_LIMIT_REACHED',
+                            'message': (
+                                f'You have reached your limit of {effective_limit} '
+                                'concurrent conversations. Please close an existing '
+                                'conversation to start a new one.'
+                            ),
+                            'limit': effective_limit,
+                            'current': current_count,
+                        }
+                    )
+
+                # Enforce sandbox limits by cleaning up old sandboxes if approaching limit
+                # Use effective_limit - 1 to leave room for the new sandbox
+                if current_count >= effective_limit - 1:
+                    await self.pause_old_sandboxes(effective_limit - 1)
+
+                # Store the sandbox record (this reserves the slot)
+                stored_sandbox = StoredRemoteSandbox(
+                    id=sandbox_id,
+                    created_by_user_id=user_id,
+                    sandbox_spec_id=sandbox_spec.id,
+                    created_at=utc_now(),
+                )
+                self.db_session.add(stored_sandbox)
+
+            # Nested transaction committed - lock is now released.
+            # The sandbox record exists, so the concurrency slot is reserved.
+            # Other requests can now proceed with their own concurrency checks.
 
             # Prepare environment variables
             environment = await self._init_environment(sandbox_spec, sandbox_id)
