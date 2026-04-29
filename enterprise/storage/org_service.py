@@ -7,7 +7,11 @@ from typing import NoReturn
 from uuid import UUID, uuid4
 from uuid import UUID as parse_uuid
 
-from server.constants import ORG_SETTINGS_VERSION, get_default_litellm_model
+from server.constants import (
+    DEFAULT_COMMERCIAL_ORG_CONCURRENT_SANDBOXES,
+    ORG_SETTINGS_VERSION,
+    get_default_litellm_model,
+)
 from server.routes.org_models import (
     LiteLLMIntegrationError,
     OrgAuthorizationError,
@@ -118,7 +122,7 @@ class OrgService:
             org_version=ORG_SETTINGS_VERSION,
             agent_settings=default_agent_settings,
             conversation_settings=ConversationSettings(),
-            max_concurrent_sandboxes=10,  # Commercial orgs get limit of 10
+            max_concurrent_sandboxes=DEFAULT_COMMERCIAL_ORG_CONCURRENT_SANDBOXES,
         )
 
     @staticmethod

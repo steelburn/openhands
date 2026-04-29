@@ -9,7 +9,10 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from server.constants import LITE_LLM_API_URL
+from server.constants import (
+    DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES,
+    LITE_LLM_API_URL,
+)
 from storage.org import Org
 from storage.org_member import OrgMember
 from storage.role import Role
@@ -165,7 +168,7 @@ class OrgResponse(BaseModel):
     v1_enabled: bool | None = None
     credits: float | None = None
     is_personal: bool = False
-    max_concurrent_sandboxes: int = 3
+    max_concurrent_sandboxes: int = DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
 
     @classmethod
     def from_org(
@@ -486,7 +489,7 @@ class OrgMemberResponse(BaseModel):
     role_rank: int
     status: str | None
     max_concurrent_sandboxes_override: int | None = None
-    effective_max_concurrent_sandboxes: int = 3
+    effective_max_concurrent_sandboxes: int = DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
 
 
 class OrgMemberPage(BaseModel):
@@ -521,7 +524,7 @@ class MeResponse(BaseModel):
     conversation_settings_diff: dict[str, Any] = Field(default_factory=dict)
     status: str | None = None
     max_concurrent_sandboxes_override: int | None = None
-    effective_max_concurrent_sandboxes: int = 3
+    effective_max_concurrent_sandboxes: int = DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
 
     @staticmethod
     def _mask_key(secret: str | SecretStr | None) -> str:

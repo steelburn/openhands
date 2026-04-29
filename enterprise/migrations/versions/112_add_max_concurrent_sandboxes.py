@@ -6,6 +6,11 @@ Adds per-org default and per-user override for concurrent sandbox limits.
   - Commercial orgs: default 10 (set at org creation time, server_default used for existing)
 - org_member.max_concurrent_sandboxes_override: per-user override (NULL = use org default)
 
+Note: Hardcoded values (3, 10) are intentional in migrations - they represent the
+state at migration time and should not change if constants are updated later.
+See server.constants for current values: DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES,
+DEFAULT_COMMERCIAL_ORG_CONCURRENT_SANDBOXES.
+
 Revision ID: 112
 Revises: 111
 Create Date: 2026-04-29

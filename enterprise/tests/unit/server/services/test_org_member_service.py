@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from pydantic import SecretStr
+from server.constants import DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
 from server.routes.org_models import (
     CannotModifySelfError,
     InsufficientPermissionError,
@@ -114,7 +115,7 @@ def target_membership_admin(org_id, target_user_id, admin_role):
 def mock_org():
     """Create a mock organization with default max_concurrent_sandboxes."""
     org = MagicMock()
-    org.max_concurrent_sandboxes = 3
+    org.max_concurrent_sandboxes = DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
     return org
 
 
@@ -2695,7 +2696,8 @@ class TestOrgMemberServiceConcurrencyLimits:
             result = await OrgMemberService.get_me(org_id, current_user_id)
 
             assert result.max_concurrent_sandboxes_override is None
-            assert result.effective_max_concurrent_sandboxes == 3  # fallback
+            # fallback to personal org default when org is None
+            assert result.effective_max_concurrent_sandboxes == DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
 
     @pytest.mark.asyncio
     async def test_get_org_members_returns_effective_limits(

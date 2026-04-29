@@ -13,6 +13,10 @@ from unittest.mock import MagicMock
 
 import pytest
 from pydantic import ValidationError
+from server.constants import (
+    DEFAULT_COMMERCIAL_ORG_CONCURRENT_SANDBOXES,
+    DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES,
+)
 from server.routes.org_models import (
     OrgAppSettingsResponse,
     OrgAppSettingsUpdate,
@@ -39,7 +43,7 @@ class TestOrgResponseConcurrencyLimits:
         assert response.max_concurrent_sandboxes == 5
 
     def test_org_response_default_max_concurrent_sandboxes(self):
-        """Test that OrgResponse has default of 3 for max_concurrent_sandboxes."""
+        """Test that OrgResponse has default for max_concurrent_sandboxes."""
         response = OrgResponse(
             id='test-org-id',
             name='Test Org',
@@ -47,7 +51,7 @@ class TestOrgResponseConcurrencyLimits:
             contact_email='test@example.com',
         )
 
-        assert response.max_concurrent_sandboxes == 3
+        assert response.max_concurrent_sandboxes == DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
 
     def test_org_response_from_org_includes_max_concurrent_sandboxes(self):
         """Test that OrgResponse.from_org includes max_concurrent_sandboxes."""
@@ -98,10 +102,10 @@ class TestOrgResponseConcurrencyLimits:
         # Pass user_id matching org.id to simulate personal org
         response = OrgResponse.from_org(mock_org, user_id=str(mock_org.id))
 
-        assert response.max_concurrent_sandboxes == 3  # personal org default
+        assert response.max_concurrent_sandboxes == DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
 
     def test_org_response_from_org_uses_commercial_default_when_none(self):
-        """Test that OrgResponse.from_org uses 10 for commercial orgs when None."""
+        """Test that OrgResponse.from_org uses commercial default for commercial orgs when None."""
         mock_org = MagicMock(spec=Org)
         mock_org.id = uuid.uuid4()
         mock_org.name = 'Test Org'
@@ -124,7 +128,7 @@ class TestOrgResponseConcurrencyLimits:
         # No user_id = commercial org
         response = OrgResponse.from_org(mock_org)
 
-        assert response.max_concurrent_sandboxes == 10  # commercial org default
+        assert response.max_concurrent_sandboxes == DEFAULT_COMMERCIAL_ORG_CONCURRENT_SANDBOXES
 
 
 class TestOrgUpdateConcurrencyLimits:
@@ -229,10 +233,10 @@ class TestOrgAppSettingsResponseConcurrencyLimits:
         assert response.max_concurrent_sandboxes == 7
 
     def test_org_app_settings_response_default_value(self):
-        """Test that OrgAppSettingsResponse has default of 3."""
+        """Test that OrgAppSettingsResponse has default value."""
         response = OrgAppSettingsResponse()
 
-        assert response.max_concurrent_sandboxes == 3
+        assert response.max_concurrent_sandboxes == DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
 
     def test_org_app_settings_response_from_org(self):
         """Test that OrgAppSettingsResponse.from_org includes max_concurrent_sandboxes."""
