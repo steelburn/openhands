@@ -27,13 +27,39 @@ interface GitControlBarProps {
   onSuggestionsClick: (value: string) => void;
 }
 
+// localStorage key for tracking onboarding modal dismissal per conversation
+const ONBOARDING_MODAL_SHOWN_KEY_PREFIX = "onboarding-modal-shown-";
+
+function getOnboardingModalShownKey(conversationId: string): string {
+  return `${ONBOARDING_MODAL_SHOWN_KEY_PREFIX}${conversationId}`;
+}
+
+function wasOnboardingModalShown(conversationId: string | undefined): boolean {
+  if (!conversationId) return false;
+  try {
+    return (
+      localStorage.getItem(getOnboardingModalShownKey(conversationId)) ===
+      "true"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function markOnboardingModalShown(conversationId: string | undefined): void {
+  if (!conversationId) return;
+  try {
+    localStorage.setItem(getOnboardingModalShownKey(conversationId), "true");
+  } catch {
+    // Ignore localStorage errors
+  }
+}
+
 export function GitControlBar({ onSuggestionsClick }: GitControlBarProps) {
   const { t } = useTranslation();
   const { conversationId } = useParams<{ conversationId: string }>();
   const [isOpenRepoModalOpen, setIsOpenRepoModalOpen] = useState(false);
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
-  // Track if we've already shown the modal for this conversation to prevent showing twice
-  const onboardingModalShownRef = useRef(false);
   const { addRecentRepository } = useHomeStore();
   const { setOptimisticUserMessage } = useOptimisticUserMessageStore();
 
@@ -77,30 +103,61 @@ export function GitControlBar({ onSuggestionsClick }: GitControlBarProps) {
   // This handles both:
   // 1. Conversation loaded with a repo that needs onboarding
   // 2. User connected a new repo via OpenRepositoryModal
+  // The modal only shows once per conversation (persisted in localStorage)
+  // We wait until isConversationReady (WebSocket connected) to ensure:
+  // - The conversation state is stable (no double-firing)
+  // - "Load Plugin" can send a message immediately
   useEffect(() => {
-    if (
-      hasRepository &&
-      needsOnboarding(onboardingFiles) &&
-      !onboardingModalShownRef.current
-    ) {
-      setShowOnboardingModal(true);
-      onboardingModalShownRef.current = true;
+    // Must have a valid conversationId to track in localStorage
+    if (!conversationId) {
+      return;
     }
-  }, [hasRepository, onboardingFiles]);
 
-  // Reset the modal shown flag when conversation changes
-  useEffect(() => {
-    onboardingModalShownRef.current = false;
-  }, [conversationId]);
+    // Wait until the conversation is ready (WebSocket connected)
+    // This ensures stable state and that "Load Plugin" works immediately
+    if (!isConversationReady) {
+      return;
+    }
+
+    // Check localStorage synchronously - prevents race conditions
+    if (wasOnboardingModalShown(conversationId)) {
+      return;
+    }
+
+    if (hasRepository && needsOnboarding(onboardingFiles)) {
+      // Mark as shown BEFORE updating state to prevent double-firing
+      markOnboardingModalShown(conversationId);
+      setShowOnboardingModal(true);
+    }
+  }, [hasRepository, onboardingFiles, conversationId, isConversationReady]);
 
   const handleOnboardingDismiss = useCallback(() => {
     setShowOnboardingModal(false);
   }, []);
 
   const handleOnboardingLoadPlugin = useCallback(() => {
-    // TODO: Implement load plugin functionality
     setShowOnboardingModal(false);
-  }, []);
+
+    // Check WebSocket is connected before sending
+    if (webSocketStatusRef.current !== "OPEN") {
+      displayErrorToast(t(I18nKey.CHAT_INTERFACE$DISCONNECTED));
+      return;
+    }
+
+    // Send message to agent to add the onboarding plugin and run setup-openhands
+    const onboardingPrompt = `/add-skill https://github.com/OpenHands/extensions/tree/main/plugins/onboarding
+
+After adding the skill, run \`setup-openhands\` to configure this repository for OpenHands.`;
+
+    setOptimisticUserMessage(onboardingPrompt);
+    sendRef.current({
+      action: "message",
+      args: {
+        content: onboardingPrompt,
+        timestamp: new Date().toISOString(),
+      },
+    });
+  }, [t, setOptimisticUserMessage]);
 
   const handleLaunchRepository = (
     repository: GitRepository,
