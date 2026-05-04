@@ -430,9 +430,7 @@ def sync_users_to_resend():
             synced_user_store, RESEND_AUDIENCE_ID
         )
 
-        created_after_ms = int(
-            (time.time() - CREATED_AFTER_DAYS * 86400) * 1000
-        )
+        created_after_ms = int((time.time() - CREATED_AFTER_DAYS * 86400) * 1000)
         logger.info(
             f'Fetching Keycloak users created in the last {CREATED_AFTER_DAYS} '
             f'days (createdAfter={created_after_ms})'
