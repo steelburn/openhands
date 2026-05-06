@@ -1464,14 +1464,24 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         return conv_settings.create_request(StartConversationRequest, agent=agent)
 
     # FILE: secret naming convention and path→env-var handlers.
-    # Each entry is (path_prefix, env_var_name, temp_subdir_name).
+    # Each entry is (path_prefix, env_var_name, temp_subdir_name, suppressed_env_vars).
     # Files whose path starts with a given prefix are written into
-    # {base_tmp}/{temp_subdir_name}/ and the corresponding env var is
-    # set to that directory.
+    # {base_tmp}/{temp_subdir_name}/ and the corresponding env var is set to that
+    # directory.  suppressed_env_vars lists env var names that must be removed from
+    # the subprocess environment when this handler fires — they would conflict with
+    # the file-based auth mechanism (e.g. an API key pointing at a proxy conflicts
+    # with OAuth credentials).
     _FILE_SECRET_PREFIX = 'FILE:'
-    _FILE_PATH_HANDLERS: tuple[tuple[str, str, str], ...] = (
-        # ~/.claude/* → CLAUDE_CONFIG_DIR points to temp subdir
-        ('~/.claude/', 'CLAUDE_CONFIG_DIR', 'claude-config'),
+    _FILE_PATH_HANDLERS: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
+        # ~/.claude/* → CLAUDE_CONFIG_DIR for OAuth auth; suppress API-key vars
+        # that would redirect the subprocess away from api.anthropic.com or
+        # override OAuth with key-based auth.
+        (
+            '~/.claude/',
+            'CLAUDE_CONFIG_DIR',
+            'claude-config',
+            ('ANTHROPIC_API_KEY', 'ANTHROPIC_BASE_URL'),
+        ),
     )
 
     @staticmethod
@@ -1496,13 +1506,20 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
     def _inject_file_secrets(
         secrets: dict,
         conversation_id: UUID,
-    ) -> tuple[dict, dict[str, str]]:
+    ) -> tuple[dict, dict[str, str], frozenset[str]]:
         """Extract FILE:-prefixed secrets, write them to temp files, return env vars.
 
         Secrets named ``FILE:<path>`` are not injected as environment variables.
         Instead their content is written as a file at a temporary path derived
         from the conversation ID, and an appropriate env var (e.g.
         ``CLAUDE_CONFIG_DIR``) is added so the ACP subprocess can find the file.
+
+        When a handler fires it also declares env vars that must be suppressed
+        from the subprocess environment (``suppressed_env_vars`` in
+        ``_FILE_PATH_HANDLERS``).  For example, ``CLAUDE_CONFIG_DIR``-based
+        OAuth auth requires that ``ANTHROPIC_API_KEY`` / ``ANTHROPIC_BASE_URL``
+        are absent so the subprocess authenticates via the credential file rather
+        than key-based auth through a proxy.
 
         The temp directory is named ``oh-acp-{conversation_id.hex}`` under the
         system temp dir.  Call :meth:`_cleanup_acp_temp_dir` with the same
@@ -1514,18 +1531,21 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 unique and conversation-scoped.
 
         Returns:
-            (regular_secrets, extra_env) where regular_secrets has FILE: entries
-            removed and extra_env contains the injected directory env vars.
+            (regular_secrets, extra_env, suppressed_vars) where regular_secrets
+            has FILE: entries removed, extra_env contains the injected directory
+            env vars, and suppressed_vars is the set of env var names that must
+            be omitted from the subprocess environment.
         """
         prefix = LiveStatusAppConversationService._FILE_SECRET_PREFIX
         handlers = LiveStatusAppConversationService._FILE_PATH_HANDLERS
 
         file_secrets = {k: v for k, v in secrets.items() if k.startswith(prefix)}
         if not file_secrets:
-            return secrets, {}
+            return secrets, {}, frozenset()
 
         regular_secrets = {k: v for k, v in secrets.items() if not k.startswith(prefix)}
         extra_env: dict[str, str] = {}
+        suppressed: set[str] = set()
 
         base_tmp = os.path.join(
             tempfile.gettempdir(),
@@ -1550,7 +1570,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 continue
 
             matched = False
-            for path_prefix, env_var, subdir_name in handlers:
+            for path_prefix, env_var, subdir_name, conflict_vars in handlers:
                 if not file_path.startswith(path_prefix):
                     continue
 
@@ -1576,12 +1596,15 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
 
                 if env_var not in extra_env:
                     extra_env[env_var] = group_dir
+                suppressed.update(conflict_vars)
                 _logger.info(
-                    'FILE: secret %r written to %r; injecting %s=%r',
+                    'FILE: secret %r written to %r; injecting %s=%r, '
+                    'suppressing %s',
                     secret_name,
                     target,
                     env_var,
                     group_dir,
+                    ', '.join(conflict_vars) if conflict_vars else 'none',
                 )
                 matched = True
                 break
@@ -1592,7 +1615,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                     secret_name,
                 )
 
-        return regular_secrets, extra_env
+        return regular_secrets, extra_env, frozenset(suppressed)
 
     @staticmethod
     def _cleanup_acp_temp_dir(conversation_id: UUID) -> None:
@@ -1719,17 +1742,35 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         # Extract FILE:-prefixed secrets: write them to temp files inside the
         # sandbox and collect the resulting env vars (e.g. CLAUDE_CONFIG_DIR).
         # FILE: secrets are removed from `secrets` so they aren't injected as
-        # plain env vars via AgentContext.
-        secrets, file_env = self._inject_file_secrets(secrets, conversation_id)
+        # plain env vars via AgentContext.  suppressed_vars names env vars that
+        # conflict with the file-based auth and must be omitted entirely.
+        secrets, file_env, suppressed_vars = self._inject_file_secrets(
+            secrets, conversation_id
+        )
 
-        # Merge provider env vars (API keys etc.) into acp_env.
+        # Merge provider env vars (API keys etc.) into acp_env, then apply
+        # suppression so that conflicting vars (e.g. ANTHROPIC_API_KEY when
+        # CLAUDE_CONFIG_DIR OAuth auth is active) don't reach the subprocess.
         # Priority (highest → lowest): acp_env > provider_env > file_env
-        provider_env = self._acp_provider_env(user)
+        provider_env = {
+            k: v
+            for k, v in self._acp_provider_env(user).items()
+            if k not in suppressed_vars
+        }
         merged_env: dict[str, str] = {
             **file_env,
             **provider_env,
-            **dict(acp_settings.acp_env or {}),
+            **{
+                k: v
+                for k, v in dict(acp_settings.acp_env or {}).items()
+                if k not in suppressed_vars
+            },
         }
+
+        # Strip suppressed vars from the secrets dict so they are not injected
+        # as plain env vars via AgentContext either.
+        if suppressed_vars:
+            secrets = {k: v for k, v in secrets.items() if k not in suppressed_vars}
 
         # Pass user secrets via AgentContext so the SDK renders a
         # <CUSTOM_SECRETS> block in the ACP prompt and injects values into

@@ -43,7 +43,7 @@ def test_claude_credentials_written_and_env_injected(tmp_path, monkeypatch):
         "ANTHROPIC_API_KEY": _static("sk-test"),
     }
 
-    remaining, extra_env = _inject(secrets, CONV_ID)
+    remaining, extra_env, _ = _inject(secrets, CONV_ID)
 
     # FILE: secret removed from regular secrets
     assert "FILE:~/.claude/credentials.json" not in remaining
@@ -72,8 +72,8 @@ def test_temp_dir_is_conversation_scoped(tmp_path, monkeypatch):
 
     secrets = {"FILE:~/.claude/credentials.json": _static("{}")}
 
-    _, env_a = _inject(dict(secrets), conv_a)
-    _, env_b = _inject(dict(secrets), conv_b)
+    _, env_a, _ = _inject(dict(secrets), conv_a)
+    _, env_b, _ = _inject(dict(secrets), conv_b)
 
     assert env_a["CLAUDE_CONFIG_DIR"] != env_b["CLAUDE_CONFIG_DIR"]
     assert conv_a.hex in env_a["CLAUDE_CONFIG_DIR"]
@@ -85,7 +85,7 @@ def test_no_file_secrets_returns_unchanged(tmp_path, monkeypatch):
     monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
 
     secrets = {"ANTHROPIC_API_KEY": _static("sk-test"), "OTHER": _static("val")}
-    remaining, extra_env = _inject(dict(secrets), CONV_ID)
+    remaining, extra_env, _ = _inject(dict(secrets), CONV_ID)
 
     assert remaining == secrets
     assert extra_env == {}
@@ -101,7 +101,7 @@ def test_empty_value_skipped(tmp_path, monkeypatch):
     monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
 
     secrets = {"FILE:~/.claude/credentials.json": _static("")}
-    remaining, extra_env = _inject(secrets, CONV_ID)
+    remaining, extra_env, _ = _inject(secrets, CONV_ID)
 
     assert remaining == {}
     assert extra_env == {}
@@ -112,7 +112,7 @@ def test_unknown_file_path_skipped(tmp_path, monkeypatch):
     monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
 
     secrets = {"FILE:~/.some-other-tool/token": _static("value")}
-    out_secrets, extra_env = _inject(secrets, CONV_ID)
+    out_secrets, extra_env, _ = _inject(secrets, CONV_ID)
 
     assert out_secrets == {}
     assert extra_env == {}
@@ -126,7 +126,7 @@ def test_multiple_claude_files_share_config_dir(tmp_path, monkeypatch):
         "FILE:~/.claude/credentials.json": _static('{"a":1}'),
         "FILE:~/.claude/settings.json": _static('{"b":2}'),
     }
-    _, extra_env = _inject(secrets, CONV_ID)
+    _, extra_env, _ = _inject(secrets, CONV_ID)
 
     assert "CLAUDE_CONFIG_DIR" in extra_env
     config_dir = extra_env["CLAUDE_CONFIG_DIR"]
@@ -155,7 +155,7 @@ def test_path_traversal_rejected(tmp_path, monkeypatch, malicious_name):
     monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
 
     secrets = {malicious_name: _static("malicious content")}
-    _, extra_env = _inject(secrets, CONV_ID)
+    _, extra_env, _ = _inject(secrets, CONV_ID)
 
     # No env var should be set and no file written outside the temp base
     assert extra_env == {}
@@ -172,10 +172,41 @@ def test_absolute_path_in_relative_rejected(tmp_path, monkeypatch):
 
     # Crafted so that after stripping "~/.claude/" we get "/etc/passwd"
     secrets = {"FILE:~/.claude//etc/passwd": _static("malicious")}
-    _, extra_env = _inject(secrets, CONV_ID)
+    _, extra_env, _ = _inject(secrets, CONV_ID)
 
     assert extra_env == {}
     assert not os.path.exists("/etc/passwd" + ".injected")  # sanity
+
+
+# ---------------------------------------------------------------------------
+# Cleanup tests
+# ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# Suppression tests
+# ---------------------------------------------------------------------------
+
+
+def test_claude_credentials_suppress_api_key_vars(tmp_path, monkeypatch):
+    """CLAUDE_CONFIG_DIR injection also returns ANTHROPIC_* vars to suppress."""
+    monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
+
+    secrets = {"FILE:~/.claude/credentials.json": _static("{}")}
+    _, _, suppressed = _inject(secrets, CONV_ID)
+
+    assert "ANTHROPIC_API_KEY" in suppressed
+    assert "ANTHROPIC_BASE_URL" in suppressed
+
+
+def test_no_file_secrets_no_suppression(tmp_path, monkeypatch):
+    """Without FILE: secrets, suppressed_vars is empty."""
+    monkeypatch.setattr(tempfile, "gettempdir", lambda: str(tmp_path))
+
+    secrets = {"ANTHROPIC_API_KEY": _static("sk-test")}
+    _, _, suppressed = _inject(secrets, CONV_ID)
+
+    assert len(suppressed) == 0
 
 
 # ---------------------------------------------------------------------------
