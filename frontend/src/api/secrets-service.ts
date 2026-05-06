@@ -1,3 +1,4 @@
+import { isAxiosError } from "axios";
 import { openHands } from "./open-hands-axios";
 import {
   CustomSecret,
@@ -67,6 +68,22 @@ export class SecretsService {
 
     const { status } = await openHands.post("/api/v1/secrets", secret);
     return status === 201;
+  }
+
+  /**
+   * Create or replace a secret. If a secret with the given name already exists
+   * it is deleted first, then recreated with the new value.
+   */
+  static async upsertSecret(name: string, value: string, description?: string) {
+    try {
+      return await SecretsService.createSecret(name, value, description);
+    } catch (err) {
+      if (isAxiosError(err) && err.response?.status === 400) {
+        await SecretsService.deleteSecret(name);
+        return SecretsService.createSecret(name, value, description);
+      }
+      throw err;
+    }
   }
 
   static async updateSecret(id: string, name: string, description?: string) {

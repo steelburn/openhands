@@ -2,6 +2,8 @@ import asyncio
 import json
 import logging
 import os
+import shutil
+import stat
 import tempfile
 import zipfile
 from collections import defaultdict
@@ -1461,6 +1463,106 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         # prompts, LLM metadata, skills) applied after create_agent().
         return conv_settings.create_request(StartConversationRequest, agent=agent)
 
+    # FILE: secret naming convention and path→env-var handlers.
+    # Each entry is (path_prefix, env_var_name, temp_subdir_name).
+    # Files whose path starts with a given prefix are written into
+    # {base_tmp}/{temp_subdir_name}/ and the corresponding env var is
+    # set to that directory.
+    _FILE_SECRET_PREFIX = 'FILE:'
+    _FILE_PATH_HANDLERS: tuple[tuple[str, str, str], ...] = (
+        # ~/.claude/* → CLAUDE_CONFIG_DIR points to temp subdir
+        ('~/.claude/', 'CLAUDE_CONFIG_DIR', 'claude-config'),
+    )
+
+    @staticmethod
+    def _inject_file_secrets(
+        secrets: dict,
+        conversation_id: UUID,
+    ) -> tuple[dict, dict[str, str]]:
+        """Extract FILE:-prefixed secrets, write them to temp files, return env vars.
+
+        Secrets named ``FILE:<path>`` are not injected as environment variables.
+        Instead their content is written as a file at a temporary path derived
+        from the conversation ID, and an appropriate env var (e.g.
+        ``CLAUDE_CONFIG_DIR``) is added so the ACP subprocess can find the file.
+
+        Args:
+            secrets: Full secrets dict (name → SecretSource).
+            conversation_id: UUID of the conversation, used to make temp paths
+                unique and conversation-scoped.
+
+        Returns:
+            (regular_secrets, extra_env) where regular_secrets has FILE: entries
+            removed and extra_env contains the injected directory env vars.
+        """
+        prefix = LiveStatusAppConversationService._FILE_SECRET_PREFIX
+        handlers = LiveStatusAppConversationService._FILE_PATH_HANDLERS
+
+        file_secrets = {k: v for k, v in secrets.items() if k.startswith(prefix)}
+        if not file_secrets:
+            return secrets, {}
+
+        regular_secrets = {k: v for k, v in secrets.items() if not k.startswith(prefix)}
+        extra_env: dict[str, str] = {}
+
+        base_tmp = os.path.join(
+            tempfile.gettempdir(),
+            f'oh-acp-{conversation_id.hex}',
+        )
+        os.makedirs(base_tmp, mode=0o700, exist_ok=True)
+
+        from openhands.sdk.secret import SecretSource
+
+        for secret_name, secret_source in file_secrets.items():
+            file_path = secret_name[len(prefix):]  # e.g. ~/.claude/credentials.json
+
+            value = (
+                secret_source.get_value()
+                if isinstance(secret_source, SecretSource)
+                else str(secret_source)
+            )
+            if not value:
+                _logger.warning(
+                    'FILE: secret %r has an empty value; skipping', secret_name
+                )
+                continue
+
+            matched = False
+            for path_prefix, env_var, subdir_name in handlers:
+                if file_path.startswith(path_prefix):
+                    relative = file_path[len(path_prefix):]  # e.g. credentials.json
+                    group_dir = os.path.join(base_tmp, subdir_name)
+                    os.makedirs(group_dir, mode=0o700, exist_ok=True)
+
+                    target = os.path.join(group_dir, relative)
+                    target_dir = os.path.dirname(target)
+                    if target_dir:
+                        os.makedirs(target_dir, mode=0o700, exist_ok=True)
+
+                    with open(target, 'w') as fh:
+                        fh.write(value)
+                    os.chmod(target, stat.S_IRUSR | stat.S_IWUSR)
+
+                    if env_var not in extra_env:
+                        extra_env[env_var] = group_dir
+                    _logger.info(
+                        'FILE: secret %r written to %r; injecting %s=%r',
+                        secret_name,
+                        target,
+                        env_var,
+                        group_dir,
+                    )
+                    matched = True
+                    break
+
+            if not matched:
+                _logger.warning(
+                    'FILE: secret %r has no configured handler; ignoring',
+                    secret_name,
+                )
+
+        return regular_secrets, extra_env
+
     @staticmethod
     def _acp_provider_env(user: UserInfo) -> dict[str, str]:
         """Translate UI-saved LLM credentials into provider-native env vars.
@@ -1566,10 +1668,17 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         acp_settings = user.agent_settings  # already verified to be ACPAgentSettings
         assert isinstance(acp_settings, ACPAgentSettings)
 
+        # Extract FILE:-prefixed secrets: write them to temp files inside the
+        # sandbox and collect the resulting env vars (e.g. CLAUDE_CONFIG_DIR).
+        # FILE: secrets are removed from `secrets` so they aren't injected as
+        # plain env vars via AgentContext.
+        secrets, file_env = self._inject_file_secrets(secrets, conversation_id)
+
         # Merge provider env vars (API keys etc.) into acp_env.
-        # Priority (highest → lowest): acp_env > provider_env
+        # Priority (highest → lowest): acp_env > provider_env > file_env
         provider_env = self._acp_provider_env(user)
         merged_env: dict[str, str] = {
+            **file_env,
             **provider_env,
             **dict(acp_settings.acp_env or {}),
         }

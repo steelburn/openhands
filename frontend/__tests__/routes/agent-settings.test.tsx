@@ -7,6 +7,7 @@ import userEvent from "@testing-library/user-event";
 import AgentSettingsScreen from "#/routes/agent-settings";
 import SettingsService from "#/api/settings-service/settings-service.api";
 import OptionService from "#/api/option-service/option-service.api";
+import { SecretsService } from "#/api/secrets-service";
 import { MOCK_DEFAULT_USER_SETTINGS } from "#/mocks/handlers";
 import { useSelectedOrganizationStore } from "#/stores/selected-organization-store";
 
@@ -132,6 +133,138 @@ describe("AgentSettingsScreen — minimal generic ACP UX", () => {
         acp_env: null,
         acp_model: null,
       },
+    });
+  });
+});
+
+describe("AgentSettingsScreen — Claude Max credentials", () => {
+  const acpClaudeCodeSettings = {
+    ...MOCK_DEFAULT_USER_SETTINGS,
+    agent_settings: {
+      agent_kind: "acp",
+      acp_server: "custom",
+      acp_command: ["npx", "-y", "@agentclientprotocol/claude-agent-acp"],
+      acp_args: [],
+      acp_env: {},
+      acp_model: null,
+    },
+  };
+
+  beforeEach(() => {
+    vi.spyOn(OptionService, "getConfig").mockResolvedValue(baseConfig);
+    vi.spyOn(SettingsService, "getSettings").mockResolvedValue(
+      acpClaudeCodeSettings,
+    );
+    // Default: no FILE: secrets saved
+    vi.spyOn(SecretsService, "searchSecrets").mockResolvedValue({
+      items: [],
+      next_page_id: null,
+    });
+  });
+
+  it("shows credentials field only for the Claude Code preset", async () => {
+    renderAgentSettings();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("claude-credentials-input"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("hides credentials field for non-Claude-Code presets", async () => {
+    vi.spyOn(SettingsService, "getSettings").mockResolvedValue({
+      ...MOCK_DEFAULT_USER_SETTINGS,
+      agent_settings: {
+        agent_kind: "acp",
+        acp_server: "custom",
+        acp_command: ["npx", "-y", "@zed-industries/codex-acp"],
+        acp_args: [],
+        acp_env: {},
+        acp_model: null,
+      },
+    });
+
+    renderAgentSettings();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("agent-command-input")).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByTestId("claude-credentials-input"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows saved badge when FILE: credential secret exists", async () => {
+    vi.spyOn(SecretsService, "searchSecrets").mockResolvedValue({
+      items: [
+        {
+          name: "FILE:~/.claude/credentials.json",
+          description: "Claude Max credentials",
+        },
+      ],
+      next_page_id: null,
+    });
+
+    renderAgentSettings();
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("claude-credentials-saved-badge"),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("calls upsertSecret and saveSettings when credentials are entered", async () => {
+    const upsertSpy = vi
+      .spyOn(SecretsService, "upsertSecret")
+      .mockResolvedValue(true);
+    const saveSpy = vi
+      .spyOn(SettingsService, "saveSettings")
+      .mockResolvedValue(true);
+
+    renderAgentSettings();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("claude-credentials-input")).toBeInTheDocument();
+    });
+
+    const credentialsInput = screen.getByTestId("claude-credentials-input");
+    // fireEvent.change avoids userEvent's special-character interpretation of {}
+    const { fireEvent } = await import("@testing-library/react");
+    fireEvent.change(credentialsInput, {
+      target: { value: '{"access_token":"tok"}' },
+    });
+    await userEvent.click(screen.getByTestId("agent-save-button"));
+
+    await waitFor(() => {
+      expect(upsertSpy).toHaveBeenCalledWith(
+        "FILE:~/.claude/credentials.json",
+        '{"access_token":"tok"}',
+        expect.any(String),
+      );
+    });
+    expect(saveSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not call upsertSecret when credentials field is empty", async () => {
+    const upsertSpy = vi
+      .spyOn(SecretsService, "upsertSecret")
+      .mockResolvedValue(true);
+    vi.spyOn(SettingsService, "saveSettings").mockResolvedValue(true);
+
+    renderAgentSettings();
+
+    await waitFor(() => {
+      expect(screen.getByTestId("agent-command-input")).toBeInTheDocument();
+    });
+
+    // Mark as dirty without touching credentials
+    await userEvent.clear(screen.getByTestId("agent-model-input"));
+    await userEvent.click(screen.getByTestId("agent-save-button"));
+
+    await waitFor(() => {
+      expect(upsertSpy).not.toHaveBeenCalled();
     });
   });
 });
