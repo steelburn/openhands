@@ -61,25 +61,15 @@ class TestDeepSeekBareNameProviderResolution:
 class TestAssignProviderDeepSeek:
     """``_assign_provider`` should prefix bare DeepSeek models.
 
-    Currently it doesn't — the bare name falls through to the litellm
-    fallback which raises, and the exception handler returns the bare name
-    unprefixed.  This means the frontend model selector shows
-    ``deepseek-chat`` without a provider, and a BYOK user who selects it
-    gets a broken configuration.
+    After the fix, bare ``deepseek-chat`` names are caught by the
+    ``_BARE_DEEPSEEK_MODELS`` set (imported from the SDK) and correctly
+    prefixed with ``deepseek/``.
     """
 
-    def test_bare_deepseek_chat_gets_no_provider_prefix(self):
-        """BUG: bare ``deepseek-chat`` is returned without a provider prefix.
-
-        Expected (after fix): ``deepseek/deepseek-chat``
-        Actual (current):     ``deepseek-chat``
-        """
+    def test_bare_deepseek_chat_gets_provider_prefix(self):
+        """Bare ``deepseek-chat`` is now correctly prefixed."""
         result = _assign_provider('deepseek-chat')
-        # This assertion documents the CURRENT (broken) behaviour.
-        # After the fix it should be: assert result == 'deepseek/deepseek-chat'
-        assert result == 'deepseek-chat', (
-            'If this starts passing as deepseek/deepseek-chat, the fix landed!'
-        )
+        assert result == 'deepseek/deepseek-chat'
 
     def test_prefixed_deepseek_chat_unchanged(self):
         """Already-prefixed ``deepseek/deepseek-chat`` is returned as-is."""
