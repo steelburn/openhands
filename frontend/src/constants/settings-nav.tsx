@@ -24,6 +24,11 @@ export interface SettingsNavItem {
   section?: SettingsNavSection;
   // When true, this item is only shown if the `enable_acp` feature flag is on.
   acpGated?: boolean;
+  // When true, the item is rendered disabled (with a tooltip) while the
+  // active personal agent is ACP. ``useAcpGuard`` reads the same flag to
+  // redirect routes that match this set, so adding/removing a route from
+  // the disabled set is a single edit.
+  disableUnderAcp?: boolean;
 }
 
 export const SAAS_NAV_ITEMS: SettingsNavItem[] = [
@@ -69,12 +74,14 @@ export const SAAS_NAV_ITEMS: SettingsNavItem[] = [
     to: "/settings",
     text: "COMMON$LANGUAGE_MODEL_LLM",
     section: "personal",
+    disableUnderAcp: true,
   },
   {
     icon: <MemoryIcon width={22} height={22} />,
     to: "/settings/condenser",
     text: "SETTINGS$NAV_CONDENSER",
     section: "personal",
+    disableUnderAcp: true,
   },
   {
     icon: <LockIcon width={22} height={22} />,
@@ -99,6 +106,7 @@ export const SAAS_NAV_ITEMS: SettingsNavItem[] = [
     to: "/settings/mcp",
     text: "SETTINGS$NAV_MCP",
     section: "personal",
+    disableUnderAcp: true,
   },
   {
     icon: <UserIcon width={22} height={22} />,
@@ -143,11 +151,13 @@ export const OSS_NAV_ITEMS: SettingsNavItem[] = [
     icon: <CircuitIcon width={22} height={22} />,
     to: "/settings",
     text: "SETTINGS$NAV_LLM",
+    disableUnderAcp: true,
   },
   {
     icon: <MemoryIcon width={22} height={22} />,
     to: "/settings/condenser",
     text: "SETTINGS$NAV_CONDENSER",
+    disableUnderAcp: true,
   },
   {
     icon: <LockIcon width={22} height={22} />,
@@ -158,6 +168,7 @@ export const OSS_NAV_ITEMS: SettingsNavItem[] = [
     icon: <ServerProcessIcon width={22} height={22} />,
     to: "/settings/mcp",
     text: "SETTINGS$NAV_MCP",
+    disableUnderAcp: true,
   },
   {
     icon: <LightbulbIcon width={22} height={22} />,
@@ -180,3 +191,13 @@ export const OSS_NAV_ITEMS: SettingsNavItem[] = [
     text: "SETTINGS$NAV_SECRETS",
   },
 ];
+
+/** Paths whose ``disableUnderAcp`` flag is set — derived from the canonical
+ *  nav lists so the disabled set has no parallel definition. Consumed by
+ *  ``useSettingsNavItems`` (renders disabled state + tooltip) and
+ *  ``useAcpGuard`` (redirects to /settings/agent). */
+export const ACP_DISABLED_PATHS = new Set<string>(
+  [...SAAS_NAV_ITEMS, ...OSS_NAV_ITEMS]
+    .filter((item) => item.disableUnderAcp)
+    .map((item) => item.to),
+);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AxiosError } from "axios";
 import { useNavigate } from "react-router";
@@ -15,30 +15,26 @@ import {
   displaySuccessToast,
 } from "#/utils/custom-toast-handlers";
 import { retrieveAxiosErrorMessage } from "#/utils/retrieve-axios-error-message";
+import type { ACPProviderInfo } from "#/api/option-service/option.types";
 
 export const handle = { hideTitle: true };
 
 type AgentType = "openhands" | "acp";
-type CommandPreset = "claude-code" | "codex" | "gemini-cli" | "custom";
 
-const PRESET_COMMANDS: Record<Exclude<CommandPreset, "custom">, string> = {
-  "claude-code": "npx -y @agentclientprotocol/claude-agent-acp",
-  codex: "npx -y @zed-industries/codex-acp",
-  "gemini-cli": "npx -y @google/gemini-cli --acp",
-};
-
-const COMMAND_PLACEHOLDER = PRESET_COMMANDS["claude-code"];
+const CUSTOM_PRESET = "custom";
 
 function tokenizeCommand(value: string): string[] {
   return value.split(/\s+/).filter(Boolean);
 }
 
-function detectPreset(text: string): CommandPreset {
+/** Match free-text command against the registry; ``"custom"`` if no preset
+ *  matches verbatim. */
+function detectPreset(text: string, providers: ACPProviderInfo[]): string {
   const trimmed = text.trim();
-  for (const [key, cmd] of Object.entries(PRESET_COMMANDS)) {
-    if (trimmed === cmd) return key as CommandPreset;
+  for (const p of providers) {
+    if (trimmed === p.default_command.join(" ")) return p.key;
   }
-  return "custom";
+  return CUSTOM_PRESET;
 }
 
 function AgentSettingsScreen() {
@@ -48,10 +44,21 @@ function AgentSettingsScreen() {
   const { data: config, isLoading: isConfigLoading } = useConfig();
   const { mutate: saveSettings, isPending: isSaving } = useSaveSettings();
 
+  // SDK registry, served on /api/v1/web-client/config. Empty until the
+  // config query resolves; effects below gate on this list being non-empty
+  // before deriving presets.
+  const acpProviders = useMemo<ACPProviderInfo[]>(
+    () => config?.acp_providers ?? [],
+    [config?.acp_providers],
+  );
+
+  const defaultPresetKey = acpProviders[0]?.key ?? CUSTOM_PRESET;
+  const placeholderCommand = acpProviders[0]?.default_command.join(" ") ?? "";
+
   const [agentType, setAgentType] = useState<AgentType>("openhands");
   const [commandText, setCommandText] = useState("");
   const [selectedPreset, setSelectedPreset] =
-    useState<CommandPreset>("claude-code");
+    useState<string>(defaultPresetKey);
   const [acpModel, setAcpModel] = useState("");
   const [isDirty, setIsDirty] = useState(false);
 
@@ -61,29 +68,20 @@ function AgentSettingsScreen() {
     if (kind === "acp") {
       setAgentType("acp");
 
-      const acpCommand = settings.agent_settings?.acp_command;
-      const acpArgs = settings.agent_settings?.acp_args;
-      const tokens: string[] = [
-        ...(Array.isArray(acpCommand)
-          ? acpCommand.filter((v): v is string => typeof v === "string")
-          : []),
-        ...(Array.isArray(acpArgs)
-          ? acpArgs.filter((v): v is string => typeof v === "string")
-          : []),
-      ];
-      const joined = tokens.join(" ");
+      const acpCommand = settings.agent_settings?.acp_command ?? [];
+      const acpArgs = settings.agent_settings?.acp_args ?? [];
+      const joined = [...acpCommand, ...acpArgs].join(" ");
       setCommandText(joined);
-      setSelectedPreset(detectPreset(joined));
+      setSelectedPreset(detectPreset(joined, acpProviders));
 
-      const savedModel = settings.agent_settings?.acp_model;
-      setAcpModel(typeof savedModel === "string" ? savedModel : "");
+      setAcpModel(settings.agent_settings?.acp_model ?? "");
     } else {
       setAgentType("openhands");
       setCommandText("");
       setAcpModel("");
     }
     setIsDirty(false);
-  }, [settings]);
+  }, [settings, acpProviders]);
 
   const isAcpEnabled = !!config?.feature_flags?.enable_acp;
 
@@ -102,21 +100,21 @@ function AgentSettingsScreen() {
   const handleSave = () => {
     let agentSettingsDiff: Record<string, unknown>;
     if (isAcp) {
+      // Stamp the selected preset key (or ``"custom"``) so the conversation
+      // chip can resolve a brand label, and the backend can rebuild the
+      // command from the registry when resuming a built-in preset.
       agentSettingsDiff = {
         agent_kind: "acp",
-        acp_server: "custom",
+        acp_server: selectedPreset,
         acp_command: commandTokens,
         acp_args: [],
         acp_model: acpModel.trim() || null,
       };
     } else {
-      agentSettingsDiff = {
-        agent_kind: "openhands",
-        acp_command: null,
-        acp_args: null,
-        acp_env: null,
-        acp_model: null,
-      };
+      // The backend's ``saved_agent_configs`` snapshot/restore handles
+      // wiping ACP-only fields when switching kinds, so the diff only
+      // needs to carry the new kind.
+      agentSettingsDiff = { agent_kind: "openhands" };
     }
 
     saveSettings(
@@ -133,6 +131,12 @@ function AgentSettingsScreen() {
       },
     );
   };
+
+  // Registry presets + the always-present "custom" sentinel.
+  const presetItems = [
+    ...acpProviders.map((p) => ({ key: p.key, label: p.display_name })),
+    { key: CUSTOM_PRESET, label: t(I18nKey.SETTINGS$AGENT_PRESET_CUSTOM) },
+  ];
 
   return (
     <div className="flex flex-col gap-6 pb-8 max-w-2xl">
@@ -163,9 +167,12 @@ function AgentSettingsScreen() {
           setAgentType(newType);
           if (newType === "acp" && !commandText) {
             const preset =
-              selectedPreset !== "custom" ? selectedPreset : "claude-code";
-            setSelectedPreset(preset);
-            setCommandText(PRESET_COMMANDS[preset]);
+              acpProviders.find((p) => p.key === selectedPreset) ??
+              acpProviders[0];
+            if (preset) {
+              setSelectedPreset(preset.key);
+              setCommandText(preset.default_command.join(" "));
+            }
           }
           setIsDirty(true);
         }}
@@ -177,22 +184,15 @@ function AgentSettingsScreen() {
             testId="agent-preset-selector"
             name="agent-preset"
             label={t(I18nKey.SETTINGS$AGENT_PRESET)}
-            items={[
-              { key: "claude-code", label: "Claude Code" },
-              { key: "codex", label: "Codex" },
-              { key: "gemini-cli", label: "Gemini CLI" },
-              {
-                key: "custom",
-                label: t(I18nKey.SETTINGS$AGENT_PRESET_CUSTOM),
-              },
-            ]}
+            items={presetItems}
             selectedKey={selectedPreset}
             onSelectionChange={(key) => {
               if (!key) return;
-              const preset = key as CommandPreset;
+              const preset = String(key);
               setSelectedPreset(preset);
-              if (preset !== "custom") {
-                setCommandText(PRESET_COMMANDS[preset]);
+              const provider = acpProviders.find((p) => p.key === preset);
+              if (provider) {
+                setCommandText(provider.default_command.join(" "));
               }
               setIsDirty(true);
             }}
@@ -206,11 +206,11 @@ function AgentSettingsScreen() {
               data-testid="agent-command-input"
               className="bg-tertiary border border-[#717888] rounded-sm p-2 text-sm font-mono text-white placeholder:italic placeholder:text-[#717888] min-h-[60px] resize-y focus:outline-none focus:border-white"
               value={commandText}
-              placeholder={COMMAND_PLACEHOLDER}
+              placeholder={placeholderCommand}
               onChange={(e) => {
                 const text = e.target.value;
                 setCommandText(text);
-                setSelectedPreset(detectPreset(text));
+                setSelectedPreset(detectPreset(text, acpProviders));
                 setIsDirty(true);
               }}
             />

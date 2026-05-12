@@ -8,8 +8,7 @@ import { formatTimeDelta } from "#/utils/format-time-delta";
 import { I18nKey } from "#/i18n/declaration";
 import { SandboxStatusIndicator } from "./sandbox-status-indicator";
 import RepoForkedIcon from "#/icons/repo-forked.svg?react";
-import { Typography } from "#/ui/typography";
-import CircuitIcon from "#/icons/u-circuit.svg?react";
+import { ConversationAgentLabel } from "#/components/features/conversation/conversation-agent-label";
 
 interface RecentConversationProps {
   conversation: V1AppConversation;
@@ -67,20 +66,13 @@ export function RecentConversation({ conversation }: RecentConversationProps) {
           ) : null}
         </div>
         <div className="flex items-center gap-2">
-          {(conversation.display_name ?? conversation.llm_model) && (
-            <span
-              className="max-w-[120px] flex items-center gap-1 overflow-hidden"
-              title={
-                conversation.display_name ?? conversation.llm_model ?? undefined
-              }
-              data-testid="recent-conversation-llm-model"
-            >
-              <CircuitIcon width={12} height={12} className="shrink-0" />
-              <Typography.Text className="text-xs truncate">
-                {conversation.display_name ?? conversation.llm_model}
-              </Typography.Text>
-            </span>
-          )}
+          <ConversationAgentLabel
+            displayName={conversation.display_name}
+            llmModel={conversation.llm_model}
+            className="max-w-[120px] flex items-center gap-1 overflow-hidden"
+            testId="recent-conversation-llm-model"
+          />
+
           {(conversation.created_at || conversation.updated_at) && (
             <span>
               {formatTimeDelta(

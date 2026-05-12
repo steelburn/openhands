@@ -1,7 +1,6 @@
 import React from "react";
 import { useParams } from "react-router";
 import { useTranslation } from "react-i18next";
-import { Typography } from "#/ui/typography";
 import { useActiveConversation } from "#/hooks/query/use-active-conversation";
 import { useUpdateConversation } from "#/hooks/mutation/use-update-conversation";
 import { useConversationNameContextMenu } from "#/hooks/use-conversation-name-context-menu";
@@ -15,7 +14,7 @@ import { HooksModal } from "../conversation-panel/hooks-modal";
 import { ConfirmDeleteModal } from "../conversation-panel/confirm-delete-modal";
 import { ConfirmStopModal } from "../conversation-panel/confirm-stop-modal";
 import { MetricsModal } from "./metrics-modal/metrics-modal";
-import CircuitIcon from "#/icons/u-circuit.svg?react";
+import { ConversationAgentLabel } from "./conversation-agent-label";
 
 export function ConversationName() {
   const { t } = useTranslation();
@@ -160,21 +159,15 @@ export function ConversationName() {
           </div>
         )}
 
-        {titleMode !== "edit" &&
-          (conversation.display_name ?? conversation.llm_model) && (
-            <span
-              className="text-xs text-[#A3A3A3] max-w-[150px] flex items-center gap-1 overflow-hidden"
-              title={
-                conversation.display_name ?? conversation.llm_model ?? undefined
-              }
-              data-testid="conversation-name-llm-model"
-            >
-              <CircuitIcon width={12} height={12} className="shrink-0" />
-              <Typography.Text className="text-xs text-[#A3A3A3] truncate">
-                {conversation.display_name ?? conversation.llm_model}
-              </Typography.Text>
-            </span>
-          )}
+        {titleMode !== "edit" && (
+          <ConversationAgentLabel
+            displayName={conversation.display_name}
+            llmModel={conversation.llm_model}
+            className="text-xs text-[#A3A3A3] max-w-[150px] flex items-center gap-1 overflow-hidden"
+            textClassName="text-xs text-[#A3A3A3] truncate"
+            testId="conversation-name-llm-model"
+          />
+        )}
 
         {titleMode !== "edit" && (
           <div className="relative flex items-center">

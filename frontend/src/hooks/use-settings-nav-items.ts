@@ -1,5 +1,6 @@
 import { useConfig } from "#/hooks/query/use-config";
 import {
+  ACP_DISABLED_PATHS,
   SAAS_NAV_ITEMS,
   OSS_NAV_ITEMS,
   SettingsNavItem,
@@ -24,20 +25,6 @@ export type SettingsNavRenderedItem =
     }
   | { type: "header"; text: I18nKey }
   | { type: "divider" };
-
-// "/settings" is the LLM settings index route (see routes.ts).
-// Condenser and MCP are managed by the ACP server itself.
-const ACP_DISABLED_PATHS = new Set<string>([
-  "/settings",
-  "/settings/condenser",
-  "/settings/mcp",
-]);
-
-const ACP_SERVER_NAMES: Record<string, string> = {
-  "claude-code": "Claude Code",
-  codex: "Codex",
-  "gemini-cli": "Gemini CLI",
-};
 
 // Section header text mapping
 const SECTION_HEADERS: Partial<Record<SettingsNavSection, I18nKey>> = {
@@ -70,10 +57,14 @@ export function useSettingsNavItems(): SettingsNavRenderedItem[] {
   const isAdminOrOwner = userRole === "admin" || userRole === "owner";
   const isAcpEnabled = !!featureFlags?.enable_acp;
   const isAcpAgent = settings?.agent_settings?.agent_kind === "acp";
+  // Resolve the active ACP server's brand label from the SDK registry the
+  // backend serves on /api/v1/web-client/config. Falls back to "ACP Agent"
+  // when the saved ``acp_server`` doesn't match any registry key (e.g.
+  // ``"custom"`` commands or a key the FE hasn't seen yet).
+  const activeAcpServer = settings?.agent_settings?.acp_server ?? "";
   const acpServerName = isAcpAgent
-    ? (ACP_SERVER_NAMES[
-        (settings?.agent_settings?.acp_server as string) ?? ""
-      ] ?? "ACP Agent")
+    ? (config?.acp_providers?.find((p) => p.key === activeAcpServer)
+        ?.display_name ?? "ACP Agent")
     : null;
 
   let items = isSaasMode ? [...SAAS_NAV_ITEMS] : [...OSS_NAV_ITEMS];

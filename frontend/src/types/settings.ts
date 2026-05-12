@@ -65,6 +65,26 @@ export type SettingsValue =
   | SettingsValue[]
   | { [key: string]: SettingsValue };
 
+/**
+ * Settings payload for the ACP / OpenHands agent. The named fields are the
+ * ones the frontend reads directly (the ACP preset config, the agent-kind
+ * discriminator); everything else is generic ``SettingsValue`` so we don't
+ * have to mirror the full OH schema for compile-time typing.
+ *
+ * Keeping the ACP fields strongly typed here lets ``agent-settings.tsx``
+ * read ``settings.agent_settings?.acp_command`` as ``string[] | null``
+ * directly, no ``Array.isArray`` + ``typeof === "string"`` guard required.
+ */
+export interface AgentSettingsPayload {
+  agent_kind?: string;
+  acp_server?: string | null;
+  acp_command?: string[] | null;
+  acp_args?: string[] | null;
+  acp_env?: Record<string, string> | null;
+  acp_model?: string | null;
+  [key: string]: SettingsValue | undefined;
+}
+
 export type SettingsValueType =
   | "string"
   | "integer"
@@ -140,7 +160,7 @@ export type Settings = {
   git_user_email?: string;
   v1_enabled?: boolean;
   agent_settings_schema?: SettingsSchema | null;
-  agent_settings?: Record<string, SettingsValue> | null;
+  agent_settings?: AgentSettingsPayload | null;
   conversation_settings_schema?: SettingsSchema | null;
   conversation_settings?: Record<string, SettingsValue> | null;
   sandbox_grouping_strategy?: SandboxGroupingStrategy;
