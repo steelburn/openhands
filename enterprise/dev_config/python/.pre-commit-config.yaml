@@ -58,3 +58,14 @@ repos:
         always_run: true
         pass_filenames: false
         files: ^enterprise/
+
+  - repo: local
+    hooks:
+      - id: check-forbidden-imports
+        name: Check forbidden import contracts (import-linter)
+        # Scans cross-package deps; server.verified_models must not import
+        # openhands.app_server.config (see [tool.importlinter] in pyproject.toml).
+        entry: bash -c 'PYTHONPATH=enterprise lint-imports --config enterprise/pyproject.toml'
+        language: system
+        pass_filenames: false
+        files: ^enterprise/(server|storage|integrations|sync)/.*\.py$
