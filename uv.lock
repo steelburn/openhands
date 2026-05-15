@@ -10,6 +10,9 @@ resolution-markers = [
     "python_full_version < '3.13' and sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
+[options]
+exclude-newer = "2026-05-15T13:19:46Z"
+
 [[package]]
 name = "agent-client-protocol"
 version = "0.9.0"
