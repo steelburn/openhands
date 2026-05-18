@@ -3516,11 +3516,12 @@ class TestSynthesizeAcpResumeInitialMessage:
 
     @pytest.mark.asyncio
     async def test_mixed_events_preserve_order(self, service):
-        """Message and tool events appear in timestamp order."""
+        """Message and tool events appear in chronological order after DESC fetch + reverse."""
+        # search_events is called with TIMESTAMP_DESC (newest first); mock matches that order.
         events = [
-            self._make_message_event('user', 'First message'),
-            self._make_tool_event('Read File'),
             self._make_message_event('assistant', 'Done reading'),
+            self._make_tool_event('Read File'),
+            self._make_message_event('user', 'First message'),
         ]
         service.event_service.search_events = AsyncMock(
             return_value=self._make_page(events)

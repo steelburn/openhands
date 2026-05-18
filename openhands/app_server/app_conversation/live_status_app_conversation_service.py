@@ -1461,12 +1461,14 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
 
         Returns ``None`` when there are no prior events (fresh conversation).
         """
+        # Fetch newest-first so that when the conversation exceeds
+        # _ACP_RESUME_MAX_EVENTS we keep the most recent context, not the oldest.
         all_events: list = []
         page_id: str | None = None
         while len(all_events) < _ACP_RESUME_MAX_EVENTS:
             page = await self.event_service.search_events(
                 conversation_id,
-                sort_order=EventSortOrder.TIMESTAMP,
+                sort_order=EventSortOrder.TIMESTAMP_DESC,
                 page_id=page_id,
                 limit=100,
             )
@@ -1477,6 +1479,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             if page.next_page_id is None:
                 break
             page_id = page.next_page_id
+        all_events.reverse()
 
         relevant = [
             e for e in all_events if isinstance(e, (MessageEvent, ACPToolCallEvent))
