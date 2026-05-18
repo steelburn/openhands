@@ -20,7 +20,7 @@ from openhands.app_server.utils.logger import openhands_logger as logger
 @dataclass
 class ProactiveConversationStore:
     def get_repo_id(self, provider: ProviderType, repo_id):
-        return f'{provider.value}##{repo_id}'
+        return f"{provider.value}##{repo_id}"
 
     async def store_workflow_information(
         self,
@@ -150,7 +150,7 @@ class ProactiveConversationStore:
                 # Log the number of deleted records
                 deleted_count = result.rowcount
                 logger.info(
-                    f'Deleted {deleted_count} proactive conversation records older than {older_than_minutes} minutes'
+                    f"Deleted {deleted_count} proactive conversation records older than {older_than_minutes} minutes"
                 )
 
     @classmethod

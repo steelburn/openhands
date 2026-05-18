@@ -61,7 +61,7 @@ class GoogleCloudSharedEventService(SharedEventService):
 
         return GoogleCloudEventService(
             bucket=self.bucket,
-            prefix=Path('users'),
+            prefix=Path("users"),
             user_id=shared_conversation_info.created_by_user_id,
             app_conversation_info_service=None,
             app_conversation_info_load_tasks={},
@@ -132,7 +132,7 @@ class GoogleCloudSharedEventService(SharedEventService):
 
 class GoogleCloudSharedEventServiceInjector(SharedEventServiceInjector):
     bucket_name: str | None = Field(
-        default_factory=lambda: os.environ.get('FILE_STORE_PATH')
+        default_factory=lambda: os.environ.get("FILE_STORE_PATH")
     )
 
     async def inject(

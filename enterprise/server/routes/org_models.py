@@ -36,8 +36,8 @@ def _validate_persisted_agent_settings(
     module).
     """
     loaded = _load_persisted_agent_settings(raw or {})
-    payload = loaded.model_dump(mode='json', context={'expose_secrets': True})
-    payload['agent_kind'] = 'openhands'
+    payload = loaded.model_dump(mode="json", context={"expose_secrets": True})
+    payload["agent_kind"] = "openhands"
     return OpenHandsAgentSettings.model_validate(payload)
 
 
@@ -76,7 +76,7 @@ class OrgDeletionError(Exception):
 class OrgAuthorizationError(OrgDeletionError):
     """Raised when user is not authorized to delete organization."""
 
-    def __init__(self, message: str = 'Not authorized to delete organization'):
+    def __init__(self, message: str = "Not authorized to delete organization"):
         super().__init__(message)
 
 
@@ -86,7 +86,7 @@ class OrphanedUserError(OrgDeletionError):
     def __init__(self, user_ids: list[str]):
         self.user_ids = user_ids
         super().__init__(
-            f'Cannot delete organization: {len(user_ids)} user(s) would have no remaining organization'
+            f"Cannot delete organization: {len(user_ids)} user(s) would have no remaining organization"
         )
 
 
@@ -126,30 +126,30 @@ class InvalidRoleError(Exception):
 class InsufficientPermissionError(Exception):
     """Raised when user lacks permission to perform an operation."""
 
-    def __init__(self, message: str = 'Insufficient permission'):
+    def __init__(self, message: str = "Insufficient permission"):
         super().__init__(message)
 
 
 class CannotModifySelfError(Exception):
     """Raised when user attempts to modify their own membership."""
 
-    def __init__(self, action: str = 'modify'):
+    def __init__(self, action: str = "modify"):
         self.action = action
-        super().__init__(f'Cannot {action} your own membership')
+        super().__init__(f"Cannot {action} your own membership")
 
 
 class LastOwnerError(Exception):
     """Raised when attempting to remove or demote the last owner."""
 
-    def __init__(self, action: str = 'remove'):
+    def __init__(self, action: str = "remove"):
         self.action = action
-        super().__init__(f'Cannot {action} the last owner of an organization')
+        super().__init__(f"Cannot {action} the last owner of an organization")
 
 
 class MemberUpdateError(Exception):
     """Raised when member update operation fails."""
 
-    def __init__(self, message: str = 'Failed to update member'):
+    def __init__(self, message: str = "Failed to update member"):
         super().__init__(message)
 
 
@@ -194,7 +194,7 @@ class OrgResponse(BaseModel):
     @classmethod
     def from_org(
         cls, org: Org, credits: float | None = None, user_id: str | None = None
-    ) -> 'OrgResponse':
+    ) -> "OrgResponse":
         """Create an OrgResponse from an Org entity."""
         return cls(
             id=str(org.id),
@@ -259,12 +259,12 @@ class OrgUpdate(BaseModel):
     agent_settings_diff: dict[str, Any] | None = None
     conversation_settings_diff: dict[str, Any] | None = None
 
-    @model_validator(mode='after')
-    def _normalize_settings_diffs(self) -> 'OrgUpdate':
+    @model_validator(mode="after")
+    def _normalize_settings_diffs(self) -> "OrgUpdate":
         """Normalize sparse settings diffs before merge/persistence."""
         self._normalize_agent_settings_diff()
-        self._cleanup_empty_diff('agent_settings_diff', nested_key='llm')
-        self._cleanup_empty_diff('conversation_settings_diff')
+        self._cleanup_empty_diff("agent_settings_diff", nested_key="llm")
+        self._cleanup_empty_diff("conversation_settings_diff")
         return self
 
     def _normalize_agent_settings_diff(self) -> None:
@@ -280,15 +280,15 @@ class OrgUpdate(BaseModel):
         """Return the nested ``llm`` diff when present and dictionary-shaped."""
         if self.agent_settings_diff is None:
             return None
-        llm_diff = self.agent_settings_diff.get('llm')
+        llm_diff = self.agent_settings_diff.get("llm")
         return llm_diff if isinstance(llm_diff, dict) else None
 
     def _lift_and_mask_llm_api_key(self, llm_diff: dict[str, Any]) -> None:
         """Lift nested api keys to ``llm_api_key`` and mask the JSON diff."""
-        if 'api_key' not in llm_diff:
+        if "api_key" not in llm_diff:
             return
 
-        nested_key = llm_diff.pop('api_key')
+        nested_key = llm_diff.pop("api_key")
         if (
             self.llm_api_key is None
             and nested_key is not None
@@ -296,17 +296,17 @@ class OrgUpdate(BaseModel):
         ):
             self.llm_api_key = nested_key
         if nested_key is not None:
-            llm_diff['api_key'] = MASKED_API_KEY
+            llm_diff["api_key"] = MASKED_API_KEY
 
     def _resolve_agent_llm_base_url(self, llm_diff: dict[str, Any]) -> None:
         """Fill provider-default base URLs for sparse LLM diffs when needed."""
         resolved_base_url = resolve_llm_base_url(
-            model=llm_diff.get('model'),
-            base_url=llm_diff.get('base_url'),
+            model=llm_diff.get("model"),
+            base_url=llm_diff.get("base_url"),
             managed_proxy_url=LITE_LLM_API_URL,
         )
         if resolved_base_url is not None:
-            llm_diff['base_url'] = resolved_base_url
+            llm_diff["base_url"] = resolved_base_url
 
     def _cleanup_empty_diff(
         self,
@@ -342,29 +342,29 @@ class OrgUpdate(BaseModel):
         return bool(
             self.updated_fields()
             & {
-                'agent_settings_diff',
-                'conversation_settings_diff',
-                'search_api_key',
-                'llm_api_key',
+                "agent_settings_diff",
+                "conversation_settings_diff",
+                "search_api_key",
+                "llm_api_key",
             }
         )
 
     def restricted_fields(self) -> set[str]:
         """Return fields that require elevated org settings permissions."""
         return self.updated_fields() & {
-            'agent_settings_diff',
-            'conversation_settings_diff',
-            'search_api_key',
-            'sandbox_api_key',
-            'llm_api_key',
+            "agent_settings_diff",
+            "conversation_settings_diff",
+            "search_api_key",
+            "sandbox_api_key",
+            "llm_api_key",
         }
 
     def model_update_dict(self) -> dict[str, Any]:
         """Return JSON-serializable scalar fields for persistence."""
         return self.model_dump(
-            mode='json',
+            mode="json",
             exclude_none=True,
-            exclude={'agent_settings_diff', 'conversation_settings_diff'},
+            exclude={"agent_settings_diff", "conversation_settings_diff"},
         )
 
     def apply_to_org(self, org: Org) -> None:
@@ -373,7 +373,7 @@ class OrgUpdate(BaseModel):
             if hasattr(org, key):
                 setattr(org, key, value)
 
-    def get_member_updates(self) -> 'OrgMemberSettingsUpdate | None':
+    def get_member_updates(self) -> "OrgMemberSettingsUpdate | None":
         """Get shared updates that need to be propagated to org members.
 
         An empty ``llm_api_key`` means the org-wide custom key is being cleared
@@ -412,11 +412,11 @@ class OrgDefaultsSettingsResponse(BaseModel):
         if not raw:
             return None
         if len(raw) <= 4:
-            return '****'
-        return '****' + raw[-4:]
+            return "****"
+        return "****" + raw[-4:]
 
     @classmethod
-    def from_org(cls, org: Org) -> 'OrgDefaultsSettingsResponse':
+    def from_org(cls, org: Org) -> "OrgDefaultsSettingsResponse":
         """Create response from Org entity.
 
         Denormalizes the SDK's ``litellm_proxy/`` prefix back to
@@ -462,8 +462,8 @@ class OrgDefaultsSettingsResponse(BaseModel):
         re-normalized back to ``litellm_proxy/``.
         """
         llm = agent_settings.llm
-        if llm.model and llm.model.startswith('litellm_proxy/'):
-            llm.model = f'openhands/{llm.model.removeprefix("litellm_proxy/")}'
+        if llm.model and llm.model.startswith("litellm_proxy/"):
+            llm.model = f"openhands/{llm.model.removeprefix('litellm_proxy/')}"
         llm.api_key = None
 
 
@@ -540,13 +540,13 @@ class MeResponse(BaseModel):
     def _mask_key(secret: str | SecretStr | None) -> str:
         """Mask an API key, showing only last 4 characters."""
         if secret is None:
-            return ''
+            return ""
         raw = secret.get_secret_value() if isinstance(secret, SecretStr) else secret
         if not raw:
-            return ''
+            return ""
         if len(raw) <= 4:
-            return '****'
-        return '****' + raw[-4:]
+            return "****"
+        return "****" + raw[-4:]
 
     @classmethod
     def from_org_member(
@@ -554,7 +554,7 @@ class MeResponse(BaseModel):
         member: OrgMember,
         role: Role,
         email: str,
-    ) -> 'MeResponse':
+    ) -> "MeResponse":
         """Create a MeResponse from an OrgMember, Role, and user email."""
         return cls(
             org_id=str(member.org_id),
@@ -576,7 +576,7 @@ class OrgAppSettingsResponse(BaseModel):
     max_budget_per_task: float | None = None
 
     @classmethod
-    def from_org(cls, org: Org) -> 'OrgAppSettingsResponse':
+    def from_org(cls, org: Org) -> "OrgAppSettingsResponse":
         """Create an OrgAppSettingsResponse from an Org entity.
 
         Args:
@@ -599,15 +599,15 @@ class OrgAppSettingsUpdate(BaseModel):
     enable_proactive_conversation_starters: bool | None = None
     max_budget_per_task: float | None = None
 
-    @field_validator('max_budget_per_task')
+    @field_validator("max_budget_per_task")
     @classmethod
     def validate_max_budget_per_task(cls, v: float | None) -> float | None:
         if v is not None and v <= 0:
-            raise ValueError('max_budget_per_task must be greater than 0')
+            raise ValueError("max_budget_per_task must be greater than 0")
         return v
 
 
-VALID_GIT_PROVIDERS = {'github', 'gitlab', 'bitbucket'}
+VALID_GIT_PROVIDERS = {"github", "gitlab", "bitbucket"}
 
 
 class GitOrgClaimRequest(BaseModel):
@@ -616,7 +616,7 @@ class GitOrgClaimRequest(BaseModel):
     provider: str
     git_organization: str
 
-    @field_validator('provider')
+    @field_validator("provider")
     @classmethod
     def validate_provider(cls, v: str) -> str:
         v = v.lower().strip()
@@ -626,12 +626,12 @@ class GitOrgClaimRequest(BaseModel):
             )
         return v
 
-    @field_validator('git_organization')
+    @field_validator("git_organization")
     @classmethod
     def validate_git_organization(cls, v: str) -> str:
         v = v.strip().lower()
         if not v:
-            raise ValueError('git_organization must not be empty')
+            raise ValueError("git_organization must not be empty")
         return v
 
 

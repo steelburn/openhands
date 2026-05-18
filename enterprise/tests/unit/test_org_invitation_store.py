@@ -84,12 +84,12 @@ class TestCreateInvitation:
         mock_result = MagicMock()
         mock_invitation = MagicMock()
         mock_invitation.id = 1
-        mock_invitation.email = 'test@example.com'
+        mock_invitation.email = "test@example.com"
         mock_result.scalars.return_value.first.return_value = mock_invitation
         mock_session.execute.return_value = mock_result
 
         with patch(
-            'storage.org_invitation_store.a_session_maker'
+            "storage.org_invitation_store.a_session_maker"
         ) as mock_session_maker:
             mock_session_manager = AsyncMock()
             mock_session_manager.__aenter__.return_value = mock_session
@@ -99,16 +99,16 @@ class TestCreateInvitation:
             from uuid import UUID
 
             await OrgInvitationStore.create_invitation(
-                org_id=UUID('12345678-1234-5678-1234-567812345678'),
-                email='  TEST@EXAMPLE.COM  ',
+                org_id=UUID("12345678-1234-5678-1234-567812345678"),
+                email="  TEST@EXAMPLE.COM  ",
                 role_id=1,
-                inviter_id=UUID('87654321-4321-8765-4321-876543218765'),
+                inviter_id=UUID("87654321-4321-8765-4321-876543218765"),
             )
 
             # Verify that the OrgInvitation was created with normalized email
             add_call = mock_session.add.call_args
             created_invitation = add_call[0][0]
-            assert created_invitation.email == 'test@example.com'
+            assert created_invitation.email == "test@example.com"
 
 
 class TestGetInvitationByToken:
@@ -118,7 +118,7 @@ class TestGetInvitationByToken:
     async def test_get_invitation_by_token_returns_invitation(self):
         """Test that get_invitation_by_token returns the invitation when found."""
         mock_invitation = MagicMock(spec=OrgInvitation)
-        mock_invitation.token = 'inv-test-token-12345'
+        mock_invitation.token = "inv-test-token-12345"
 
         mock_session = AsyncMock()
         mock_result = MagicMock()
@@ -126,7 +126,7 @@ class TestGetInvitationByToken:
         mock_session.execute = AsyncMock(return_value=mock_result)
 
         with patch(
-            'storage.org_invitation_store.a_session_maker'
+            "storage.org_invitation_store.a_session_maker"
         ) as mock_session_maker:
             mock_session_manager = AsyncMock()
             mock_session_manager.__aenter__.return_value = mock_session
@@ -134,7 +134,7 @@ class TestGetInvitationByToken:
             mock_session_maker.return_value = mock_session_manager
 
             result = await OrgInvitationStore.get_invitation_by_token(
-                'inv-test-token-12345'
+                "inv-test-token-12345"
             )
             assert result == mock_invitation
 
@@ -147,7 +147,7 @@ class TestGetInvitationByToken:
         mock_session.execute = AsyncMock(return_value=mock_result)
 
         with patch(
-            'storage.org_invitation_store.a_session_maker'
+            "storage.org_invitation_store.a_session_maker"
         ) as mock_session_maker:
             mock_session_manager = AsyncMock()
             mock_session_manager.__aenter__.return_value = mock_session
@@ -155,7 +155,7 @@ class TestGetInvitationByToken:
             mock_session_maker.return_value = mock_session_manager
 
             result = await OrgInvitationStore.get_invitation_by_token(
-                'inv-nonexistent-token'
+                "inv-nonexistent-token"
             )
             assert result is None
 
@@ -172,7 +172,7 @@ class TestGetPendingInvitation:
         mock_session.execute = AsyncMock(return_value=mock_result)
 
         with patch(
-            'storage.org_invitation_store.a_session_maker'
+            "storage.org_invitation_store.a_session_maker"
         ) as mock_session_maker:
             mock_session_manager = AsyncMock()
             mock_session_manager.__aenter__.return_value = mock_session
@@ -182,8 +182,8 @@ class TestGetPendingInvitation:
             from uuid import UUID
 
             await OrgInvitationStore.get_pending_invitation(
-                org_id=UUID('12345678-1234-5678-1234-567812345678'),
-                email='  TEST@EXAMPLE.COM  ',
+                org_id=UUID("12345678-1234-5678-1234-567812345678"),
+                email="  TEST@EXAMPLE.COM  ",
             )
 
             # Verify the query was called (email normalization happens in the filter)
@@ -210,14 +210,14 @@ class TestUpdateInvitationStatus:
         mock_session.refresh = AsyncMock()
 
         with patch(
-            'storage.org_invitation_store.a_session_maker'
+            "storage.org_invitation_store.a_session_maker"
         ) as mock_session_maker:
             mock_session_manager = AsyncMock()
             mock_session_manager.__aenter__.return_value = mock_session
             mock_session_manager.__aexit__.return_value = None
             mock_session_maker.return_value = mock_session_manager
 
-            user_id = UUID('87654321-4321-8765-4321-876543218765')
+            user_id = UUID("87654321-4321-8765-4321-876543218765")
             await OrgInvitationStore.update_invitation_status(
                 invitation_id=1,
                 status=OrgInvitation.STATUS_ACCEPTED,
@@ -236,7 +236,7 @@ class TestUpdateInvitationStatus:
         mock_session.execute = AsyncMock(return_value=mock_result)
 
         with patch(
-            'storage.org_invitation_store.a_session_maker'
+            "storage.org_invitation_store.a_session_maker"
         ) as mock_session_maker:
             mock_session_manager = AsyncMock()
             mock_session_manager.__aenter__.return_value = mock_session
@@ -263,7 +263,7 @@ class TestMarkExpiredIfNeeded:
 
         with patch.object(
             OrgInvitationStore,
-            'update_invitation_status',
+            "update_invitation_status",
             new_callable=AsyncMock,
         ) as mock_update:
             result = await OrgInvitationStore.mark_expired_if_needed(mock_invitation)
@@ -281,7 +281,7 @@ class TestMarkExpiredIfNeeded:
 
         with patch.object(
             OrgInvitationStore,
-            'update_invitation_status',
+            "update_invitation_status",
             new_callable=AsyncMock,
         ) as mock_update:
             result = await OrgInvitationStore.mark_expired_if_needed(mock_invitation)
@@ -299,7 +299,7 @@ class TestMarkExpiredIfNeeded:
 
         with patch.object(
             OrgInvitationStore,
-            'update_invitation_status',
+            "update_invitation_status",
             new_callable=AsyncMock,
         ) as mock_update:
             result = await OrgInvitationStore.mark_expired_if_needed(mock_invitation)

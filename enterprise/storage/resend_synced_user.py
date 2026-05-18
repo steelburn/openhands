@@ -16,7 +16,7 @@ class ResendSyncedUser(Base):
     Resend UI. This respects manual deletions/unsubscribes.
     """
 
-    __tablename__ = 'resend_synced_users'
+    __tablename__ = "resend_synced_users"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     email: Mapped[str] = mapped_column(String, nullable=False, index=True)
@@ -30,6 +30,6 @@ class ResendSyncedUser(Base):
 
     __table_args__ = (
         UniqueConstraint(
-            'email', 'audience_id', name='uq_resend_synced_email_audience'
+            "email", "audience_id", name="uq_resend_synced_email_audience"
         ),
     )

@@ -14,18 +14,18 @@ from collections.abc import Mapping
 # Maximum number of secrets that can be passed via API in a single request.
 # Prevents abuse by limiting the size of the secrets dictionary.
 # Override with: OH_MAX_API_SECRETS_COUNT
-MAX_API_SECRETS_COUNT: int = int(os.getenv('OH_MAX_API_SECRETS_COUNT', '50'))
+MAX_API_SECRETS_COUNT: int = int(os.getenv("OH_MAX_API_SECRETS_COUNT", "50"))
 
 # Maximum length of a secret name in characters.
 # Environment variable names should be concise; this prevents excessively long names.
 # Override with: OH_MAX_API_SECRET_NAME_LENGTH
-MAX_API_SECRET_NAME_LENGTH: int = int(os.getenv('OH_MAX_API_SECRET_NAME_LENGTH', '256'))
+MAX_API_SECRET_NAME_LENGTH: int = int(os.getenv("OH_MAX_API_SECRET_NAME_LENGTH", "256"))
 
 # Maximum length of a secret value in bytes.
 # 64KB is generous for API keys/tokens while preventing massive payloads.
 # Override with: OH_MAX_API_SECRET_VALUE_LENGTH
 MAX_API_SECRET_VALUE_LENGTH: int = int(
-    os.getenv('OH_MAX_API_SECRET_VALUE_LENGTH', '65536')
+    os.getenv("OH_MAX_API_SECRET_VALUE_LENGTH", "65536")
 )
 
 
@@ -44,19 +44,19 @@ MAX_API_SECRET_VALUE_LENGTH: int = int(
 BLOCKED_SECRET_NAMES: frozenset[str] = frozenset(
     {
         # Agent-server container configuration (from initial_env)
-        'OPENVSCODE_SERVER_ROOT',
-        'OH_ENABLE_VNC',
-        'LOG_JSON',
-        'OH_CONVERSATIONS_PATH',
-        'OH_BASH_EVENTS_DIR',
-        'PYTHONUNBUFFERED',
-        'ENV_LOG_LEVEL',
+        "OPENVSCODE_SERVER_ROOT",
+        "OH_ENABLE_VNC",
+        "LOG_JSON",
+        "OH_CONVERSATIONS_PATH",
+        "OH_BASH_EVENTS_DIR",
+        "PYTHONUNBUFFERED",
+        "ENV_LOG_LEVEL",
         # Webhook and CORS - overriding could redirect callbacks to malicious endpoints
-        'OH_WEBHOOKS_0_BASE_URL',
-        'OH_ALLOW_CORS_ORIGINS_0',
+        "OH_WEBHOOKS_0_BASE_URL",
+        "OH_ALLOW_CORS_ORIGINS_0",
         # Worker ports - could break web application functionality
-        'WORKER_1',
-        'WORKER_2',
+        "WORKER_1",
+        "WORKER_2",
     }
 )
 
@@ -67,7 +67,7 @@ BLOCKED_SECRET_NAMES: frozenset[str] = frozenset(
 # LLM controls (timeouts, retries, model restrictions, etc.). Allowing users
 # to override these would let them escape app-server LLM controls.
 # -----------------------------------------------------------------------------
-BLOCKED_SECRET_PREFIXES: tuple[str, ...] = ('LLM_',)
+BLOCKED_SECRET_PREFIXES: tuple[str, ...] = ("LLM_",)
 
 # -----------------------------------------------------------------------------
 # OVERRIDABLE: These are system-provided but users MAY override them.
@@ -80,16 +80,16 @@ OVERRIDABLE_SYSTEM_SECRETS: frozenset[str] = frozenset(
     {
         # Git Provider Tokens - users may provide their own credentials
         # Note: Provider tokens are fetched via app-server API, not container env
-        'GITHUB_TOKEN',
-        'GITLAB_TOKEN',
-        'BITBUCKET_TOKEN',
-        'AZURE_DEVOPS_TOKEN',
-        'FORGEJO_TOKEN',
+        "GITHUB_TOKEN",
+        "GITLAB_TOKEN",
+        "BITBUCKET_TOKEN",
+        "AZURE_DEVOPS_TOKEN",
+        "FORGEJO_TOKEN",
         # AWS Credentials - used for Bedrock LLM access
         # Users may want to use their own AWS account for Bedrock models
-        'AWS_ACCESS_KEY_ID',
-        'AWS_SECRET_ACCESS_KEY',
-        'AWS_REGION_NAME',
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_REGION_NAME",
     }
 )
 
@@ -107,8 +107,8 @@ def validate_secret_name(name: str) -> None:
     # Check name length
     if len(name) > MAX_API_SECRET_NAME_LENGTH:
         raise ValueError(
-            f'Secret name exceeds maximum length of {MAX_API_SECRET_NAME_LENGTH} characters '
-            f'(got {len(name)}). Configure via OH_MAX_API_SECRET_NAME_LENGTH.'
+            f"Secret name exceeds maximum length of {MAX_API_SECRET_NAME_LENGTH} characters "
+            f"(got {len(name)}). Configure via OH_MAX_API_SECRET_NAME_LENGTH."
         )
 
     upper_name = name.upper()
@@ -117,7 +117,7 @@ def validate_secret_name(name: str) -> None:
     if upper_name in BLOCKED_SECRET_NAMES:
         raise ValueError(
             f"Secret name '{name}' is reserved for internal use and cannot be overridden. "
-            f'See openhands.app_server.constants for the list of blocked names.'
+            f"See openhands.app_server.constants for the list of blocked names."
         )
 
     # Check prefix matches
@@ -125,7 +125,7 @@ def validate_secret_name(name: str) -> None:
         if upper_name.startswith(prefix):
             raise ValueError(
                 f"Secret name '{name}' starts with reserved prefix '{prefix}' and cannot be used. "
-                f'These variables are used for LLM configuration controls.'
+                f"These variables are used for LLM configuration controls."
             )
 
     # Note: OVERRIDABLE_SYSTEM_SECRETS are intentionally allowed
@@ -149,21 +149,21 @@ def validate_secrets_dict(secrets: Mapping[str, object] | None) -> None:
     # Check number of secrets
     if len(secrets) > MAX_API_SECRETS_COUNT:
         raise ValueError(
-            f'Too many secrets provided: {len(secrets)} exceeds maximum of '
-            f'{MAX_API_SECRETS_COUNT}. Configure via OH_MAX_API_SECRETS_COUNT.'
+            f"Too many secrets provided: {len(secrets)} exceeds maximum of "
+            f"{MAX_API_SECRETS_COUNT}. Configure via OH_MAX_API_SECRETS_COUNT."
         )
 
     # Check individual value lengths
     for name, value in secrets.items():
         # Handle both str and SecretStr (Pydantic's SecretStr has get_secret_value())
-        if hasattr(value, 'get_secret_value'):
+        if hasattr(value, "get_secret_value"):
             value_str = value.get_secret_value()  # type: ignore[union-attr]
         else:
             value_str = str(value)
-        value_bytes = len(value_str.encode('utf-8'))
+        value_bytes = len(value_str.encode("utf-8"))
         if value_bytes > MAX_API_SECRET_VALUE_LENGTH:
             raise ValueError(
                 f"Secret '{name}' value exceeds maximum length of "
-                f'{MAX_API_SECRET_VALUE_LENGTH} bytes (got {value_bytes}). '
-                f'Configure via OH_MAX_API_SECRET_VALUE_LENGTH.'
+                f"{MAX_API_SECRET_VALUE_LENGTH} bytes (got {value_bytes}). "
+                f"Configure via OH_MAX_API_SECRET_VALUE_LENGTH."
             )

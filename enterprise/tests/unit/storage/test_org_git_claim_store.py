@@ -23,16 +23,16 @@ async def seed_org_and_user(async_session_maker):
     role_id = 1
 
     async with async_session_maker() as session:
-        session.add(Role(id=role_id, name='owner', rank=10))
-        session.add(Org(id=org_id, name='test-org'))
+        session.add(Role(id=role_id, name="owner", rank=10))
+        session.add(Org(id=org_id, name="test-org"))
         session.add(User(id=user_id, current_org_id=org_id, role_id=role_id))
         session.add(
             OrgMember(
                 org_id=org_id,
                 user_id=user_id,
                 role_id=role_id,
-                status='active',
-                llm_api_key='test-key',
+                status="active",
+                llm_api_key="test-key",
             )
         )
         await session.commit()
@@ -50,17 +50,17 @@ class TestOrgGitClaimStoreCreate:
         """A new claim is persisted with correct fields and returned."""
         org_id, user_id = seed_org_and_user
 
-        with patch('storage.org_git_claim_store.a_session_maker', async_session_maker):
+        with patch("storage.org_git_claim_store.a_session_maker", async_session_maker):
             claim = await OrgGitClaimStore.create_claim(
                 org_id=org_id,
-                provider='github',
-                git_organization='OpenHands',
+                provider="github",
+                git_organization="OpenHands",
                 claimed_by=user_id,
             )
 
         assert claim.org_id == org_id
-        assert claim.provider == 'github'
-        assert claim.git_organization == 'OpenHands'
+        assert claim.provider == "github"
+        assert claim.git_organization == "OpenHands"
         assert claim.claimed_by == user_id
         assert claim.claimed_at is not None
 
@@ -71,19 +71,19 @@ class TestOrgGitClaimStoreCreate:
         """Creating a duplicate (provider, git_organization) violates the unique constraint."""
         org_id, user_id = seed_org_and_user
 
-        with patch('storage.org_git_claim_store.a_session_maker', async_session_maker):
+        with patch("storage.org_git_claim_store.a_session_maker", async_session_maker):
             await OrgGitClaimStore.create_claim(
                 org_id=org_id,
-                provider='github',
-                git_organization='DuplicateOrg',
+                provider="github",
+                git_organization="DuplicateOrg",
                 claimed_by=user_id,
             )
 
             with pytest.raises(IntegrityError):
                 await OrgGitClaimStore.create_claim(
                     org_id=org_id,
-                    provider='github',
-                    git_organization='DuplicateOrg',
+                    provider="github",
+                    git_organization="DuplicateOrg",
                     claimed_by=user_id,
                 )
 
@@ -98,30 +98,30 @@ class TestOrgGitClaimStoreLookup:
         """Returns the claim when provider+git_organization exists."""
         org_id, user_id = seed_org_and_user
 
-        with patch('storage.org_git_claim_store.a_session_maker', async_session_maker):
+        with patch("storage.org_git_claim_store.a_session_maker", async_session_maker):
             await OrgGitClaimStore.create_claim(
                 org_id=org_id,
-                provider='gitlab',
-                git_organization='MyGroup',
+                provider="gitlab",
+                git_organization="MyGroup",
                 claimed_by=user_id,
             )
 
             result = await OrgGitClaimStore.get_claim_by_provider_and_git_org(
-                provider='gitlab', git_organization='MyGroup'
+                provider="gitlab", git_organization="MyGroup"
             )
 
         assert result is not None
-        assert result.provider == 'gitlab'
-        assert result.git_organization == 'MyGroup'
+        assert result.provider == "gitlab"
+        assert result.git_organization == "MyGroup"
 
     @pytest.mark.asyncio
     async def test_get_claim_by_provider_and_git_org_not_found(
         self, async_session_maker
     ):
         """Returns None when no matching claim exists."""
-        with patch('storage.org_git_claim_store.a_session_maker', async_session_maker):
+        with patch("storage.org_git_claim_store.a_session_maker", async_session_maker):
             result = await OrgGitClaimStore.get_claim_by_provider_and_git_org(
-                provider='github', git_organization='NonExistent'
+                provider="github", git_organization="NonExistent"
             )
 
         assert result is None
@@ -131,17 +131,17 @@ class TestOrgGitClaimStoreLookup:
         """Returns all claims belonging to the given org."""
         org_id, user_id = seed_org_and_user
 
-        with patch('storage.org_git_claim_store.a_session_maker', async_session_maker):
+        with patch("storage.org_git_claim_store.a_session_maker", async_session_maker):
             await OrgGitClaimStore.create_claim(
                 org_id=org_id,
-                provider='github',
-                git_organization='Org1',
+                provider="github",
+                git_organization="Org1",
                 claimed_by=user_id,
             )
             await OrgGitClaimStore.create_claim(
                 org_id=org_id,
-                provider='gitlab',
-                git_organization='Org2',
+                provider="gitlab",
+                git_organization="Org2",
                 claimed_by=user_id,
             )
 
@@ -160,11 +160,11 @@ class TestOrgGitClaimStoreDelete:
         """Deleting an existing claim returns True and removes it from the DB."""
         org_id, user_id = seed_org_and_user
 
-        with patch('storage.org_git_claim_store.a_session_maker', async_session_maker):
+        with patch("storage.org_git_claim_store.a_session_maker", async_session_maker):
             claim = await OrgGitClaimStore.create_claim(
                 org_id=org_id,
-                provider='github',
-                git_organization='ToDelete',
+                provider="github",
+                git_organization="ToDelete",
                 claimed_by=user_id,
             )
 
@@ -181,7 +181,7 @@ class TestOrgGitClaimStoreDelete:
         """Deleting a claim that doesn't exist returns False."""
         org_id, _ = seed_org_and_user
 
-        with patch('storage.org_git_claim_store.a_session_maker', async_session_maker):
+        with patch("storage.org_git_claim_store.a_session_maker", async_session_maker):
             result = await OrgGitClaimStore.delete_claim(
                 claim_id=uuid.uuid4(), org_id=org_id
             )
@@ -195,11 +195,11 @@ class TestOrgGitClaimStoreDelete:
         """Deleting a claim with a mismatched org_id returns False."""
         org_id, user_id = seed_org_and_user
 
-        with patch('storage.org_git_claim_store.a_session_maker', async_session_maker):
+        with patch("storage.org_git_claim_store.a_session_maker", async_session_maker):
             claim = await OrgGitClaimStore.create_claim(
                 org_id=org_id,
-                provider='github',
-                git_organization='WrongOrg',
+                provider="github",
+                git_organization="WrongOrg",
                 claimed_by=user_id,
             )
 

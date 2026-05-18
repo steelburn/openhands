@@ -25,7 +25,7 @@ class MaintenanceTaskProcessor(BaseModel, ABC):
 
     model_config = ConfigDict(
         # Allow extra fields for flexibility
-        extra='allow',
+        extra="allow",
         # Allow arbitrary types
         arbitrary_types_allowed=True,
     )
@@ -46,11 +46,11 @@ class MaintenanceTaskProcessor(BaseModel, ABC):
 class MaintenanceTaskStatus(Enum):
     """Status of a maintenance task."""
 
-    INACTIVE = 'INACTIVE'
-    PENDING = 'PENDING'
-    WORKING = 'WORKING'
-    COMPLETED = 'COMPLETED'
-    ERROR = 'ERROR'
+    INACTIVE = "INACTIVE"
+    PENDING = "PENDING"
+    WORKING = "WORKING"
+    COMPLETED = "COMPLETED"
+    ERROR = "ERROR"
 
 
 class MaintenanceTask(Base):
@@ -58,7 +58,7 @@ class MaintenanceTask(Base):
     Model for storing maintenance tasks that perform background operations.
     """
 
-    __tablename__ = 'maintenance_tasks'
+    __tablename__ = "maintenance_tasks"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     status: Mapped[MaintenanceTaskStatus] = mapped_column(
@@ -68,15 +68,15 @@ class MaintenanceTask(Base):
     )
     processor_type: Mapped[str] = mapped_column(String, nullable=False)
     processor_json: Mapped[str] = mapped_column(Text, nullable=False)
-    delay: Mapped[int] = mapped_column(server_default='0')
+    delay: Mapped[int] = mapped_column(server_default="0")
     started_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     info: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False
+        DateTime, server_default=text("CURRENT_TIMESTAMP"), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        server_default=text('CURRENT_TIMESTAMP'),
+        server_default=text("CURRENT_TIMESTAMP"),
         onupdate=datetime.now,
         nullable=False,
     )
@@ -103,6 +103,6 @@ class MaintenanceTask(Base):
             processor: The MaintenanceTaskProcessor instance to store
         """
         self.processor_type = (
-            f'{processor.__class__.__module__}.{processor.__class__.__name__}'
+            f"{processor.__class__.__module__}.{processor.__class__.__name__}"
         )
         self.processor_json = processor.model_dump_json()

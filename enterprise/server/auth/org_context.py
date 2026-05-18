@@ -31,7 +31,7 @@ from server.logger import logger
 
 from openhands.app_server.user_auth import get_user_auth
 
-X_ORG_ID_HEADER = 'X-Org-Id'
+X_ORG_ID_HEADER = "X-Org-Id"
 
 
 async def resolve_effective_org_id(request: Request) -> UUID:
@@ -50,18 +50,18 @@ async def resolve_effective_org_id(request: Request) -> UUID:
         # Non-SAAS deployments do not have multi-org context.
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail='Organizations are not available in this deployment',
+            detail="Organizations are not available in this deployment",
         )
 
     effective_org_id = await user_auth.get_effective_org_id()
     if effective_org_id is None:
         logger.warning(
-            'effective_org_id_unavailable',
-            extra={'user_id': user_auth.user_id},
+            "effective_org_id_unavailable",
+            extra={"user_id": user_auth.user_id},
         )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail='No current organization for user',
+            detail="No current organization for user",
         )
     return effective_org_id
 
@@ -109,7 +109,7 @@ async def reject_x_org_id_path_mismatch(
     if x_org_id is None:
         return
 
-    path_org_id_raw = request.path_params.get('org_id')
+    path_org_id_raw = request.path_params.get("org_id")
     if path_org_id_raw is None:
         # Dep was attached to a route without ``{org_id}``. Treat as a
         # no-op so this can be attached at the router level to routers
@@ -121,7 +121,7 @@ async def reject_x_org_id_path_mismatch(
     except (ValueError, TypeError, AttributeError):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f'{X_ORG_ID_HEADER} header is not a valid UUID',
+            detail=f"{X_ORG_ID_HEADER} header is not a valid UUID",
         )
 
     try:
@@ -139,9 +139,9 @@ async def reject_x_org_id_path_mismatch(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
-                f'{X_ORG_ID_HEADER} header ({header_uuid}) does not match '
-                f'the org in the request path ({path_uuid}). '
-                'Remove the header or set it to the same value.'
+                f"{X_ORG_ID_HEADER} header ({header_uuid}) does not match "
+                f"the org in the request path ({path_uuid}). "
+                "Remove the header or set it to the same value."
             ),
         )
 

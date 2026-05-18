@@ -6,9 +6,9 @@ from dataclasses import dataclass
 from uuid import UUID
 
 from server.constants import (
+    LITE_LLM_API_URL,
     ORG_SETTINGS_VERSION,
-    get_default_llm_base_url,
-    get_default_llm_model,
+    get_default_litellm_model,
 )
 from server.routes.org_models import OrgAppSettingsUpdate
 from sqlalchemy import select
@@ -78,9 +78,9 @@ class OrgAppSettingsStore:
             org.agent_settings = deep_merge(
                 org.agent_settings,
                 {
-                    'llm': {
-                        'model': get_default_llm_model(),
-                        'base_url': get_default_llm_base_url(),
+                    "llm": {
+                        "model": get_default_litellm_model(),
+                        "base_url": LITE_LLM_API_URL,
                     },
                 },
             )

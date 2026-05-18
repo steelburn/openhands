@@ -99,7 +99,7 @@ class RecaptchaService:
 
         request = recaptchaenterprise_v1.CreateAssessmentRequest()
         request.assessment = assessment
-        request.parent = f'projects/{self.project_id}'
+        request.parent = f"projects/{self.project_id}"
 
         response = self.client.create_assessment(request)
 
@@ -134,19 +134,19 @@ class RecaptchaService:
         )
 
         logger.info(
-            'recaptcha_assessment',
+            "recaptcha_assessment",
             extra={
-                'assessment_name': assessment_name,
-                'score': score,
-                'valid': valid,
-                'action_valid': action_valid,
-                'reasons': reason_codes,
-                'account_defender_labels': account_defender_labels,
-                'has_suspicious_labels': has_suspicious_labels,
-                'allowed': allowed,
-                'user_ip': user_ip,
-                'user_id': user_id,
-                'email': email,
+                "assessment_name": assessment_name,
+                "score": score,
+                "valid": valid,
+                "action_valid": action_valid,
+                "reasons": reason_codes,
+                "account_defender_labels": account_defender_labels,
+                "has_suspicious_labels": has_suspicious_labels,
+                "allowed": allowed,
+                "user_ip": user_ip,
+                "user_id": user_id,
+                "email": email,
             },
         )
 

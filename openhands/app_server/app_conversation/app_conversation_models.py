@@ -24,28 +24,28 @@ from openhands.sdk.conversation import ConversationExecutionStatus
 from openhands.sdk.llm import MetricsSnapshot
 from openhands.sdk.plugin import PluginSource
 
-__all__ = ['SandboxGroupingStrategy']
+__all__ = ["SandboxGroupingStrategy"]
 
 
 class ConversationTrigger(Enum):
-    RESOLVER = 'resolver'
-    GUI = 'gui'
-    SUGGESTED_TASK = 'suggested_task'
-    REMOTE_API_KEY = 'openhands_api'
-    SLACK = 'slack'
-    MICROAGENT_MANAGEMENT = 'microagent_management'
-    JIRA = 'jira'
-    JIRA_DC = 'jira_dc'
-    LINEAR = 'linear'
-    BITBUCKET = 'bitbucket'
-    AUTOMATION = 'automation'
+    RESOLVER = "resolver"
+    GUI = "gui"
+    SUGGESTED_TASK = "suggested_task"
+    REMOTE_API_KEY = "openhands_api"
+    SLACK = "slack"
+    MICROAGENT_MANAGEMENT = "microagent_management"
+    JIRA = "jira"
+    JIRA_DC = "jira_dc"
+    LINEAR = "linear"
+    BITBUCKET = "bitbucket"
+    AUTOMATION = "automation"
 
 
 class AgentType(Enum):
     """Agent type for conversation."""
 
-    DEFAULT = 'default'
-    PLAN = 'plan'
+    DEFAULT = "default"
+    PLAN = "plan"
 
 
 class PluginSpec(PluginSource):
@@ -57,7 +57,7 @@ class PluginSpec(PluginSource):
 
     parameters: dict[str, Any] | None = Field(
         default=None,
-        description='User-provided values for plugin input parameters',
+        description="User-provided values for plugin input parameters",
     )
 
     @property
@@ -69,9 +69,9 @@ class PluginSpec(PluginSource):
             - 'https://github.com/owner/repo.git' -> 'repo.git'
             - '/local/path' -> 'path'
         """
-        return self.source.split('/')[-1] if '/' in self.source else self.source
+        return self.source.split("/")[-1] if "/" in self.source else self.source
 
-    def format_params_as_text(self, indent: str = '') -> str | None:
+    def format_params_as_text(self, indent: str = "") -> str | None:
         """Format parameters as a readable text block for display.
 
         Args:
@@ -82,8 +82,8 @@ class PluginSpec(PluginSource):
         """
         if not self.parameters:
             return None
-        return '\n'.join(
-            f'{indent}- {key}: {value}' for key, value in self.parameters.items()
+        return "\n".join(
+            f"{indent}- {key}: {value}" for key, value in self.parameters.items()
         )
 
 
@@ -102,7 +102,7 @@ class AppConversationInfo(BaseModel):
     trigger: ConversationTrigger | None = None
     pr_number: list[int] = Field(default_factory=list)
     llm_model: str | None = None
-    agent_kind: str = 'openhands'
+    agent_kind: str = "openhands"
 
     metrics: MetricsSnapshot | None = None
 
@@ -119,12 +119,12 @@ class AppConversationInfo(BaseModel):
 
 
 class AppConversationSortOrder(Enum):
-    CREATED_AT = 'CREATED_AT'
-    CREATED_AT_DESC = 'CREATED_AT_DESC'
-    UPDATED_AT = 'UPDATED_AT'
-    UPDATED_AT_DESC = 'UPDATED_AT_DESC'
-    TITLE = 'TITLE'
-    TITLE_DESC = 'TITLE_DESC'
+    CREATED_AT = "CREATED_AT"
+    CREATED_AT_DESC = "CREATED_AT_DESC"
+    UPDATED_AT = "UPDATED_AT"
+    UPDATED_AT_DESC = "UPDATED_AT_DESC"
+    TITLE = "TITLE"
+    TITLE_DESC = "TITLE_DESC"
 
 
 class AppConversationInfoPage(BaseModel):
@@ -135,17 +135,17 @@ class AppConversationInfoPage(BaseModel):
 class AppConversation(AppConversationInfo):  # type: ignore
     sandbox_status: SandboxStatus = Field(
         default=SandboxStatus.MISSING,
-        description='Current sandbox status. Will be MISSING if the sandbox does not exist.',
+        description="Current sandbox status. Will be MISSING if the sandbox does not exist.",
     )
     execution_status: ConversationExecutionStatus | None = Field(
         default=None,
-        description='Current agent status. Will be None if the sandbox_status is not RUNNING',
+        description="Current agent status. Will be None if the sandbox_status is not RUNNING",
     )
     conversation_url: str | None = Field(
-        default=None, description='The URL where the conversation may be accessed'
+        default=None, description="The URL where the conversation may be accessed"
     )
     session_api_key: str | None = Field(
-        default=None, description='The Session Api Key for REST operations.'
+        default=None, description="The Session Api Key for REST operations."
     )
 
     # JSON fields for complex data types
@@ -190,8 +190,8 @@ class AppConversationStartRequest(OpenHandsModel):
     plugins: list[PluginSpec] | None = Field(
         default=None,
         description=(
-            'List of plugins to load for this conversation. Plugins are loaded '
-            'and their skills/MCP config are merged into the agent.'
+            "List of plugins to load for this conversation. Plugins are loaded "
+            "and their skills/MCP config are merged into the agent."
         ),
     )
 
@@ -199,11 +199,11 @@ class AppConversationStartRequest(OpenHandsModel):
     secrets: dict[str, SecretStr] | None = Field(
         default=None,
         description=(
-            'Secrets to pass to the conversation. These are merged with any '
-            'existing secrets (from database or git providers), with API-provided '
-            'secrets taking precedence (overriding any existing secret with the same name). '
+            "Secrets to pass to the conversation. These are merged with any "
+            "existing secrets (from database or git providers), with API-provided "
+            "secrets taking precedence (overriding any existing secret with the same name). "
             'Keys are secret names (e.g., "MY_API_KEY"), values are the secret values. '
-            'Warning: Providing a secret that already exists will silently override it.'
+            "Warning: Providing a secret that already exists will silently override it."
         ),
     )
 
@@ -222,22 +222,22 @@ class AppConversationUpdateRequest(BaseModel):
 
 
 class AppConversationStartTaskStatus(Enum):
-    WORKING = 'WORKING'
-    WAITING_FOR_SANDBOX = 'WAITING_FOR_SANDBOX'
-    PREPARING_REPOSITORY = 'PREPARING_REPOSITORY'
-    RUNNING_SETUP_SCRIPT = 'RUNNING_SETUP_SCRIPT'
-    SETTING_UP_GIT_HOOKS = 'SETTING_UP_GIT_HOOKS'
-    SETTING_UP_SKILLS = 'SETTING_UP_SKILLS'
-    STARTING_CONVERSATION = 'STARTING_CONVERSATION'
-    READY = 'READY'
-    ERROR = 'ERROR'
+    WORKING = "WORKING"
+    WAITING_FOR_SANDBOX = "WAITING_FOR_SANDBOX"
+    PREPARING_REPOSITORY = "PREPARING_REPOSITORY"
+    RUNNING_SETUP_SCRIPT = "RUNNING_SETUP_SCRIPT"
+    SETTING_UP_GIT_HOOKS = "SETTING_UP_GIT_HOOKS"
+    SETTING_UP_SKILLS = "SETTING_UP_SKILLS"
+    STARTING_CONVERSATION = "STARTING_CONVERSATION"
+    READY = "READY"
+    ERROR = "ERROR"
 
 
 class AppConversationStartTaskSortOrder(Enum):
-    CREATED_AT = 'CREATED_AT'
-    CREATED_AT_DESC = 'CREATED_AT_DESC'
-    UPDATED_AT = 'UPDATED_AT'
-    UPDATED_AT_DESC = 'UPDATED_AT_DESC'
+    CREATED_AT = "CREATED_AT"
+    CREATED_AT_DESC = "CREATED_AT_DESC"
+    UPDATED_AT = "UPDATED_AT"
+    UPDATED_AT_DESC = "UPDATED_AT_DESC"
 
 
 class AppConversationStartTask(OpenHandsModel):
@@ -253,13 +253,13 @@ class AppConversationStartTask(OpenHandsModel):
     status: AppConversationStartTaskStatus = AppConversationStartTaskStatus.WORKING
     detail: str | None = None
     app_conversation_id: OpenHandsUUID | None = Field(
-        default=None, description='The id of the app_conversation, if READY'
+        default=None, description="The id of the app_conversation, if READY"
     )
     sandbox_id: str | None = Field(
-        default=None, description='The id of the sandbox, if READY'
+        default=None, description="The id of the sandbox, if READY"
     )
     agent_server_url: str | None = Field(
-        default=None, description='The agent server url, if READY'
+        default=None, description="The agent server url, if READY"
     )
     request: AppConversationStartRequest
     created_at: datetime = Field(default_factory=utc_now)
@@ -275,7 +275,7 @@ class SkillResponse(BaseModel):
     """Response model for skills endpoint."""
 
     name: str
-    type: Literal['repo', 'knowledge', 'agentskills']
+    type: Literal["repo", "knowledge", "agentskills"]
     content: str
     triggers: list[str] = []
 
@@ -286,7 +286,7 @@ class HookDefinitionResponse(BaseModel):
     type: str  # 'command' or 'prompt'
     command: str
     timeout: int = 60
-    async_: bool = Field(default=False, serialization_alias='async')
+    async_: bool = Field(default=False, serialization_alias="async")
 
 
 class HookMatcherResponse(BaseModel):
@@ -316,18 +316,18 @@ class AppSendMessageRequest(BaseModel):
     as an alternative to WebSocket communication.
     """
 
-    role: Literal['user'] = Field(
-        default='user',
+    role: Literal["user"] = Field(
+        default="user",
         description='The role of the message sender. Currently only "user" is supported.',
     )
     content: list[TextContent | ImageContent] = Field(
         ...,
         min_length=1,
-        description='The message content as a list of text and/or image content blocks.',
+        description="The message content as a list of text and/or image content blocks.",
     )
     run: bool = Field(
         default=True,
-        description='Whether to automatically run the agent after sending the message.',
+        description="Whether to automatically run the agent after sending the message.",
     )
 
 
@@ -336,7 +336,7 @@ class SwitchProfileRequest(BaseModel):
 
     profile_name: str = Field(
         ...,
-        description='Name of a profile previously saved via /api/v1/settings/profiles.',
+        description="Name of a profile previously saved via /api/v1/settings/profiles.",
         min_length=1,
     )
 
@@ -345,12 +345,12 @@ class AppSendMessageResponse(BaseModel):
     """Response from sending a message to a conversation."""
 
     success: bool = Field(
-        description='Whether the message was successfully sent to the agent.',
+        description="Whether the message was successfully sent to the agent.",
     )
     sandbox_status: SandboxStatus = Field(
-        description='The current status of the sandbox after the operation.',
+        description="The current status of the sandbox after the operation.",
     )
     message: str | None = Field(
         default=None,
-        description='Optional message with additional details (e.g., if sandbox was resumed).',
+        description="Optional message with additional details (e.g., if sandbox was resumed).",
     )

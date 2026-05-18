@@ -46,7 +46,7 @@ _logger = logging.getLogger(__name__)
 
 
 class StoredEventCallback(Base):
-    __tablename__ = 'event_callback'
+    __tablename__ = "event_callback"
 
     id: Mapped[UUID] = mapped_column(primary_key=True)
     conversation_id: Mapped[UUID | None] = mapped_column(nullable=True)
@@ -66,7 +66,7 @@ class StoredEventCallback(Base):
 
 
 class StoredEventCallbackResult(Base):
-    __tablename__ = 'event_callback_result'
+    __tablename__ = "event_callback_result"
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     status: Mapped[EventCallbackResultStatus | None] = mapped_column(
@@ -241,7 +241,7 @@ class SQLEventCallbackService(EventCallbackService):
                 return
             stored_result = StoredEventCallbackResult(**result.model_dump())
         except Exception as exc:
-            _logger.exception(f'Exception in callback {callback.id}', stack_info=True)
+            _logger.exception(f"Exception in callback {callback.id}", stack_info=True)
             stored_result = StoredEventCallbackResult(
                 status=EventCallbackResultStatus.ERROR,
                 event_callback_id=callback.id,

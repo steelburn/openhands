@@ -65,7 +65,7 @@ class AwsSharedEventService(SharedEventService):
         return AwsEventService(
             s3_client=self.s3_client,
             bucket_name=self.bucket_name,
-            prefix=Path('users'),
+            prefix=Path("users"),
             user_id=shared_conversation_info.created_by_user_id,
             app_conversation_info_service=None,
             app_conversation_info_load_tasks={},
@@ -136,7 +136,7 @@ class AwsSharedEventService(SharedEventService):
 
 class AwsSharedEventServiceInjector(SharedEventServiceInjector):
     bucket_name: str | None = Field(
-        default_factory=lambda: os.environ.get('FILE_STORE_PATH')
+        default_factory=lambda: os.environ.get("FILE_STORE_PATH")
     )
 
     async def inject(
@@ -153,14 +153,14 @@ class AwsSharedEventServiceInjector(SharedEventServiceInjector):
             bucket_name = self.bucket_name
             if bucket_name is None:
                 raise ValueError(
-                    'bucket_name is required. Set FILE_STORE_PATH environment variable.'
+                    "bucket_name is required. Set FILE_STORE_PATH environment variable."
                 )
 
             # Use role-based authentication - boto3 will automatically
             # use IAM role credentials when running in AWS
             s3_client = boto3.client(
-                's3',
-                endpoint_url=os.getenv('AWS_S3_ENDPOINT'),
+                "s3",
+                endpoint_url=os.getenv("AWS_S3_ENDPOINT"),
             )
 
             service = AwsSharedEventService(

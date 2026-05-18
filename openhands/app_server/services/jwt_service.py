@@ -38,7 +38,7 @@ class JwtService:
         """
         active_keys = [key for key in keys if key.active]
         if not active_keys:
-            raise ValueError('At least one active key is required')
+            raise ValueError("At least one active key is required")
 
         # Store keys by ID for quick lookup
         self._keys = {key.id: key for key in keys}
@@ -91,15 +91,15 @@ class JwtService:
 
         jwt_payload = {
             **payload,
-            'iat': int(now.timestamp()),
-            'exp': int((now + expires_in).timestamp()),
+            "iat": int(now.timestamp()),
+            "exp": int((now + expires_in).timestamp()),
         }
 
         # Use the raw key for JWT signing with key_id in header
         secret_key = self._keys[key_id].key.get_secret_value()
 
         return jwt.encode(
-            jwt_payload, secret_key, algorithm='HS256', headers={'kid': key_id}
+            jwt_payload, secret_key, algorithm="HS256", headers={"kid": key_id}
         )
 
     def verify_jws_token(self, token: str, key_id: str | None = None) -> dict[str, Any]:
@@ -121,13 +121,13 @@ class JwtService:
             # Try to extract key_id from the token's kid header
             try:
                 unverified_header = jwt.get_unverified_header(token)
-                key_id = unverified_header.get('kid')
+                key_id = unverified_header.get("kid")
                 if not key_id:
                     # Legacy tokens created before key rotation support
                     # don't carry a kid header — fall back to the default key.
                     key_id = self._default_key_id
             except jwt.DecodeError:
-                raise ValueError('Invalid JWT token format')
+                raise ValueError("Invalid JWT token format")
 
         if key_id not in self._keys:
             raise ValueError(f"Key ID '{key_id}' not found")
@@ -136,10 +136,10 @@ class JwtService:
         secret_key = self._keys[key_id].key.get_secret_value()
 
         try:
-            payload = jwt.decode(token, secret_key, algorithms=['HS256'])
+            payload = jwt.decode(token, secret_key, algorithms=["HS256"])
             return payload
         except jwt.InvalidTokenError as e:
-            raise jwt.InvalidTokenError(f'Token verification failed: {str(e)}')
+            raise jwt.InvalidTokenError(f"Token verification failed: {str(e)}")
 
     def create_jwe_token(
         self,
@@ -170,12 +170,12 @@ class JwtService:
         now = utc_now()
         jwt_payload = {
             **payload,
-            'iat': int(now.timestamp()),
+            "iat": int(now.timestamp()),
         }
 
         # Only add exp if expires_in is provided
         if expires_in is not None:
-            jwt_payload['exp'] = int((now + expires_in).timestamp())
+            jwt_payload["exp"] = int((now + expires_in).timestamp())
 
         # Get the raw key for JWE encryption and derive a 256-bit key
         secret_key = self._keys[key_id].key.get_secret_value()
@@ -184,16 +184,16 @@ class JwtService:
         key_256 = hashlib.sha256(key_bytes).digest()
 
         # Create JWK from symmetric key for jwcrypto
-        symmetric_key = jwk.JWK(kty='oct', k=jwk.base64url_encode(key_256))
+        symmetric_key = jwk.JWK(kty="oct", k=jwk.base64url_encode(key_256))
 
         # Create JWE token with jwcrypto
         protected_header = {
-            'alg': 'dir',
-            'enc': 'A256GCM',
-            'kid': key_id,
+            "alg": "dir",
+            "enc": "A256GCM",
+            "kid": key_id,
         }
         jwe_token = jwcrypto_jwe.JWE(
-            json.dumps(jwt_payload).encode('utf-8'),
+            json.dumps(jwt_payload).encode("utf-8"),
             recipient=symmetric_key,
             protected=protected_header,
         )
@@ -221,24 +221,24 @@ class JwtService:
             jwe_obj = jwcrypto_jwe.JWE()
             jwe_obj.deserialize(token)
         except Exception:
-            raise ValueError('Invalid JWE token format')
+            raise ValueError("Invalid JWE token format")
 
         # Extract and validate the protected header
         try:
-            protected_header = json.loads(jwe_obj.objects['protected'])
+            protected_header = json.loads(jwe_obj.objects["protected"])
         except (KeyError, json.JSONDecodeError) as e:
-            raise ValueError(f'Invalid JWE token format: {type(e).__name__}')
+            raise ValueError(f"Invalid JWE token format: {type(e).__name__}")
 
         # Verify algorithms to prevent cryptographic agility attacks
         if (
-            protected_header.get('alg') != 'dir'
-            or protected_header.get('enc') != 'A256GCM'
+            protected_header.get("alg") != "dir"
+            or protected_header.get("enc") != "A256GCM"
         ):
-            raise ValueError('Unsupported or unexpected JWE algorithm')
+            raise ValueError("Unsupported or unexpected JWE algorithm")
 
         if key_id is None:
             # Extract key_id from the token's header
-            key_id = protected_header.get('kid')
+            key_id = protected_header.get("kid")
             if not key_id:
                 raise ValueError("Token does not contain 'kid' header with key ID")
 
@@ -253,16 +253,16 @@ class JwtService:
 
         try:
             # Create JWK from symmetric key for jwcrypto
-            symmetric_key = jwk.JWK(kty='oct', k=jwk.base64url_encode(key_256))
+            symmetric_key = jwk.JWK(kty="oct", k=jwk.base64url_encode(key_256))
 
             # Decrypt the JWE token (reusing already deserialized jwe_obj)
             jwe_obj.decrypt(symmetric_key)
 
             # Parse the JSON string back to dictionary
-            payload = json.loads(jwe_obj.payload.decode('utf-8'))
+            payload = json.loads(jwe_obj.payload.decode("utf-8"))
             return payload
         except Exception as e:
-            raise Exception(f'Token decryption failed: {str(e)}')
+            raise Exception(f"Token decryption failed: {str(e)}")
 
     # ------------------------------------------------------------------
     # Symmetric encrypt / decrypt helpers (JWE with legacy Fernet fallback)
@@ -274,7 +274,7 @@ class JwtService:
         New data is always encrypted with JWE. Use :meth:`decrypt_value`
         to decrypt, which also handles legacy Fernet-encrypted data.
         """
-        return self.create_jwe_token({'v': plaintext})
+        return self.create_jwe_token({"v": plaintext})
 
     def decrypt_value(self, ciphertext: str) -> str:
         """Decrypt a ciphertext string, trying JWE first then legacy Fernet.
@@ -287,7 +287,7 @@ class JwtService:
         # Try JWE first (modern path)
         try:
             payload = self.decrypt_jwe_token(ciphertext)
-            return payload['v']
+            return payload["v"]
         except Exception:
             pass
 
@@ -322,7 +322,7 @@ class JwtService:
                 last_error = exc
                 continue
 
-        raise ValueError('Failed to decrypt value with any known key') from last_error
+        raise ValueError("Failed to decrypt value with any known key") from last_error
 
 
 class JwtServiceInjector(BaseModel, Injector[JwtService]):

@@ -36,9 +36,9 @@ from openhands.sdk.conversation import ConversationExecutionStatus
 async def async_engine():
     """Create an async SQLite engine for testing."""
     engine = create_async_engine(
-        'sqlite+aiosqlite:///:memory:',
+        "sqlite+aiosqlite:///:memory:",
         poolclass=StaticPool,
-        connect_args={'check_same_thread': False},
+        connect_args={"check_same_thread": False},
         echo=False,
     )
 
@@ -68,7 +68,7 @@ def app_conversation_info_service(
 ) -> SQLAppConversationInfoService:
     """Create a SQLAppConversationInfoService instance for testing."""
     return SQLAppConversationInfoService(
-        db_session=async_session, user_context=SpecifyUserContext(user_id='user_123')
+        db_session=async_session, user_context=SpecifyUserContext(user_id="user_123")
     )
 
 
@@ -76,11 +76,11 @@ def app_conversation_info_service(
 def sandbox_info() -> SandboxInfo:
     """Create a test sandbox info."""
     return SandboxInfo(
-        id='sandbox_123',
+        id="sandbox_123",
         status=SandboxStatus.RUNNING,
-        session_api_key='test_session_key',
-        created_by_user_id='user_123',
-        sandbox_spec_id='spec_123',
+        session_api_key="test_session_key",
+        created_by_user_id="user_123",
+        sandbox_spec_id="spec_123",
     )
 
 
@@ -94,7 +94,7 @@ def mock_conversation_info() -> ConversationInfo:
     # Mock agent.llm.model structure
     conversation_info.agent = MagicMock()
     conversation_info.agent.llm = MagicMock()
-    conversation_info.agent.llm.model = 'gpt-4'
+    conversation_info.agent.llm.model = "gpt-4"
 
     # Mock stats.get_combined_metrics() structure
     conversation_info.stats = MagicMock()
@@ -133,8 +133,8 @@ class TestOnConversationUpdateAutoTitle:
         stub_conv = AppConversationInfo(
             id=conversation_id,
             title=None,  # None title indicates new conversation
-            sandbox_id='sandbox_123',
-            created_by_user_id='user_123',
+            sandbox_id="sandbox_123",
+            created_by_user_id="user_123",
         )
 
         # Track callback registrations
@@ -153,11 +153,11 @@ class TestOnConversationUpdateAutoTitle:
         # Act
         with (
             patch(
-                'openhands.app_server.event_callback.webhook_router.valid_conversation',
+                "openhands.app_server.event_callback.webhook_router.valid_conversation",
                 return_value=stub_conv,
             ),
             patch(
-                'openhands.app_server.event_callback.webhook_router.get_event_callback_service',
+                "openhands.app_server.event_callback.webhook_router.get_event_callback_service",
                 mock_get_event_callback_service,
             ),
         ):
@@ -199,9 +199,9 @@ class TestOnConversationUpdateAutoTitle:
         # Create existing conversation with title (not a new conversation)
         existing_conv = AppConversationInfo(
             id=conversation_id,
-            title='Existing Title',  # Has title = not a new conversation
-            sandbox_id='sandbox_123',
-            created_by_user_id='user_123',
+            title="Existing Title",  # Has title = not a new conversation
+            sandbox_id="sandbox_123",
+            created_by_user_id="user_123",
         )
 
         # Track callback registrations
@@ -220,11 +220,11 @@ class TestOnConversationUpdateAutoTitle:
         # Act
         with (
             patch(
-                'openhands.app_server.event_callback.webhook_router.valid_conversation',
+                "openhands.app_server.event_callback.webhook_router.valid_conversation",
                 return_value=existing_conv,
             ),
             patch(
-                'openhands.app_server.event_callback.webhook_router.get_event_callback_service',
+                "openhands.app_server.event_callback.webhook_router.get_event_callback_service",
                 mock_get_event_callback_service,
             ),
         ):
@@ -265,8 +265,8 @@ class TestOnConversationUpdateAutoTitle:
         stub_conv = AppConversationInfo(
             id=conversation_id,
             title=None,
-            sandbox_id='sandbox_123',
-            created_by_user_id='user_123',
+            sandbox_id="sandbox_123",
+            created_by_user_id="user_123",
         )
 
         # Set conversation to DELETING status
@@ -288,11 +288,11 @@ class TestOnConversationUpdateAutoTitle:
         # Act
         with (
             patch(
-                'openhands.app_server.event_callback.webhook_router.valid_conversation',
+                "openhands.app_server.event_callback.webhook_router.valid_conversation",
                 return_value=stub_conv,
             ),
             patch(
-                'openhands.app_server.event_callback.webhook_router.get_event_callback_service',
+                "openhands.app_server.event_callback.webhook_router.get_event_callback_service",
                 mock_get_event_callback_service,
             ),
         ):
@@ -333,8 +333,8 @@ class TestOnConversationUpdateAutoTitle:
         stub_conv = AppConversationInfo(
             id=conversation_id,
             title=None,
-            sandbox_id='sandbox_123',
-            created_by_user_id='user_123',
+            sandbox_id="sandbox_123",
+            created_by_user_id="user_123",
         )
 
         # Track InjectorState creation
@@ -351,11 +351,11 @@ class TestOnConversationUpdateAutoTitle:
         # Act
         with (
             patch(
-                'openhands.app_server.event_callback.webhook_router.valid_conversation',
+                "openhands.app_server.event_callback.webhook_router.valid_conversation",
                 return_value=stub_conv,
             ),
             patch(
-                'openhands.app_server.event_callback.webhook_router.get_event_callback_service',
+                "openhands.app_server.event_callback.webhook_router.get_event_callback_service",
                 mock_get_event_callback_service,
             ),
         ):
@@ -405,8 +405,8 @@ class TestOnConversationUpdateAutoTitle:
         stub_conv = AppConversationInfo(
             id=conversation_id,
             title=None,
-            sandbox_id='sandbox_123',
-            created_by_user_id='user_123',
+            sandbox_id="sandbox_123",
+            created_by_user_id="user_123",
         )
 
         # Track order of operations
@@ -415,11 +415,11 @@ class TestOnConversationUpdateAutoTitle:
         original_save = app_conversation_info_service.save_app_conversation_info
 
         async def tracking_save(info):
-            operation_order.append('save_conversation')
+            operation_order.append("save_conversation")
             return await original_save(info)
 
         async def mock_save_event_callback(callback):
-            operation_order.append('save_callback')
+            operation_order.append("save_callback")
 
         mock_event_callback_service = AsyncMock()
         mock_event_callback_service.save_event_callback = mock_save_event_callback
@@ -431,16 +431,16 @@ class TestOnConversationUpdateAutoTitle:
         # Act
         with (
             patch(
-                'openhands.app_server.event_callback.webhook_router.valid_conversation',
+                "openhands.app_server.event_callback.webhook_router.valid_conversation",
                 return_value=stub_conv,
             ),
             patch(
-                'openhands.app_server.event_callback.webhook_router.get_event_callback_service',
+                "openhands.app_server.event_callback.webhook_router.get_event_callback_service",
                 mock_get_event_callback_service,
             ),
             patch.object(
                 app_conversation_info_service,
-                'save_app_conversation_info',
+                "save_app_conversation_info",
                 tracking_save,
             ),
         ):
@@ -454,4 +454,4 @@ class TestOnConversationUpdateAutoTitle:
         assert isinstance(result, Success)
 
         # Verify order: conversation saved first, then callback registered
-        assert operation_order == ['save_conversation', 'save_callback']
+        assert operation_order == ["save_conversation", "save_callback"]

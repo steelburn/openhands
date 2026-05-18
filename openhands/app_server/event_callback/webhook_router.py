@@ -53,7 +53,7 @@ from openhands.app_server.user_auth.user_auth import (
 from openhands.sdk import ConversationExecutionStatus, Event
 from openhands.sdk.event import ConversationStateUpdateEvent
 
-router = APIRouter(prefix='/webhooks', tags=['Webhooks'])
+router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
 event_service_dependency = depends_event_service()
 app_conversation_info_service_dependency = depends_app_conversation_info_service()
 jwt_dependency = depends_jwt_service()
@@ -68,20 +68,20 @@ def _classify_error_type(error_message: str | None) -> str:
     Uses best-effort string matching per CONTEXT.md decision.
     """
     if not error_message:
-        return 'unknown'
+        return "unknown"
     msg_lower = error_message.lower()
-    if 'budget' in msg_lower or 'budgetexceeded' in msg_lower:
-        return 'budget_exceeded'
-    if 'timeout' in msg_lower or 'timed out' in msg_lower:
-        return 'timeout'
-    if 'cancel' in msg_lower:
-        return 'user_cancelled'
+    if "budget" in msg_lower or "budgetexceeded" in msg_lower:
+        return "budget_exceeded"
+    if "timeout" in msg_lower or "timed out" in msg_lower:
+        return "timeout"
+    if "cancel" in msg_lower:
+        return "user_cancelled"
     if any(
         kw in msg_lower
-        for kw in ('model', 'llm', 'api key', 'rate limit', 'authentication')
+        for kw in ("model", "llm", "api key", "rate limit", "authentication")
     ):
-        return 'model_error'
-    return 'runtime_error'
+        return "model_error"
+    return "runtime_error"
 
 
 def merge_conversation_tags(
@@ -141,7 +141,7 @@ async def _track_conversation_terminal(
         # Find last error message
         error_message = None
         for ev in events:
-            if isinstance(ev, ConversationStateUpdateEvent) and ev.key == 'last_error':
+            if isinstance(ev, ConversationStateUpdateEvent) and ev.key == "last_error":
                 error_message = str(ev.value)[:500] if ev.value else None
 
         error_type = _classify_error_type(error_message)
@@ -158,7 +158,7 @@ async def _track_conversation_terminal(
         )
 
         # BIZZ-03: credit limit reached
-        if error_type == 'budget_exceeded':
+        if error_type == "budget_exceeded":
             analytics.track_credit_limit_reached(
                 ctx=ctx,
                 conversation_id=str(conversation_id),
@@ -207,18 +207,18 @@ def detect_automation_trigger(
         return current_trigger
 
     if merged_tags and (
-        merged_tags.get('automationtrigger')
-        or merged_tags.get('automationid')
-        or merged_tags.get('automationrunid')
+        merged_tags.get("automationtrigger")
+        or merged_tags.get("automationid")
+        or merged_tags.get("automationrunid")
     ):
         _logger.info(
-            'Detected automation trigger from conversation tags',
+            "Detected automation trigger from conversation tags",
             extra={
-                'conversation_id': conversation_id,
-                'sandbox_id': sandbox_id,
-                'automationtrigger': merged_tags.get('automationtrigger'),
-                'automationid': merged_tags.get('automationid'),
-                'automationrunid': merged_tags.get('automationrunid'),
+                "conversation_id": conversation_id,
+                "sandbox_id": sandbox_id,
+                "automationtrigger": merged_tags.get("automationtrigger"),
+                "automationid": merged_tags.get("automationid"),
+                "automationrunid": merged_tags.get("automationrunid"),
             },
         )
         return ConversationTrigger.AUTOMATION
@@ -229,14 +229,14 @@ def detect_automation_trigger(
 async def valid_sandbox(
     request: Request,
     session_api_key: str = Depends(
-        APIKeyHeader(name='X-Session-API-Key', auto_error=False)
+        APIKeyHeader(name="X-Session-API-Key", auto_error=False)
     ),
 ) -> SandboxInfo:
     """Use a session api key for validation, and get a sandbox. Subsequent actions
     are executed in the context of the owner of the sandbox"""
     if not session_api_key:
         raise HTTPException(
-            status.HTTP_401_UNAUTHORIZED, detail='X-Session-API-Key header is required'
+            status.HTTP_401_UNAUTHORIZED, detail="X-Session-API-Key header is required"
         )
 
     # Create a state which will be used internally only for this operation
@@ -250,7 +250,7 @@ async def valid_sandbox(
         )
         if sandbox_info is None:
             raise HTTPException(
-                status.HTTP_401_UNAUTHORIZED, detail='Invalid session API key'
+                status.HTTP_401_UNAUTHORIZED, detail="Invalid session API key"
             )
 
         # In SAAS Mode there is always a user, so we set the owner of the sandbox
@@ -263,10 +263,10 @@ async def valid_sandbox(
             )
         elif app_mode == AppMode.SAAS:
             _logger.error(
-                'Sandbox had no user specified', extra={'sandbox_id': sandbox_info.id}
+                "Sandbox had no user specified", extra={"sandbox_id": sandbox_info.id}
             )
             raise HTTPException(
-                status.HTTP_401_UNAUTHORIZED, detail='Sandbox had no user specified'
+                status.HTTP_401_UNAUTHORIZED, detail="Sandbox had no user specified"
             )
 
         return sandbox_info
@@ -295,7 +295,7 @@ async def valid_conversation(
     return app_conversation_info
 
 
-@router.post('/conversations')
+@router.post("/conversations")
 async def on_conversation_update(
     conversation_info: ConversationInfo,
     sandbox_info: SandboxInfo = Depends(valid_sandbox),
@@ -338,17 +338,17 @@ async def on_conversation_update(
     # discriminator (an ``AgentBase`` property) so we don't import a
     # concrete SDK subclass just to do a kind check.
     agent = conversation_info.agent
-    if agent.agent_kind == 'acp':
-        agent_kind = 'acp'
+    if agent.agent_kind == "acp":
+        agent_kind = "acp"
         llm_model = None
     else:
         # ``AgentBase.llm: LLM`` is non-optional on both arms of the union.
-        agent_kind = 'openhands'
+        agent_kind = "openhands"
         llm_model = agent.llm.model
 
     app_conversation_info = AppConversationInfo(
         id=conversation_info.id,
-        title=existing.title or f'Conversation {conversation_info.id.hex}',
+        title=existing.title or f"Conversation {conversation_info.id.hex}",
         sandbox_id=sandbox_info.id,
         created_by_user_id=sandbox_info.created_by_user_id,
         llm_model=llm_model,
@@ -396,14 +396,14 @@ async def on_conversation_update(
             conversation_id=str(conversation_info.id),
             trigger=existing.trigger.value if existing.trigger else None,
             llm_model=llm_model,
-            agent_type='default',
+            agent_type="default",
             has_repository=existing.selected_repository is not None,
         )
 
     return Success()
 
 
-@router.post('/events/{conversation_id}')
+@router.post("/events/{conversation_id}")
 async def on_event(
     events: list[Event],
     conversation_id: UUID,
@@ -420,7 +420,7 @@ async def on_event(
 
         # Process stats events for V1 conversations
         for event in events:
-            if isinstance(event, ConversationStateUpdateEvent) and event.key == 'stats':
+            if isinstance(event, ConversationStateUpdateEvent) and event.key == "stats":
                 await app_conversation_info_service.process_stats_event(
                     event, conversation_id
                 )
@@ -429,7 +429,7 @@ async def on_event(
         for event in events:
             if not isinstance(event, ConversationStateUpdateEvent):
                 continue
-            if event.key != 'execution_status':
+            if event.key != "execution_status":
                 continue
             try:
                 exec_status = ConversationExecutionStatus(event.value)
@@ -438,7 +438,7 @@ async def on_event(
                         conversation_id, app_conversation_info, events, exec_status
                     )
             except Exception:
-                _logger.exception('analytics:conversation_terminal:failed')
+                _logger.exception("analytics:conversation_terminal:failed")
 
         asyncio.create_task(
             _run_callbacks_in_bg_and_close(
@@ -447,14 +447,14 @@ async def on_event(
         )
 
     except Exception:
-        _logger.exception('Error in webhook', stack_info=True)
+        _logger.exception("Error in webhook", stack_info=True)
 
     return Success()
 
 
-@router.get('/secrets')
+@router.get("/secrets")
 async def get_secret(
-    access_token: str = Depends(APIKeyHeader(name='X-Access-Token', auto_error=False)),
+    access_token: str = Depends(APIKeyHeader(name="X-Access-Token", auto_error=False)),
     jwt_service: JwtService = jwt_dependency,
 ) -> Response:
     """Given an access token, retrieve a user secret. The access token
@@ -462,8 +462,8 @@ async def get_secret(
     the damage in the event that a token is ever leaked"""
     try:
         payload = jwt_service.verify_jws_token(access_token)
-        user_id = payload['user_id']
-        provider_type = ProviderType(payload['provider_type'])
+        user_id = payload["user_id"]
+        provider_type = ProviderType(payload["provider_type"])
 
         # Get UserAuth for the user_id
         if user_id:
@@ -477,13 +477,13 @@ async def get_secret(
 
         secret = await user_context.get_latest_token(provider_type)
         if secret is None:
-            raise HTTPException(404, 'No such provider')
+            raise HTTPException(404, "No such provider")
         if isinstance(secret, SecretStr):
             secret_value = secret.get_secret_value()
         else:
             secret_value = secret
 
-        return Response(content=secret_value, media_type='text/plain')
+        return Response(content=secret_value, media_type="text/plain")
     except InvalidTokenError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED)
 
@@ -505,7 +505,7 @@ async def _run_callbacks_in_bg_and_close(
 
 def _import_all_tools():
     """We need to import all tools so that they are available for deserialization in webhooks."""
-    for _, name, is_pkg in pkgutil.walk_packages(tools.__path__, tools.__name__ + '.'):
+    for _, name, is_pkg in pkgutil.walk_packages(tools.__path__, tools.__name__ + "."):
         if is_pkg:  # Check if it's a subpackage
             try:
                 importlib.import_module(name)

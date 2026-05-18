@@ -46,25 +46,25 @@ from tenacity import (
 from openhands.app_server.utils.logger import openhands_logger as logger
 
 # Get Keycloak configuration from environment variables
-KEYCLOAK_SERVER_URL = os.environ.get('KEYCLOAK_SERVER_URL', '')
-KEYCLOAK_REALM_NAME = os.environ.get('KEYCLOAK_REALM_NAME', '')
-KEYCLOAK_CLIENT_ID = os.environ.get('KEYCLOAK_CLIENT_ID', '')
-KEYCLOAK_CLIENT_SECRET = os.environ.get('KEYCLOAK_CLIENT_SECRET', '')
-KEYCLOAK_ADMIN_PASSWORD = os.environ.get('KEYCLOAK_ADMIN_PASSWORD', '')
+KEYCLOAK_SERVER_URL = os.environ.get("KEYCLOAK_SERVER_URL", "")
+KEYCLOAK_REALM_NAME = os.environ.get("KEYCLOAK_REALM_NAME", "")
+KEYCLOAK_CLIENT_ID = os.environ.get("KEYCLOAK_CLIENT_ID", "")
+KEYCLOAK_CLIENT_SECRET = os.environ.get("KEYCLOAK_CLIENT_SECRET", "")
+KEYCLOAK_ADMIN_PASSWORD = os.environ.get("KEYCLOAK_ADMIN_PASSWORD", "")
 
 # Logger is imported from openhands.app_server.utils.logger
 
 # Get configuration from environment variables
-RESEND_API_KEY = os.environ.get('RESEND_API_KEY')
-RESEND_AUDIENCE_ID = os.environ.get('RESEND_AUDIENCE_ID', '')
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY")
+RESEND_AUDIENCE_ID = os.environ.get("RESEND_AUDIENCE_ID", "")
 
 # Sync configuration
-BATCH_SIZE = int(os.environ.get('BATCH_SIZE', '100'))
-MAX_RETRIES = int(os.environ.get('MAX_RETRIES', '3'))
-INITIAL_BACKOFF_SECONDS = float(os.environ.get('INITIAL_BACKOFF_SECONDS', '1'))
-MAX_BACKOFF_SECONDS = float(os.environ.get('MAX_BACKOFF_SECONDS', '60'))
-BACKOFF_FACTOR = float(os.environ.get('BACKOFF_FACTOR', '2'))
-RATE_LIMIT = float(os.environ.get('RATE_LIMIT', '2'))  # Requests per second
+BATCH_SIZE = int(os.environ.get("BATCH_SIZE", "100"))
+MAX_RETRIES = int(os.environ.get("MAX_RETRIES", "3"))
+INITIAL_BACKOFF_SECONDS = float(os.environ.get("INITIAL_BACKOFF_SECONDS", "1"))
+MAX_BACKOFF_SECONDS = float(os.environ.get("MAX_BACKOFF_SECONDS", "60"))
+BACKOFF_FACTOR = float(os.environ.get("BACKOFF_FACTOR", "2"))
+RATE_LIMIT = float(os.environ.get("RATE_LIMIT", "2"))  # Requests per second
 
 # Set up Resend API
 resend.api_key = RESEND_API_KEY
@@ -92,7 +92,7 @@ class ResendAPIError(ResendSyncError):
 # This pattern is intentionally strict to avoid Resend API validation errors
 # It rejects special characters like ! that some email providers technically allow
 # but Resend's API does not accept
-EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 
 
 def is_valid_email(email: Optional[str]) -> bool:
@@ -132,34 +132,34 @@ def get_keycloak_users(offset: int = 0, limit: int = 100) -> List[Dict[str, Any]
         # Get users with pagination
         # The Keycloak API uses 'first' for offset and 'max' for limit
         params: Dict[str, Any] = {
-            'first': offset,
-            'max': limit,
-            'briefRepresentation': False,  # Get full user details
+            "first": offset,
+            "max": limit,
+            "briefRepresentation": False,  # Get full user details
         }
 
         users_data = keycloak_admin.get_users(params)
-        logger.info(f'Fetched {len(users_data)} users from Keycloak')
+        logger.info(f"Fetched {len(users_data)} users from Keycloak")
 
         # Transform the response to match our expected format
         users = []
         for user in users_data:
-            if user.get('email'):  # Ensure user has an email
+            if user.get("email"):  # Ensure user has an email
                 users.append(
                     {
-                        'id': user.get('id'),
-                        'email': user.get('email'),
-                        'first_name': user.get('firstName'),
-                        'last_name': user.get('lastName'),
-                        'username': user.get('username'),
+                        "id": user.get("id"),
+                        "email": user.get("email"),
+                        "first_name": user.get("firstName"),
+                        "last_name": user.get("lastName"),
+                        "username": user.get("username"),
                     }
                 )
 
         return users
     except KeycloakError:
-        logger.exception('Failed to get users from Keycloak')
+        logger.exception("Failed to get users from Keycloak")
         raise
     except Exception:
-        logger.exception('Unexpected error getting users from Keycloak')
+        logger.exception("Unexpected error getting users from Keycloak")
         raise
 
 
@@ -177,10 +177,10 @@ def get_total_keycloak_users() -> int:
         count = keycloak_admin.users_count()
         return count
     except KeycloakError:
-        logger.exception('Failed to get total users from Keycloak')
+        logger.exception("Failed to get total users from Keycloak")
         raise
     except Exception:
-        logger.exception('Unexpected error getting total users from Keycloak')
+        logger.exception("Unexpected error getting total users from Keycloak")
         raise
 
 
@@ -197,12 +197,12 @@ def get_resend_contacts(audience_id: str) -> Dict[str, Dict[str, Any]]:
         ResendAPIError: If the API call fails.
     """
     try:
-        contacts = resend.Contacts.list(audience_id).get('data', [])
+        contacts = resend.Contacts.list(audience_id).get("data", [])
         # Create a dictionary mapping email addresses to contact data for
         # efficient lookup
-        return {contact['email'].lower(): contact for contact in contacts}
+        return {contact["email"].lower(): contact for contact in contacts}
     except Exception:
-        logger.exception('Failed to get contacts from Resend')
+        logger.exception("Failed to get contacts from Resend")
         raise
 
 
@@ -236,17 +236,17 @@ def add_contact_to_resend(
         ResendAPIError: If the API call fails after retries.
     """
     try:
-        params = {'audience_id': audience_id, 'email': email}
+        params = {"audience_id": audience_id, "email": email}
 
         if first_name:
-            params['first_name'] = first_name
+            params["first_name"] = first_name
 
         if last_name:
-            params['last_name'] = last_name
+            params["last_name"] = last_name
 
         return resend.Contacts.create(params)
     except Exception:
-        logger.exception(f'Failed to add contact {email} to Resend')
+        logger.exception(f"Failed to add contact {email} to Resend")
         raise
 
 
@@ -279,26 +279,26 @@ def send_welcome_email(
     """
     try:
         # Prepare the recipient name
-        recipient_name = ''
+        recipient_name = ""
         if first_name:
             recipient_name = first_name
             if last_name:
-                recipient_name += f' {last_name}'
+                recipient_name += f" {last_name}"
 
         # Personalize greeting based on available information
-        greeting = f'Hi {recipient_name},' if recipient_name else 'Hi there,'
+        greeting = f"Hi {recipient_name}," if recipient_name else "Hi there,"
 
         # Prepare email parameters
         params = {
-            'from': os.environ.get(
-                'RESEND_FROM_EMAIL', 'OpenHands Team <no-reply@welcome.openhands.dev>'
+            "from": os.environ.get(
+                "RESEND_FROM_EMAIL", "OpenHands Team <no-reply@welcome.openhands.dev>"
             ),
-            'reply_to': os.environ.get(
-                'RESEND_REPLY_TO_EMAIL', 'contact@openhands.dev'
+            "reply_to": os.environ.get(
+                "RESEND_REPLY_TO_EMAIL", "contact@openhands.dev"
             ),
-            'to': [email],
-            'subject': 'Welcome to OpenHands Cloud',
-            'html': f"""
+            "to": [email],
+            "subject": "Welcome to OpenHands Cloud",
+            "html": f"""
             <div>
                 <p>{greeting}</p>
                 <p>Thanks for joining OpenHands Cloud — we're excited to help you start building with the world's leading open source AI coding agent!</p>
@@ -322,10 +322,10 @@ def send_welcome_email(
 
         # Send the email
         response = resend.Emails.send(params)
-        logger.info(f'Welcome email sent to {email}')
+        logger.info(f"Welcome email sent to {email}")
         return response
     except Exception:
-        logger.exception(f'Failed to send welcome email to {email}')
+        logger.exception(f"Failed to send welcome email to {email}")
         raise
 
 
@@ -357,17 +357,17 @@ def _backfill_existing_resend_contacts(
     Returns:
         The number of contacts backfilled.
     """
-    logger.info('Starting backfill of existing Resend contacts...')
+    logger.info("Starting backfill of existing Resend contacts...")
 
     try:
         resend_contacts = get_resend_contacts(audience_id)
-        logger.info(f'Found {len(resend_contacts)} contacts in Resend audience')
+        logger.info(f"Found {len(resend_contacts)} contacts in Resend audience")
 
         already_synced_emails = synced_user_store.get_synced_emails_for_audience(
             audience_id
         )
         logger.info(
-            f'Found {len(already_synced_emails)} already synced emails in database'
+            f"Found {len(already_synced_emails)} already synced emails in database"
         )
 
         backfilled_count = 0
@@ -379,15 +379,15 @@ def _backfill_existing_resend_contacts(
                     keycloak_user_id=None,  # We don't have this info during backfill
                 )
                 backfilled_count += 1
-                logger.debug(f'Backfilled existing Resend contact: {email}')
+                logger.debug(f"Backfilled existing Resend contact: {email}")
 
         logger.info(
-            f'Backfill completed: {backfilled_count} contacts added to tracking'
+            f"Backfill completed: {backfilled_count} contacts added to tracking"
         )
         return backfilled_count
 
     except Exception:
-        logger.exception('Error during backfill of existing Resend contacts')
+        logger.exception("Error during backfill of existing Resend contacts")
         # Don't fail the entire sync if backfill fails - just log and continue
         return 0
 
@@ -409,26 +409,26 @@ def sync_users_to_resend():
     """
     # Check required environment variables
     required_vars = {
-        'RESEND_API_KEY': RESEND_API_KEY,
-        'RESEND_AUDIENCE_ID': RESEND_AUDIENCE_ID,
-        'KEYCLOAK_SERVER_URL': KEYCLOAK_SERVER_URL,
-        'KEYCLOAK_REALM_NAME': KEYCLOAK_REALM_NAME,
-        'KEYCLOAK_ADMIN_PASSWORD': KEYCLOAK_ADMIN_PASSWORD,
+        "RESEND_API_KEY": RESEND_API_KEY,
+        "RESEND_AUDIENCE_ID": RESEND_AUDIENCE_ID,
+        "KEYCLOAK_SERVER_URL": KEYCLOAK_SERVER_URL,
+        "KEYCLOAK_REALM_NAME": KEYCLOAK_REALM_NAME,
+        "KEYCLOAK_ADMIN_PASSWORD": KEYCLOAK_ADMIN_PASSWORD,
     }
 
     missing_vars = [var for var, value in required_vars.items() if not value]
 
     if missing_vars:
         for var in missing_vars:
-            logger.error(f'{var} environment variable is not set')
+            logger.error(f"{var} environment variable is not set")
         sys.exit(1)
 
     # Log configuration (without sensitive info)
-    logger.info(f'Using Keycloak server: {KEYCLOAK_SERVER_URL}')
-    logger.info(f'Using Keycloak realm: {KEYCLOAK_REALM_NAME}')
+    logger.info(f"Using Keycloak server: {KEYCLOAK_SERVER_URL}")
+    logger.info(f"Using Keycloak realm: {KEYCLOAK_REALM_NAME}")
 
     logger.info(
-        f'Starting sync of Keycloak users to Resend audience {RESEND_AUDIENCE_ID}'
+        f"Starting sync of Keycloak users to Resend audience {RESEND_AUDIENCE_ID}"
     )
 
     try:
@@ -444,32 +444,32 @@ def sync_users_to_resend():
         # Get the total number of users
         total_users = get_total_keycloak_users()
         logger.info(
-            f'Found {total_users} users in Keycloak realm {KEYCLOAK_REALM_NAME}'
+            f"Found {total_users} users in Keycloak realm {KEYCLOAK_REALM_NAME}"
         )
 
         # Stats
         stats = {
-            'total_users': total_users,
-            'backfilled_contacts': backfilled_count,
-            'already_synced': 0,
-            'added_contacts': 0,
-            'skipped_invalid_emails': 0,
-            'errors': 0,
+            "total_users": total_users,
+            "backfilled_contacts": backfilled_count,
+            "already_synced": 0,
+            "added_contacts": 0,
+            "skipped_invalid_emails": 0,
+            "errors": 0,
         }
 
         synced_emails = synced_user_store.get_synced_emails_for_audience(
             RESEND_AUDIENCE_ID
         )
-        logger.info(f'Found {len(synced_emails)} already synced emails in database')
+        logger.info(f"Found {len(synced_emails)} already synced emails in database")
 
         # Process users in batches
         offset = 0
         while offset < total_users:
             users = get_keycloak_users(offset, BATCH_SIZE)
-            logger.info(f'Processing batch of {len(users)} users (offset {offset})')
+            logger.info(f"Processing batch of {len(users)} users (offset {offset})")
 
             for user in users:
-                email = user.get('email')
+                email = user.get("email")
                 if not email:
                     continue
 
@@ -477,20 +477,20 @@ def sync_users_to_resend():
 
                 if email in synced_emails:
                     logger.debug(
-                        f'User {email} was already synced to this audience, skipping'
+                        f"User {email} was already synced to this audience, skipping"
                     )
-                    stats['already_synced'] += 1
+                    stats["already_synced"] += 1
                     continue
 
                 # Validate email format before attempting to add to Resend
                 if not is_valid_email(email):
-                    logger.warning(f'Skipping user with invalid email format: {email}')
-                    stats['skipped_invalid_emails'] += 1
+                    logger.warning(f"Skipping user with invalid email format: {email}")
+                    stats["skipped_invalid_emails"] += 1
                     continue
 
-                first_name = user.get('first_name')
-                last_name = user.get('last_name')
-                keycloak_user_id = user.get('id')
+                first_name = user.get("first_name")
+                last_name = user.get("last_name")
+                keycloak_user_id = user.get("id")
 
                 # Mark as synced first (optimistic) to ensure consistency.
                 # If Resend API fails, we remove the record.
@@ -501,23 +501,23 @@ def sync_users_to_resend():
                         keycloak_user_id=keycloak_user_id,
                     )
                 except Exception:
-                    logger.exception(f'Failed to mark user {email} as synced')
-                    stats['errors'] += 1
+                    logger.exception(f"Failed to mark user {email} as synced")
+                    stats["errors"] += 1
                     continue
 
                 try:
                     add_contact_to_resend(
                         RESEND_AUDIENCE_ID, email, first_name, last_name
                     )
-                    logger.info(f'Added user {email} to Resend')
+                    logger.info(f"Added user {email} to Resend")
                 except Exception:
-                    logger.exception(f'Error adding user {email} to Resend')
+                    logger.exception(f"Error adding user {email} to Resend")
                     synced_user_store.remove_synced_user(email, RESEND_AUDIENCE_ID)
-                    stats['errors'] += 1
+                    stats["errors"] += 1
                     continue
 
                 synced_emails.add(email)
-                stats['added_contacts'] += 1
+                stats["added_contacts"] += 1
 
                 # Sleep to respect rate limit after first API call
                 time.sleep(1 / RATE_LIMIT)
@@ -525,10 +525,10 @@ def sync_users_to_resend():
                 # Send a welcome email to the newly added contact
                 try:
                     send_welcome_email(email, first_name, last_name)
-                    logger.info(f'Sent welcome email to {email}')
+                    logger.info(f"Sent welcome email to {email}")
                 except Exception:
                     logger.exception(
-                        f'Failed to send welcome email to {email}, but contact was added to audience'
+                        f"Failed to send welcome email to {email}, but contact was added to audience"
                     )
 
                 # Sleep to respect rate limit after second API call
@@ -536,17 +536,17 @@ def sync_users_to_resend():
 
             offset += BATCH_SIZE
 
-        logger.info(f'Sync completed: {stats}')
+        logger.info(f"Sync completed: {stats}")
     except KeycloakClientError:
-        logger.exception('Keycloak client error')
+        logger.exception("Keycloak client error")
         sys.exit(1)
     except ResendAPIError:
-        logger.exception('Resend API error')
+        logger.exception("Resend API error")
         sys.exit(1)
     except Exception:
-        logger.exception('Sync failed with unexpected error')
+        logger.exception("Sync failed with unexpected error")
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sync_users_to_resend()

@@ -32,7 +32,7 @@ class TestDefaultLLMModelServiceSearchModels:
         result = await service.search_llm_models(limit=10000)
 
         providers = {m.provider for m in result.items}
-        assert 'openhands' in providers
+        assert "openhands" in providers
 
     @pytest.mark.asyncio
     async def test_includes_clarifai_models(self):
@@ -40,16 +40,16 @@ class TestDefaultLLMModelServiceSearchModels:
         result = await service.search_llm_models(limit=10000)
 
         providers = {m.provider for m in result.items}
-        assert 'clarifai' in providers
+        assert "clarifai" in providers
 
     @pytest.mark.asyncio
     async def test_filters_by_query(self):
         service = DefaultLLMModelService()
-        result = await service.search_llm_models(query='gpt', limit=10000)
+        result = await service.search_llm_models(query="gpt", limit=10000)
 
         assert len(result.items) > 0
         for m in result.items:
-            assert 'gpt' in m.name.lower()
+            assert "gpt" in m.name.lower()
 
     @pytest.mark.asyncio
     async def test_filters_by_verified_eq(self):
@@ -64,11 +64,11 @@ class TestDefaultLLMModelServiceSearchModels:
     @pytest.mark.asyncio
     async def test_filters_by_provider_eq(self):
         service = DefaultLLMModelService()
-        result = await service.search_llm_models(provider_eq='openai', limit=10000)
+        result = await service.search_llm_models(provider_eq="openai", limit=10000)
 
         assert len(result.items) > 0
         for m in result.items:
-            assert m.provider == 'openai'
+            assert m.provider == "openai"
 
     @pytest.mark.asyncio
     async def test_pagination(self):
@@ -95,23 +95,23 @@ class TestDefaultLLMModelServiceSearchModels:
     async def test_bedrock_models_with_client(self):
         mock_client = MagicMock()
         mock_client.list_foundation_models.return_value = {
-            'modelSummaries': [
-                {'modelId': 'anthropic.claude-v2'},
-                {'modelId': 'amazon.titan-text'},
+            "modelSummaries": [
+                {"modelId": "anthropic.claude-v2"},
+                {"modelId": "amazon.titan-text"},
             ]
         }
 
         service = DefaultLLMModelService(bedrock_client=mock_client)
-        result = await service.search_llm_models(provider_eq='bedrock', limit=10000)
+        result = await service.search_llm_models(provider_eq="bedrock", limit=10000)
 
         model_names = [m.name for m in result.items]
-        assert 'anthropic.claude-v2' in model_names
-        assert 'amazon.titan-text' in model_names
+        assert "anthropic.claude-v2" in model_names
+        assert "amazon.titan-text" in model_names
 
     @pytest.mark.asyncio
     async def test_bedrock_error_handled_gracefully(self):
         mock_client = MagicMock()
-        mock_client.list_foundation_models.side_effect = Exception('AWS error')
+        mock_client.list_foundation_models.side_effect = Exception("AWS error")
 
         service = DefaultLLMModelService(bedrock_client=mock_client)
         result = await service.search_llm_models()
@@ -123,7 +123,7 @@ class TestDefaultLLMModelServiceSearchModels:
     async def test_ollama_models_with_url(self):
         mock_response = MagicMock()
         mock_response.json.return_value = {
-            'models': [{'name': 'llama3'}, {'name': 'codellama'}]
+            "models": [{"name": "llama3"}, {"name": "codellama"}]
         }
 
         mock_client = AsyncMock()
@@ -131,28 +131,28 @@ class TestDefaultLLMModelServiceSearchModels:
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
-        with patch('httpx.AsyncClient', return_value=mock_client):
+        with patch("httpx.AsyncClient", return_value=mock_client):
             service = DefaultLLMModelService(
-                ollama_base_url='http://localhost:11434',
+                ollama_base_url="http://localhost:11434",
             )
-            result = await service.search_llm_models(provider_eq='ollama', limit=10000)
+            result = await service.search_llm_models(provider_eq="ollama", limit=10000)
 
         model_names = [m.name for m in result.items]
-        assert 'llama3' in model_names
-        assert 'codellama' in model_names
+        assert "llama3" in model_names
+        assert "codellama" in model_names
 
     @pytest.mark.asyncio
     async def test_ollama_error_handled_gracefully(self):
         import httpx
 
         mock_client = AsyncMock()
-        mock_client.get.side_effect = httpx.ConnectError('Connection refused')
+        mock_client.get.side_effect = httpx.ConnectError("Connection refused")
         mock_client.__aenter__ = AsyncMock(return_value=mock_client)
         mock_client.__aexit__ = AsyncMock(return_value=None)
 
-        with patch('httpx.AsyncClient', return_value=mock_client):
+        with patch("httpx.AsyncClient", return_value=mock_client):
             service = DefaultLLMModelService(
-                ollama_base_url='http://localhost:11434',
+                ollama_base_url="http://localhost:11434",
             )
             result = await service.search_llm_models()
 
@@ -169,7 +169,7 @@ class TestDefaultLLMModelServiceSearchModels:
         # Both calls should have populated the same cached response
         assert service._cached_response is not None
         assert result1.items[0].name in [
-            m.split('/', 1)[-1] for m in service._cached_response.models
+            m.split("/", 1)[-1] for m in service._cached_response.models
         ]
 
 
@@ -187,11 +187,11 @@ class TestDefaultLLMModelServiceSearchProviders:
     @pytest.mark.asyncio
     async def test_filters_by_query(self):
         service = DefaultLLMModelService()
-        result = await service.search_providers(query='openai', limit=10000)
+        result = await service.search_providers(query="openai", limit=10000)
 
         assert len(result.items) > 0
         for p in result.items:
-            assert 'openai' in p.name.lower()
+            assert "openai" in p.name.lower()
 
     @pytest.mark.asyncio
     async def test_filters_by_verified_eq(self):
@@ -230,14 +230,14 @@ class TestDefaultLLMModelServiceInjector:
     @pytest.mark.asyncio
     async def test_inject_passes_ollama_url(self):
         injector = DefaultLLMModelServiceInjector(
-            ollama_base_url='http://ollama:11434',
+            ollama_base_url="http://ollama:11434",
         )
 
         from starlette.datastructures import State
 
         state = State()
         async for service in injector.inject(state):
-            assert service._ollama_base_url == 'http://ollama:11434'
+            assert service._ollama_base_url == "http://ollama:11434"
             assert service._bedrock_client is None
 
     @pytest.mark.asyncio
@@ -245,13 +245,13 @@ class TestDefaultLLMModelServiceInjector:
         from pydantic import SecretStr
 
         injector = DefaultLLMModelServiceInjector(
-            aws_region_name='us-west-2',
-            aws_access_key_id=SecretStr('AKIATEST'),
-            aws_secret_access_key=SecretStr('secret123'),
+            aws_region_name="us-west-2",
+            aws_access_key_id=SecretStr("AKIATEST"),
+            aws_secret_access_key=SecretStr("secret123"),
         )
 
         mock_client = MagicMock()
-        with patch('boto3.client', return_value=mock_client) as mock_boto3:
+        with patch("boto3.client", return_value=mock_client) as mock_boto3:
             from starlette.datastructures import State
 
             state = State()
@@ -259,10 +259,10 @@ class TestDefaultLLMModelServiceInjector:
                 assert service._bedrock_client is mock_client
 
         mock_boto3.assert_called_once_with(
-            service_name='bedrock',
-            region_name='us-west-2',
-            aws_access_key_id='AKIATEST',
-            aws_secret_access_key='secret123',
+            service_name="bedrock",
+            region_name="us-west-2",
+            aws_access_key_id="AKIATEST",
+            aws_secret_access_key="secret123",
         )
 
     @pytest.mark.asyncio
@@ -270,13 +270,13 @@ class TestDefaultLLMModelServiceInjector:
         from pydantic import SecretStr
 
         injector = DefaultLLMModelServiceInjector(
-            aws_region_name='us-west-2',
-            aws_access_key_id=SecretStr('AKIATEST'),
-            aws_secret_access_key=SecretStr('secret123'),
+            aws_region_name="us-west-2",
+            aws_access_key_id=SecretStr("AKIATEST"),
+            aws_secret_access_key=SecretStr("secret123"),
         )
 
         mock_client = MagicMock()
-        with patch('boto3.client', return_value=mock_client) as mock_boto3:
+        with patch("boto3.client", return_value=mock_client) as mock_boto3:
             from starlette.datastructures import State
 
             state = State()

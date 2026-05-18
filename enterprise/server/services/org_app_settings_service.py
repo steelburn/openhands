@@ -47,11 +47,11 @@ class OrgAppSettingsService:
         """
         user_id = await self.user_context.get_user_id()
         if not user_id:
-            raise AuthError('User not authenticated')
+            raise AuthError("User not authenticated")
 
-        user_auth = getattr(self.user_context, 'user_auth', None)
+        user_auth = getattr(self.user_context, "user_auth", None)
         effective_org_id = None
-        if user_auth is not None and hasattr(user_auth, 'get_effective_org_id'):
+        if user_auth is not None and hasattr(user_auth, "get_effective_org_id"):
             effective_org_id = await user_auth.get_effective_org_id()
 
         if effective_org_id is not None:
@@ -59,7 +59,7 @@ class OrgAppSettingsService:
         else:
             org = await self.store.get_current_org_by_user_id(user_id)
         if not org:
-            raise OrgNotFoundError('current')
+            raise OrgNotFoundError("current")
         return user_id, org
 
     async def get_org_app_settings(self) -> OrgAppSettingsResponse:
@@ -77,8 +77,8 @@ class OrgAppSettingsService:
         user_id, org = await self._resolve_effective_org()
 
         logger.info(
-            'Getting organization app settings',
-            extra={'user_id': user_id, 'org_id': str(org.id)},
+            "Getting organization app settings",
+            extra={"user_id": user_id, "org_id": str(org.id)},
         )
         return OrgAppSettingsResponse.from_org(org)
 
@@ -105,8 +105,8 @@ class OrgAppSettingsService:
         user_id, org = await self._resolve_effective_org()
 
         logger.info(
-            'Updating organization app settings',
-            extra={'user_id': user_id, 'org_id': str(org.id)},
+            "Updating organization app settings",
+            extra={"user_id": user_id, "org_id": str(org.id)},
         )
 
         # Check if any fields are provided
@@ -115,8 +115,8 @@ class OrgAppSettingsService:
         if not update_dict:
             # No fields to update, just return current settings
             logger.info(
-                'No fields to update in app settings',
-                extra={'user_id': user_id, 'org_id': str(org.id)},
+                "No fields to update in app settings",
+                extra={"user_id": user_id, "org_id": str(org.id)},
             )
             return OrgAppSettingsResponse.from_org(org)
 
@@ -126,11 +126,11 @@ class OrgAppSettingsService:
         )
 
         if not updated_org:
-            raise OrgNotFoundError('current')
+            raise OrgNotFoundError("current")
 
         logger.info(
-            'Organization app settings updated successfully',
-            extra={'user_id': user_id, 'updated_fields': list(update_dict.keys())},
+            "Organization app settings updated successfully",
+            extra={"user_id": user_id, "updated_fields": list(update_dict.keys())},
         )
 
         return OrgAppSettingsResponse.from_org(updated_org)

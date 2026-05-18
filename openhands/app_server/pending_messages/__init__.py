@@ -12,10 +12,10 @@ from openhands.app_server.pending_messages.pending_message_service import (
 )
 
 __all__ = [
-    'PendingMessage',
-    'PendingMessageResponse',
-    'PendingMessageService',
-    'PendingMessageServiceInjector',
-    'SQLPendingMessageService',
-    'SQLPendingMessageServiceInjector',
+    "PendingMessage",
+    "PendingMessageResponse",
+    "PendingMessageService",
+    "PendingMessageServiceInjector",
+    "SQLPendingMessageService",
+    "SQLPendingMessageServiceInjector",
 ]

@@ -47,9 +47,9 @@ class TestUserBaseProtocol:
             accepted_tos: datetime | None
 
         user = UserWithStr(
-            id='user-123',
+            id="user-123",
             user_consents_to_analytics=False,
-            current_org_id='org-456',
+            current_org_id="org-456",
             accepted_tos=None,
         )
 
@@ -68,7 +68,7 @@ class TestUserBaseProtocol:
             accepted_tos: datetime | None
 
         user = UserWithNones(
-            id='user-789',
+            id="user-789",
             user_consents_to_analytics=None,
             current_org_id=None,
             accepted_tos=None,
@@ -95,8 +95,8 @@ class TestUserBaseProtocol:
             user_consents_to_analytics=True,
             current_org_id=uuid4(),
             accepted_tos=datetime.now(),
-            email='test@example.com',
-            role='admin',
+            email="test@example.com",
+            role="admin",
         )
 
         assert isinstance(user, UserBase)
@@ -111,7 +111,7 @@ class TestUserBaseProtocol:
             # Missing: current_org_id, accepted_tos
 
         user = IncompleteUser(
-            id='user-incomplete',
+            id="user-incomplete",
             user_consents_to_analytics=True,
         )
 
@@ -122,7 +122,7 @@ class TestUserBaseProtocol:
         mock_user = MagicMock()
         mock_user.id = uuid4()
         mock_user.user_consents_to_analytics = True
-        mock_user.current_org_id = 'org-mock'
+        mock_user.current_org_id = "org-mock"
         mock_user.accepted_tos = datetime.now()
 
         # MagicMock has all attributes, so it satisfies the protocol
@@ -142,7 +142,7 @@ class TestUserBaseProtocol:
         user = UserWithAny(
             id=uuid4(),
             user_consents_to_analytics=True,
-            current_org_id='org-any',
+            current_org_id="org-any",
             accepted_tos=datetime.now(),
         )
 

@@ -18,7 +18,7 @@ class BitbucketWebhook(Base):
     user that registered the hook.
     """
 
-    __tablename__ = 'bitbucket_webhook'
+    __tablename__ = "bitbucket_webhook"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     workspace: Mapped[str] = mapped_column(String, nullable=False)
@@ -28,13 +28,13 @@ class BitbucketWebhook(Base):
     webhook_secret: Mapped[str | None] = mapped_column(String, nullable=True)
     last_synced: Mapped[datetime | None] = mapped_column(
         DateTime,
-        server_default=text('CURRENT_TIMESTAMP'),
-        onupdate=text('CURRENT_TIMESTAMP'),
+        server_default=text("CURRENT_TIMESTAMP"),
+        onupdate=text("CURRENT_TIMESTAMP"),
         nullable=True,
     )
 
     def __repr__(self) -> str:
         return (
-            f'<BitbucketWebhook(id={self.id}, workspace={self.workspace}, '
-            f'repo_slug={self.repo_slug}, webhook_uuid={self.webhook_uuid})>'
+            f"<BitbucketWebhook(id={self.id}, workspace={self.workspace}, "
+            f"repo_slug={self.repo_slug}, webhook_uuid={self.webhook_uuid})>"
         )

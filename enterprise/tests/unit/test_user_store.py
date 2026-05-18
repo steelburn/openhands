@@ -21,17 +21,17 @@ from openhands.app_server.settings.settings_models import Settings
 @pytest.fixture
 def mock_litellm_api():
     """Mock LiteLLM API calls to prevent external dependencies."""
-    api_key_patch = patch('storage.lite_llm_manager.LITE_LLM_API_KEY', 'test_key')
+    api_key_patch = patch("storage.lite_llm_manager.LITE_LLM_API_KEY", "test_key")
     api_url_patch = patch(
-        'storage.lite_llm_manager.LITE_LLM_API_URL', 'http://test.url'
+        "storage.lite_llm_manager.LITE_LLM_API_URL", "http://test.url"
     )
-    team_id_patch = patch('storage.lite_llm_manager.LITE_LLM_TEAM_ID', 'test_team')
-    client_patch = patch('httpx.AsyncClient')
+    team_id_patch = patch("storage.lite_llm_manager.LITE_LLM_TEAM_ID", "test_team")
+    client_patch = patch("httpx.AsyncClient")
 
     with api_key_patch, api_url_patch, team_id_patch, client_patch as mock_client:
         mock_response = AsyncMock()
         mock_response.is_success = True
-        mock_response.json = MagicMock(return_value={'key': 'test_api_key'})
+        mock_response.json = MagicMock(return_value={"key": "test_api_key"})
         mock_client.return_value.__aenter__.return_value.post.return_value = (
             mock_response
         )
@@ -50,15 +50,15 @@ def mock_litellm_api():
 def test_get_kwargs_from_settings():
     """Test extracting user kwargs from Settings object."""
     settings = Settings(
-        language='es',
+        language="es",
         enable_sound_notifications=True,
     )
     settings.update(
         {
-            'agent_settings_diff': {
-                'llm': {
-                    'model': 'anthropic/claude-sonnet-4-5-20250929',
-                    'api_key': 'test-key',
+            "agent_settings_diff": {
+                "llm": {
+                    "model": "anthropic/claude-sonnet-4-5-20250929",
+                    "api_key": "test-key",
                 },
             },
         }
@@ -67,10 +67,10 @@ def test_get_kwargs_from_settings():
     kwargs = UserStore.get_kwargs_from_settings(settings)
 
     # Should only include fields that exist in User model
-    assert 'language' in kwargs
-    assert 'enable_sound_notifications' in kwargs
+    assert "language" in kwargs
+    assert "enable_sound_notifications" in kwargs
     # Should not include fields that don't exist in User model
-    assert 'llm_api_key' not in kwargs
+    assert "llm_api_key" not in kwargs
 
 
 @pytest.mark.asyncio
@@ -98,25 +98,25 @@ async def test_create_user_with_llm_profiles_does_not_crash_and_preserves_secret
     user_id = uuid.uuid4()
     org_id = uuid.uuid4()
 
-    settings = Settings(language='en')
+    settings = Settings(language="en")
     settings.llm_profiles.save(
-        'work',
+        "work",
         LLM(
-            model='anthropic/claude-sonnet-4-5-20250929',
-            base_url='https://api.anthropic.com/v1',
-            api_key=SecretStr('work-secret-key'),
+            model="anthropic/claude-sonnet-4-5-20250929",
+            base_url="https://api.anthropic.com/v1",
+            api_key=SecretStr("work-secret-key"),
         ),
     )
-    settings.llm_profiles.active = 'work'
+    settings.llm_profiles.active = "work"
 
     kwargs = UserStore.get_kwargs_from_settings(settings)
-    assert 'llm_profiles' in kwargs
+    assert "llm_profiles" in kwargs
     # Caller hands the pydantic model straight to User; the column
     # converts it on bind, so the kwarg is still the model here.
-    assert kwargs['llm_profiles'] is settings.llm_profiles
+    assert kwargs["llm_profiles"] is settings.llm_profiles
 
     async with async_session_maker() as session:
-        session.add(Org(id=org_id, name='test-org'))
+        session.add(Org(id=org_id, name="test-org"))
         session.add(User(id=user_id, current_org_id=org_id, **kwargs))
         # Would raise TypeError before the EncryptedJSON BaseModel branch.
         await session.commit()
@@ -127,10 +127,10 @@ async def test_create_user_with_llm_profiles_does_not_crash_and_preserves_secret
         ).scalar_one()
 
     assert user.llm_profiles is not None
-    assert user.llm_profiles['active'] == 'work'
+    assert user.llm_profiles["active"] == "work"
     # SecretStr would serialize as '**********' without
     # context={'expose_secrets': True}; assert the real value survived.
-    assert user.llm_profiles['profiles']['work']['api_key'] == 'work-secret-key'
+    assert user.llm_profiles["profiles"]["work"]["api_key"] == "work-secret-key"
 
 
 # --- Tests for create_default_settings ---
@@ -139,7 +139,7 @@ async def test_create_user_with_llm_profiles_does_not_crash_and_preserves_secret
 @pytest.mark.asyncio
 async def test_create_default_settings_no_org_id():
     """Test that create_default_settings returns None when org_id is empty."""
-    settings = await UserStore.create_default_settings('', 'test-user-id')
+    settings = await UserStore.create_default_settings("", "test-user-id")
     assert settings is None
 
 
@@ -150,22 +150,22 @@ async def test_create_default_settings_with_litellm(mock_litellm_api):
     user_id = str(uuid.uuid4())
 
     # Mock LiteLlmManager.create_entries to return a Settings object
-    mock_settings = Settings(language='en')
+    mock_settings = Settings(language="en")
     mock_settings.update(
         {
-            'agent_settings_diff': {
-                'agent': 'CodeActAgent',
-                'llm': {
-                    'model': 'anthropic/claude-sonnet-4-5-20250929',
-                    'api_key': 'test_api_key',
-                    'base_url': 'http://test.url',
+            "agent_settings_diff": {
+                "agent": "CodeActAgent",
+                "llm": {
+                    "model": "anthropic/claude-sonnet-4-5-20250929",
+                    "api_key": "test_api_key",
+                    "base_url": "http://test.url",
                 },
             },
         }
     )
 
     with patch(
-        'storage.lite_llm_manager.LiteLlmManager.create_entries',
+        "storage.lite_llm_manager.LiteLlmManager.create_entries",
         new_callable=AsyncMock,
         return_value=mock_settings,
     ):
@@ -173,8 +173,8 @@ async def test_create_default_settings_with_litellm(mock_litellm_api):
 
     # With mock, should return settings with API key from LiteLLM
     assert settings is not None
-    assert settings.agent_settings.llm.api_key.get_secret_value() == 'test_api_key'
-    assert settings.agent_settings.llm.base_url == 'http://test.url'
+    assert settings.agent_settings.llm.api_key.get_secret_value() == "test_api_key"
+    assert settings.agent_settings.llm.base_url == "http://test.url"
 
 
 @pytest.mark.asyncio
@@ -198,9 +198,9 @@ async def test_create_default_settings_v1_enabled_true_when_default_is_true(
         return settings
 
     with (
-        patch('storage.user_store.DEFAULT_V1_ENABLED', True),
+        patch("storage.user_store.DEFAULT_V1_ENABLED", True),
         patch(
-            'storage.lite_llm_manager.LiteLlmManager.create_entries',
+            "storage.lite_llm_manager.LiteLlmManager.create_entries",
             side_effect=capture_create_entries,
         ),
     ):
@@ -231,9 +231,9 @@ async def test_create_default_settings_v1_enabled_false_when_default_is_false(
         return settings
 
     with (
-        patch('storage.user_store.DEFAULT_V1_ENABLED', False),
+        patch("storage.user_store.DEFAULT_V1_ENABLED", False),
         patch(
-            'storage.lite_llm_manager.LiteLlmManager.create_entries',
+            "storage.lite_llm_manager.LiteLlmManager.create_entries",
             side_effect=capture_create_entries,
         ),
     ):
@@ -254,14 +254,14 @@ async def test_get_user_by_id_existing_user(async_session_maker):
 
     # Create test data
     async with async_session_maker() as session:
-        org = Org(id=org_id, name='test-org')
+        org = Org(id=org_id, name="test-org")
         session.add(org)
         user = User(id=user_id, current_org_id=org_id)
         session.add(user)
         await session.commit()
 
     # Test retrieval with patched session maker
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         result = await UserStore.get_user_by_id(str(user_id))
 
     assert result is not None
@@ -274,11 +274,11 @@ async def test_get_user_by_id_user_not_found(async_session_maker):
     """Test that get_user_by_id returns None for non-existent user."""
     non_existent_id = str(uuid.uuid4())
 
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         # Mock the lock functions to avoid Redis dependency
         with (
-            patch.object(UserStore, '_acquire_user_creation_lock', return_value=True),
-            patch.object(UserStore, '_release_user_creation_lock', return_value=True),
+            patch.object(UserStore, "_acquire_user_creation_lock", return_value=True),
+            patch.object(UserStore, "_release_user_creation_lock", return_value=True),
         ):
             result = await UserStore.get_user_by_id(non_existent_id)
 
@@ -293,18 +293,18 @@ async def test_get_user_by_email_existing_user(async_session_maker):
     """Test retrieving a user by email."""
     user_id = uuid.uuid4()
     org_id = uuid.uuid4()
-    email = 'test@example.com'
+    email = "test@example.com"
 
     # Create test data
     async with async_session_maker() as session:
-        org = Org(id=org_id, name='test-org')
+        org = Org(id=org_id, name="test-org")
         session.add(org)
         user = User(id=user_id, current_org_id=org_id, email=email)
         session.add(user)
         await session.commit()
 
     # Test retrieval
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         result = await UserStore.get_user_by_email(email)
 
     assert result is not None
@@ -315,8 +315,8 @@ async def test_get_user_by_email_existing_user(async_session_maker):
 @pytest.mark.asyncio
 async def test_get_user_by_email_not_found(async_session_maker):
     """Test that get_user_by_email returns None for non-existent email."""
-    with patch('storage.user_store.a_session_maker', async_session_maker):
-        result = await UserStore.get_user_by_email('nonexistent@example.com')
+    with patch("storage.user_store.a_session_maker", async_session_maker):
+        result = await UserStore.get_user_by_email("nonexistent@example.com")
 
     assert result is None
 
@@ -324,8 +324,8 @@ async def test_get_user_by_email_not_found(async_session_maker):
 @pytest.mark.asyncio
 async def test_get_user_by_email_empty_email(async_session_maker):
     """Test that get_user_by_email returns None for empty email."""
-    with patch('storage.user_store.a_session_maker', async_session_maker):
-        result = await UserStore.get_user_by_email('')
+    with patch("storage.user_store.a_session_maker", async_session_maker):
+        result = await UserStore.get_user_by_email("")
 
     assert result is None
 
@@ -333,7 +333,7 @@ async def test_get_user_by_email_empty_email(async_session_maker):
 @pytest.mark.asyncio
 async def test_get_user_by_email_none_email(async_session_maker):
     """Test that get_user_by_email returns None for None email."""
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         result = await UserStore.get_user_by_email(None)
 
     assert result is None
@@ -350,28 +350,28 @@ async def test_update_user_email_overwrites_existing(async_session_maker):
 
     # Create test data with existing email
     async with async_session_maker() as session:
-        org = Org(id=org_id, name='test-org')
+        org = Org(id=org_id, name="test-org")
         session.add(org)
         user = User(
             id=user_id,
             current_org_id=org_id,
-            email='old@example.com',
+            email="old@example.com",
             email_verified=True,
         )
         session.add(user)
         await session.commit()
 
     # Update email
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         await UserStore.update_user_email(
-            str(user_id), email='new@example.com', email_verified=False
+            str(user_id), email="new@example.com", email_verified=False
         )
 
     # Verify update
     async with async_session_maker() as session:
         result = await session.execute(select(User).filter(User.id == user_id))
         user = result.scalars().first()
-        assert user.email == 'new@example.com'
+        assert user.email == "new@example.com"
         assert user.email_verified is False
 
 
@@ -383,26 +383,26 @@ async def test_update_user_email_updates_only_email(async_session_maker):
 
     # Create test data
     async with async_session_maker() as session:
-        org = Org(id=org_id, name='test-org')
+        org = Org(id=org_id, name="test-org")
         session.add(org)
         user = User(
             id=user_id,
             current_org_id=org_id,
-            email='old@example.com',
+            email="old@example.com",
             email_verified=False,
         )
         session.add(user)
         await session.commit()
 
     # Update only email
-    with patch('storage.user_store.a_session_maker', async_session_maker):
-        await UserStore.update_user_email(str(user_id), email='new@example.com')
+    with patch("storage.user_store.a_session_maker", async_session_maker):
+        await UserStore.update_user_email(str(user_id), email="new@example.com")
 
     # Verify update - email_verified should remain unchanged
     async with async_session_maker() as session:
         result = await session.execute(select(User).filter(User.id == user_id))
         user = result.scalars().first()
-        assert user.email == 'new@example.com'
+        assert user.email == "new@example.com"
         assert user.email_verified is False
 
 
@@ -414,26 +414,26 @@ async def test_update_user_email_updates_only_verified(async_session_maker):
 
     # Create test data
     async with async_session_maker() as session:
-        org = Org(id=org_id, name='test-org')
+        org = Org(id=org_id, name="test-org")
         session.add(org)
         user = User(
             id=user_id,
             current_org_id=org_id,
-            email='keep@example.com',
+            email="keep@example.com",
             email_verified=False,
         )
         session.add(user)
         await session.commit()
 
     # Update only email_verified
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         await UserStore.update_user_email(str(user_id), email_verified=True)
 
     # Verify update - email should remain unchanged
     async with async_session_maker() as session:
         result = await session.execute(select(User).filter(User.id == user_id))
         user = result.scalars().first()
-        assert user.email == 'keep@example.com'
+        assert user.email == "keep@example.com"
         assert user.email_verified is True
 
 
@@ -443,7 +443,7 @@ async def test_update_user_email_noop_when_both_none():
     user_id = str(uuid.uuid4())
     mock_session_maker = MagicMock()
 
-    with patch('storage.user_store.a_session_maker', mock_session_maker):
+    with patch("storage.user_store.a_session_maker", mock_session_maker):
         await UserStore.update_user_email(user_id, email=None, email_verified=None)
 
     # Session maker should not have been called
@@ -456,9 +456,9 @@ async def test_update_user_email_missing_user(async_session_maker):
     user_id = str(uuid.uuid4())
 
     # Should not raise exception
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         await UserStore.update_user_email(
-            user_id, email='new@example.com', email_verified=True
+            user_id, email="new@example.com", email_verified=True
         )
 
 
@@ -473,7 +473,7 @@ async def test_backfill_user_email_sets_email_when_null(async_session_maker):
 
     # Create test data with NULL email
     async with async_session_maker() as session:
-        org = Org(id=org_id, name='test-org')
+        org = Org(id=org_id, name="test-org")
         session.add(org)
         user = User(
             id=user_id,
@@ -484,17 +484,17 @@ async def test_backfill_user_email_sets_email_when_null(async_session_maker):
         session.add(user)
         await session.commit()
 
-    user_info = {'email': 'new@example.com', 'email_verified': True}
+    user_info = {"email": "new@example.com", "email_verified": True}
 
     # Backfill
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         await UserStore.backfill_user_email(str(user_id), user_info)
 
     # Verify update
     async with async_session_maker() as session:
         result = await session.execute(select(User).filter(User.id == user_id))
         user = result.scalars().first()
-        assert user.email == 'new@example.com'
+        assert user.email == "new@example.com"
         assert user.email_verified is True
 
 
@@ -506,28 +506,28 @@ async def test_backfill_user_email_does_not_overwrite_existing(async_session_mak
 
     # Create test data with existing email
     async with async_session_maker() as session:
-        org = Org(id=org_id, name='test-org')
+        org = Org(id=org_id, name="test-org")
         session.add(org)
         user = User(
             id=user_id,
             current_org_id=org_id,
-            email='existing@example.com',
+            email="existing@example.com",
             email_verified=None,
         )
         session.add(user)
         await session.commit()
 
-    user_info = {'email': 'new@example.com', 'email_verified': True}
+    user_info = {"email": "new@example.com", "email_verified": True}
 
     # Backfill
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         await UserStore.backfill_user_email(str(user_id), user_info)
 
     # Verify email was NOT overwritten but email_verified was set
     async with async_session_maker() as session:
         result = await session.execute(select(User).filter(User.id == user_id))
         user = result.scalars().first()
-        assert user.email == 'existing@example.com'  # Should not be overwritten
+        assert user.email == "existing@example.com"  # Should not be overwritten
         assert user.email_verified is True  # Should be set since it was NULL
 
 
@@ -535,10 +535,10 @@ async def test_backfill_user_email_does_not_overwrite_existing(async_session_mak
 async def test_backfill_user_email_user_not_found(async_session_maker):
     """Test that backfill_user_email handles missing user gracefully."""
     user_id = str(uuid.uuid4())
-    user_info = {'email': 'new@example.com', 'email_verified': True}
+    user_info = {"email": "new@example.com", "email_verified": True}
 
     # Should not raise exception
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         await UserStore.backfill_user_email(user_id, user_info)
 
 
@@ -556,26 +556,26 @@ async def test_backfill_contact_name_updates_when_matches_preferred_username(
     async with async_session_maker() as session:
         org = Org(
             id=user_id,
-            name='test-org',
-            contact_name='jdoe',  # This is the username-style value
+            name="test-org",
+            contact_name="jdoe",  # This is the username-style value
         )
         session.add(org)
         await session.commit()
 
     user_info = {
-        'preferred_username': 'jdoe',
-        'name': 'John Doe',
+        "preferred_username": "jdoe",
+        "name": "John Doe",
     }
 
     # Backfill
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         await UserStore.backfill_contact_name(str(user_id), user_info)
 
     # Verify update
     async with async_session_maker() as session:
         result = await session.execute(select(Org).filter(Org.id == user_id))
         org = result.scalars().first()
-        assert org.contact_name == 'John Doe'
+        assert org.contact_name == "John Doe"
 
 
 @pytest.mark.asyncio
@@ -589,27 +589,27 @@ async def test_backfill_contact_name_updates_when_matches_username(
     async with async_session_maker() as session:
         org = Org(
             id=user_id,
-            name='test-org',
-            contact_name='johnsmith',
+            name="test-org",
+            contact_name="johnsmith",
         )
         session.add(org)
         await session.commit()
 
     user_info = {
-        'username': 'johnsmith',
-        'given_name': 'John',
-        'family_name': 'Smith',
+        "username": "johnsmith",
+        "given_name": "John",
+        "family_name": "Smith",
     }
 
     # Backfill
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         await UserStore.backfill_contact_name(str(user_id), user_info)
 
     # Verify update - should combine given and family names
     async with async_session_maker() as session:
         result = await session.execute(select(Org).filter(Org.id == user_id))
         org = result.scalars().first()
-        assert org.contact_name == 'John Smith'
+        assert org.contact_name == "John Smith"
 
 
 @pytest.mark.asyncio
@@ -621,36 +621,36 @@ async def test_backfill_contact_name_preserves_custom_value(async_session_maker)
     async with async_session_maker() as session:
         org = Org(
             id=user_id,
-            name='test-org',
-            contact_name='Custom Company Name',
+            name="test-org",
+            contact_name="Custom Company Name",
         )
         session.add(org)
         await session.commit()
 
     user_info = {
-        'preferred_username': 'jdoe',
-        'name': 'John Doe',
+        "preferred_username": "jdoe",
+        "name": "John Doe",
     }
 
     # Backfill
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         await UserStore.backfill_contact_name(str(user_id), user_info)
 
     # Verify contact_name was NOT updated (preserved custom value)
     async with async_session_maker() as session:
         result = await session.execute(select(Org).filter(Org.id == user_id))
         org = result.scalars().first()
-        assert org.contact_name == 'Custom Company Name'
+        assert org.contact_name == "Custom Company Name"
 
 
 @pytest.mark.asyncio
 async def test_backfill_contact_name_org_not_found(async_session_maker):
     """Test that backfill_contact_name handles missing org gracefully."""
     user_id = str(uuid.uuid4())
-    user_info = {'name': 'John Doe'}
+    user_info = {"name": "John Doe"}
 
     # Should not raise exception
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         await UserStore.backfill_contact_name(user_id, user_info)
 
 
@@ -663,26 +663,26 @@ async def test_backfill_contact_name_no_real_name(async_session_maker):
     async with async_session_maker() as session:
         org = Org(
             id=user_id,
-            name='test-org',
-            contact_name='jdoe',
+            name="test-org",
+            contact_name="jdoe",
         )
         session.add(org)
         await session.commit()
 
     user_info = {
-        'preferred_username': 'jdoe',
+        "preferred_username": "jdoe",
         # No 'name', 'given_name', or 'family_name'
     }
 
     # Backfill
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         await UserStore.backfill_contact_name(str(user_id), user_info)
 
     # Verify contact_name was NOT updated
     async with async_session_maker() as session:
         result = await session.execute(select(Org).filter(Org.id == user_id))
         org = result.scalars().first()
-        assert org.contact_name == 'jdoe'
+        assert org.contact_name == "jdoe"
 
 
 # --- Tests for update_current_org ---
@@ -697,15 +697,15 @@ async def test_update_current_org_success(async_session_maker):
 
     # Create test data
     async with async_session_maker() as session:
-        org1 = Org(id=initial_org_id, name='org1')
-        org2 = Org(id=new_org_id, name='org2')
+        org1 = Org(id=initial_org_id, name="org1")
+        org2 = Org(id=new_org_id, name="org2")
         session.add_all([org1, org2])
         user = User(id=user_id, current_org_id=initial_org_id)
         session.add(user)
         await session.commit()
 
     # Update current org
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         result = await UserStore.update_current_org(str(user_id), new_org_id)
 
     assert result is not None
@@ -718,7 +718,7 @@ async def test_update_current_org_user_not_found(async_session_maker):
     user_id = str(uuid.uuid4())
     org_id = uuid.uuid4()
 
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         result = await UserStore.update_current_org(user_id, org_id)
 
     assert result is None
@@ -737,8 +737,8 @@ async def test_list_users(async_session_maker):
 
     # Create test data
     async with async_session_maker() as session:
-        org1 = Org(id=org_id1, name='org1')
-        org2 = Org(id=org_id2, name='org2')
+        org1 = Org(id=org_id1, name="org1")
+        org2 = Org(id=org_id2, name="org2")
         session.add_all([org1, org2])
         user1 = User(id=user_id1, current_org_id=org_id1)
         user2 = User(id=user_id2, current_org_id=org_id2)
@@ -746,7 +746,7 @@ async def test_list_users(async_session_maker):
         await session.commit()
 
     # List users
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         users = await UserStore.list_users()
 
     assert len(users) >= 2
@@ -760,25 +760,25 @@ def test_get_org_kwargs_for_migration_preserves_existing_llm_when_not_custom():
     from storage.user_settings import UserSettings
 
     user_settings = UserSettings(
-        keycloak_user_id='test',
+        keycloak_user_id="test",
         user_version=3,
         agent_settings={
-            'schema_version': 1,
-            'llm': {
-                'model': 'anthropic/claude-sonnet-4-5-20250929',
-                'base_url': 'https://api.anthropic.com/v1',
+            "schema_version": 1,
+            "llm": {
+                "model": "anthropic/claude-sonnet-4-5-20250929",
+                "base_url": "https://api.anthropic.com/v1",
             },
         },
-        conversation_settings={'max_iterations': 42},
+        conversation_settings={"max_iterations": 42},
     )
 
     org_kwargs = UserStore._get_org_kwargs_for_migration(
         user_settings, custom_settings=False
     )
 
-    assert org_kwargs['org_version'] == ORG_SETTINGS_VERSION
-    assert org_kwargs['agent_settings'] == user_settings.agent_settings
-    assert org_kwargs['conversation_settings'] == user_settings.conversation_settings
+    assert org_kwargs["org_version"] == ORG_SETTINGS_VERSION
+    assert org_kwargs["agent_settings"] == user_settings.agent_settings
+    assert org_kwargs["conversation_settings"] == user_settings.conversation_settings
 
 
 def test_get_org_kwargs_for_migration_uses_minimal_org_defaults_for_custom_llm():
@@ -794,13 +794,13 @@ def test_get_org_kwargs_for_migration_uses_minimal_org_defaults_for_custom_llm()
     from openhands.sdk.settings import AGENT_SETTINGS_SCHEMA_VERSION
 
     user_settings = UserSettings(
-        keycloak_user_id='test',
+        keycloak_user_id="test",
         user_version=3,
         agent_settings={
-            'schema_version': 1,
-            'llm': {
-                'model': 'anthropic/claude-sonnet-4-5-20250929',
-                'base_url': 'https://api.anthropic.com/v1',
+            "schema_version": 1,
+            "llm": {
+                "model": "anthropic/claude-sonnet-4-5-20250929",
+                "base_url": "https://api.anthropic.com/v1",
             },
         },
     )
@@ -809,12 +809,12 @@ def test_get_org_kwargs_for_migration_uses_minimal_org_defaults_for_custom_llm()
         user_settings, custom_settings=True
     )
 
-    assert org_kwargs['org_version'] == ORG_SETTINGS_VERSION
-    assert org_kwargs['agent_settings'] == {
-        'schema_version': AGENT_SETTINGS_SCHEMA_VERSION,
-        'llm': {
-            'model': get_default_litellm_model(),
-            'base_url': LITE_LLM_API_URL,
+    assert org_kwargs["org_version"] == ORG_SETTINGS_VERSION
+    assert org_kwargs["agent_settings"] == {
+        "schema_version": AGENT_SETTINGS_SCHEMA_VERSION,
+        "llm": {
+            "model": get_default_litellm_model(),
+            "base_url": LITE_LLM_API_URL,
         },
     }
 
@@ -827,11 +827,11 @@ def test_has_custom_settings_custom_base_url():
     from storage.user_settings import UserSettings
 
     user_settings = UserSettings(
-        keycloak_user_id='test',
+        keycloak_user_id="test",
         agent_settings={
-            'llm': {
-                'base_url': 'https://custom.api.example.com',
-                'model': 'some-model',
+            "llm": {
+                "base_url": "https://custom.api.example.com",
+                "model": "some-model",
             },
         },
     )
@@ -845,7 +845,7 @@ def test_has_custom_settings_no_model():
     """Test that no model set means using defaults."""
     from storage.user_settings import UserSettings
 
-    user_settings = UserSettings(keycloak_user_id='test', agent_settings={})
+    user_settings = UserSettings(keycloak_user_id="test", agent_settings={})
 
     result = UserStore._has_custom_settings(user_settings, old_user_version=1)
 
@@ -857,8 +857,8 @@ def test_has_custom_settings_empty_model():
     from storage.user_settings import UserSettings
 
     user_settings = UserSettings(
-        keycloak_user_id='test',
-        agent_settings={'llm': {'model': '   '}},
+        keycloak_user_id="test",
+        agent_settings={"llm": {"model": "   "}},
     )
 
     result = UserStore._has_custom_settings(user_settings, old_user_version=1)
@@ -869,14 +869,14 @@ def test_has_custom_settings_empty_model():
 def test_user_settings_byor_secret_property_encrypts_round_trip():
     from storage.user_settings import UserSettings
 
-    user_settings = UserSettings(keycloak_user_id='test')
+    user_settings = UserSettings(keycloak_user_id="test")
 
-    user_settings.llm_api_key_for_byor_secret = SecretStr('sk-byor-secret')
+    user_settings.llm_api_key_for_byor_secret = SecretStr("sk-byor-secret")
 
-    assert user_settings.llm_api_key_for_byor != 'sk-byor-secret'
+    assert user_settings.llm_api_key_for_byor != "sk-byor-secret"
     assert user_settings.llm_api_key_for_byor_secret is not None
     assert (
-        user_settings.llm_api_key_for_byor_secret.get_secret_value() == 'sk-byor-secret'
+        user_settings.llm_api_key_for_byor_secret.get_secret_value() == "sk-byor-secret"
     )
 
 
@@ -884,14 +884,14 @@ def test_user_settings_byor_secret_property_accepts_plaintext_legacy_rows():
     from storage.user_settings import UserSettings
 
     user_settings = UserSettings(
-        keycloak_user_id='test',
-        llm_api_key_for_byor='sk-legacy-plaintext',
+        keycloak_user_id="test",
+        llm_api_key_for_byor="sk-legacy-plaintext",
     )
 
     assert user_settings.llm_api_key_for_byor_secret is not None
     assert (
         user_settings.llm_api_key_for_byor_secret.get_secret_value()
-        == 'sk-legacy-plaintext'
+        == "sk-legacy-plaintext"
     )
 
 
@@ -904,26 +904,26 @@ def test_create_user_settings_from_entities():
 
     # Create mock entities
     org_member = MagicMock()
-    org_member.llm_api_key = SecretStr('test-api-key')
+    org_member.llm_api_key = SecretStr("test-api-key")
     org_member.agent_settings_diff = {
-        'llm': {
-            'model': 'claude-3-5-sonnet',
-            'base_url': 'https://api.example.com',
+        "llm": {
+            "model": "claude-3-5-sonnet",
+            "base_url": "https://api.example.com",
         },
     }
     org_member.conversation_settings_diff = {
-        'max_iterations': 50,
+        "max_iterations": 50,
     }
 
     user = MagicMock()
     user.accepted_tos = None
     user.enable_sound_notifications = True
-    user.language = 'en'
+    user.language = "en"
     user.user_consents_to_analytics = True
-    user.email = 'test@example.com'
+    user.email = "test@example.com"
     user.email_verified = True
-    user.git_user_name = 'testuser'
-    user.git_user_email = 'test@git.com'
+    user.git_user_name = "testuser"
+    user.git_user_email = "test@git.com"
 
     org = MagicMock()
     org.remote_runtime_resource_factor = 1.0
@@ -933,10 +933,10 @@ def test_create_user_settings_from_entities():
     org.sandbox_runtime_container_image = None
     org.org_version = 1
     org.agent_settings = {
-        'agent': 'CodeActAgent',
+        "agent": "CodeActAgent",
     }
     org.conversation_settings = {
-        'security_analyzer': 'llm',
+        "security_analyzer": "llm",
     }
     org.search_api_key = None
     org.sandbox_api_key = None
@@ -948,14 +948,14 @@ def test_create_user_settings_from_entities():
     )
 
     assert result.keycloak_user_id == user_id
-    assert result.llm_api_key == 'test-api-key'
-    assert result.agent_settings['llm']['model'] == 'claude-3-5-sonnet'
-    assert result.agent_settings['llm']['base_url'] == 'https://api.example.com'
-    assert result.agent_settings['agent'] == 'CodeActAgent'
-    assert result.conversation_settings['security_analyzer'] == 'llm'
-    assert result.conversation_settings['max_iterations'] == 50
-    assert result.language == 'en'
-    assert result.email == 'test@example.com'
+    assert result.llm_api_key == "test-api-key"
+    assert result.agent_settings["llm"]["model"] == "claude-3-5-sonnet"
+    assert result.agent_settings["llm"]["base_url"] == "https://api.example.com"
+    assert result.agent_settings["agent"] == "CodeActAgent"
+    assert result.conversation_settings["security_analyzer"] == "llm"
+    assert result.conversation_settings["max_iterations"] == 50
+    assert result.language == "en"
+    assert result.email == "test@example.com"
 
 
 def test_create_user_settings_from_entities_with_org_fallback():
@@ -971,7 +971,7 @@ def test_create_user_settings_from_entities_with_org_fallback():
     user = MagicMock()
     user.accepted_tos = None
     user.enable_sound_notifications = False
-    user.language = 'es'
+    user.language = "es"
     user.user_consents_to_analytics = False
     user.email = None
     user.email_verified = None
@@ -982,25 +982,25 @@ def test_create_user_settings_from_entities_with_org_fallback():
     org.remote_runtime_resource_factor = 2.0
     org.billing_margin = 0.1
     org.enable_proactive_conversation_starters = False
-    org.sandbox_base_container_image = 'custom-image'
+    org.sandbox_base_container_image = "custom-image"
     org.sandbox_runtime_container_image = None
     org.org_version = 2
     org.agent_settings = {
-        'agent': 'CodeActAgent',
-        'llm': {
-            'model': 'default-model',
-            'base_url': 'https://default.api.com',
+        "agent": "CodeActAgent",
+        "llm": {
+            "model": "default-model",
+            "base_url": "https://default.api.com",
         },
-        'condenser': {
-            'enabled': False,
-            'max_size': 1000,
+        "condenser": {
+            "enabled": False,
+            "max_size": 1000,
         },
     }
     org.conversation_settings = {
-        'confirmation_mode': True,
-        'max_iterations': 100,
+        "confirmation_mode": True,
+        "max_iterations": 100,
     }
-    org.search_api_key = SecretStr('search-key')
+    org.search_api_key = SecretStr("search-key")
     org.sandbox_api_key = None
     org.max_budget_per_task = 10.0
     org.v1_enabled = False
@@ -1010,14 +1010,14 @@ def test_create_user_settings_from_entities_with_org_fallback():
     )
 
     # Should have fallen back to org defaults
-    assert result.agent_settings['llm']['model'] == 'default-model'
-    assert result.agent_settings['llm']['base_url'] == 'https://default.api.com'
-    assert result.agent_settings['agent'] == 'CodeActAgent'
-    assert result.agent_settings['condenser']['max_size'] == 1000
-    assert result.conversation_settings['confirmation_mode'] is True
-    assert result.conversation_settings['max_iterations'] == 100
-    assert result.language == 'es'
-    assert result.search_api_key == 'search-key'
+    assert result.agent_settings["llm"]["model"] == "default-model"
+    assert result.agent_settings["llm"]["base_url"] == "https://default.api.com"
+    assert result.agent_settings["agent"] == "CodeActAgent"
+    assert result.agent_settings["condenser"]["max_size"] == 1000
+    assert result.conversation_settings["confirmation_mode"] is True
+    assert result.conversation_settings["max_iterations"] == 100
+    assert result.language == "es"
+    assert result.search_api_key == "search-key"
 
 
 # --- Tests for Redis lock functions (mocked) ---
@@ -1029,10 +1029,10 @@ async def test_acquire_user_creation_lock_redis_error():
     from redis import exceptions as redis_exceptions
 
     mock_redis = AsyncMock()
-    mock_redis.set.side_effect = redis_exceptions.RedisError('Connection refused')
+    mock_redis.set.side_effect = redis_exceptions.RedisError("Connection refused")
 
-    with patch.object(UserStore, '_get_redis_client', return_value=mock_redis):
-        result = await UserStore._acquire_user_creation_lock('test-user-id')
+    with patch.object(UserStore, "_get_redis_client", return_value=mock_redis):
+        result = await UserStore._acquire_user_creation_lock("test-user-id")
 
     assert result is True
 
@@ -1043,8 +1043,8 @@ async def test_acquire_user_creation_lock_acquired():
     mock_redis = AsyncMock()
     mock_redis.set.return_value = True
 
-    with patch.object(UserStore, '_get_redis_client', return_value=mock_redis):
-        result = await UserStore._acquire_user_creation_lock('test-user-id')
+    with patch.object(UserStore, "_get_redis_client", return_value=mock_redis):
+        result = await UserStore._acquire_user_creation_lock("test-user-id")
 
     assert result is True
     mock_redis.set.assert_called_once()
@@ -1056,8 +1056,8 @@ async def test_acquire_user_creation_lock_not_acquired():
     mock_redis = AsyncMock()
     mock_redis.set.return_value = False
 
-    with patch.object(UserStore, '_get_redis_client', return_value=mock_redis):
-        result = await UserStore._acquire_user_creation_lock('test-user-id')
+    with patch.object(UserStore, "_get_redis_client", return_value=mock_redis):
+        result = await UserStore._acquire_user_creation_lock("test-user-id")
 
     assert result is False
 
@@ -1068,10 +1068,10 @@ async def test_release_user_creation_lock_redis_error():
     from redis import exceptions as redis_exceptions
 
     mock_redis = AsyncMock()
-    mock_redis.delete.side_effect = redis_exceptions.RedisError('Connection refused')
+    mock_redis.delete.side_effect = redis_exceptions.RedisError("Connection refused")
 
-    with patch.object(UserStore, '_get_redis_client', return_value=mock_redis):
-        result = await UserStore._release_user_creation_lock('test-user-id')
+    with patch.object(UserStore, "_get_redis_client", return_value=mock_redis):
+        result = await UserStore._release_user_creation_lock("test-user-id")
 
     assert result is True
 
@@ -1082,8 +1082,8 @@ async def test_release_user_creation_lock_released():
     mock_redis = AsyncMock()
     mock_redis.delete.return_value = 1
 
-    with patch.object(UserStore, '_get_redis_client', return_value=mock_redis):
-        result = await UserStore._release_user_creation_lock('test-user-id')
+    with patch.object(UserStore, "_get_redis_client", return_value=mock_redis):
+        result = await UserStore._release_user_creation_lock("test-user-id")
 
     assert result is True
     mock_redis.delete.assert_called_once()
@@ -1118,7 +1118,7 @@ async def test_migrate_user_sql_type_handling(async_session_maker):
         # The current model doesn't have user_id, but the real DB did before migration
         # We use raw SQL to add the column and insert test data
         await session.execute(
-            text('ALTER TABLE conversation_metadata ADD COLUMN user_id VARCHAR')
+            text("ALTER TABLE conversation_metadata ADD COLUMN user_id VARCHAR")
         )
         await session.execute(
             text(
@@ -1127,11 +1127,11 @@ async def test_migrate_user_sql_type_handling(async_session_maker):
                 VALUES (:conv_id, :user_id, 'V0', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                 """
             ),
-            {'conv_id': 'test-conv-1', 'user_id': user_id},
+            {"conv_id": "test-conv-1", "user_id": user_id},
         )
 
         # Create org first (needed for foreign keys)
-        org = Org(id=user_uuid, name=f'user_{user_id}_org')
+        org = Org(id=user_uuid, name=f"user_{user_id}_org")
         session.add(org)
 
         # Create user (needed for foreign keys)
@@ -1143,7 +1143,7 @@ async def test_migrate_user_sql_type_handling(async_session_maker):
         from storage.stripe_customer import StripeCustomer
 
         stripe_customer = StripeCustomer(
-            keycloak_user_id=user_id, stripe_customer_id='stripe_123'
+            keycloak_user_id=user_id, stripe_customer_id="stripe_123"
         )
         session.add(stripe_customer)
 
@@ -1152,8 +1152,8 @@ async def test_migrate_user_sql_type_handling(async_session_maker):
 
         slack_user = SlackUser(
             keycloak_user_id=user_id,
-            slack_user_id='slack_user_123',
-            slack_display_name='Test User',
+            slack_user_id="slack_user_123",
+            slack_display_name="Test User",
         )
         session.add(slack_user)
 
@@ -1161,8 +1161,8 @@ async def test_migrate_user_sql_type_handling(async_session_maker):
         from storage.slack_conversation import SlackConversation
 
         slack_conv = SlackConversation(
-            conversation_id='slack-conv-1',
-            channel_id='channel_123',
+            conversation_id="slack-conv-1",
+            channel_id="channel_123",
             keycloak_user_id=user_id,
         )
         session.add(slack_conv)
@@ -1170,7 +1170,7 @@ async def test_migrate_user_sql_type_handling(async_session_maker):
         # Add api_keys with user_id as string
         from storage.api_key import ApiKey
 
-        api_key = ApiKey(key='api_key_123', user_id=user_id, name='Test API Key')
+        api_key = ApiKey(key="api_key_123", user_id=user_id, name="Test API Key")
         session.add(api_key)
 
         # Add custom_secrets with keycloak_user_id as string
@@ -1178,8 +1178,8 @@ async def test_migrate_user_sql_type_handling(async_session_maker):
 
         custom_secret = StoredCustomSecrets(
             keycloak_user_id=user_id,
-            secret_name='test_secret',
-            secret_value='secret_value',
+            secret_name="test_secret",
+            secret_value="secret_value",
         )
         session.add(custom_secret)
 
@@ -1187,11 +1187,11 @@ async def test_migrate_user_sql_type_handling(async_session_maker):
         from storage.billing_session import BillingSession
 
         billing_session = BillingSession(
-            id='billing-session-1',
+            id="billing-session-1",
             user_id=user_id,
-            status='completed',
+            status="completed",
             price=10,
-            price_code='USD',
+            price_code="USD",
         )
         session.add(billing_session)
 
@@ -1216,53 +1216,53 @@ async def test_migrate_user_sql_type_handling(async_session_maker):
                 WHERE user_id = :user_id_text
                 """
             ),
-            {'user_uuid': user_uuid_str, 'user_id_text': user_id},
+            {"user_uuid": user_uuid_str, "user_id_text": user_id},
         )
 
         # Test 2: Update stripe_customers - org_id is UUID, keycloak_user_id is string
         await session.execute(
             text(
-                'UPDATE stripe_customers SET org_id = :org_id WHERE keycloak_user_id = :user_id'
+                "UPDATE stripe_customers SET org_id = :org_id WHERE keycloak_user_id = :user_id"
             ),
-            {'org_id': user_uuid_str, 'user_id': user_id},
+            {"org_id": user_uuid_str, "user_id": user_id},
         )
 
         # Test 3: Update slack_users - org_id is UUID, keycloak_user_id is string
         await session.execute(
             text(
-                'UPDATE slack_users SET org_id = :org_id WHERE keycloak_user_id = :user_id'
+                "UPDATE slack_users SET org_id = :org_id WHERE keycloak_user_id = :user_id"
             ),
-            {'org_id': user_uuid_str, 'user_id': user_id},
+            {"org_id": user_uuid_str, "user_id": user_id},
         )
 
         # Test 4: Update slack_conversation - org_id is UUID, keycloak_user_id is string
         await session.execute(
             text(
-                'UPDATE slack_conversation SET org_id = :org_id WHERE keycloak_user_id = :user_id'
+                "UPDATE slack_conversation SET org_id = :org_id WHERE keycloak_user_id = :user_id"
             ),
-            {'org_id': user_uuid_str, 'user_id': user_id},
+            {"org_id": user_uuid_str, "user_id": user_id},
         )
 
         # Test 5: Update api_keys - org_id is UUID, user_id is string
         await session.execute(
-            text('UPDATE api_keys SET org_id = :org_id WHERE user_id = :user_id'),
-            {'org_id': user_uuid_str, 'user_id': user_id},
+            text("UPDATE api_keys SET org_id = :org_id WHERE user_id = :user_id"),
+            {"org_id": user_uuid_str, "user_id": user_id},
         )
 
         # Test 6: Update custom_secrets - org_id is UUID, keycloak_user_id is string
         await session.execute(
             text(
-                'UPDATE custom_secrets SET org_id = :org_id WHERE keycloak_user_id = :user_id'
+                "UPDATE custom_secrets SET org_id = :org_id WHERE keycloak_user_id = :user_id"
             ),
-            {'org_id': user_uuid_str, 'user_id': user_id},
+            {"org_id": user_uuid_str, "user_id": user_id},
         )
 
         # Test 7: Update billing_sessions - org_id is UUID, user_id is string
         await session.execute(
             text(
-                'UPDATE billing_sessions SET org_id = :org_id WHERE user_id = :user_id'
+                "UPDATE billing_sessions SET org_id = :org_id WHERE user_id = :user_id"
             ),
-            {'org_id': user_uuid_str, 'user_id': user_id},
+            {"org_id": user_uuid_str, "user_id": user_id},
         )
 
         await session.commit()
@@ -1275,15 +1275,15 @@ async def test_migrate_user_sql_type_handling(async_session_maker):
         # Verify conversation_metadata_saas
         result = await session.execute(
             select(StoredConversationMetadataSaas).filter(
-                StoredConversationMetadataSaas.conversation_id == 'test-conv-1'
+                StoredConversationMetadataSaas.conversation_id == "test-conv-1"
             )
         )
         saas_metadata = result.scalars().first()
-        assert (
-            saas_metadata is not None
-        ), 'conversation_metadata_saas record should exist'
-        assert saas_metadata.user_id == user_uuid, 'user_id should be UUID type'
-        assert saas_metadata.org_id == user_uuid, 'org_id should be UUID type'
+        assert saas_metadata is not None, (
+            "conversation_metadata_saas record should exist"
+        )
+        assert saas_metadata.user_id == user_uuid, "user_id should be UUID type"
+        assert saas_metadata.org_id == user_uuid, "org_id should be UUID type"
 
         # Verify stripe_customers org_id was set
         result = await session.execute(
@@ -1291,9 +1291,9 @@ async def test_migrate_user_sql_type_handling(async_session_maker):
         )
         stripe_record = result.scalars().first()
         assert stripe_record is not None
-        assert (
-            stripe_record.org_id == user_uuid
-        ), 'stripe_customers.org_id should be UUID'
+        assert stripe_record.org_id == user_uuid, (
+            "stripe_customers.org_id should be UUID"
+        )
 
         # Verify slack_users org_id was set
         result = await session.execute(
@@ -1301,9 +1301,9 @@ async def test_migrate_user_sql_type_handling(async_session_maker):
         )
         slack_user_record = result.scalars().first()
         assert slack_user_record is not None
-        assert (
-            slack_user_record.org_id == user_uuid
-        ), 'slack_users.org_id should be UUID'
+        assert slack_user_record.org_id == user_uuid, (
+            "slack_users.org_id should be UUID"
+        )
 
         # Verify slack_conversation org_id was set
         result = await session.execute(
@@ -1313,15 +1313,15 @@ async def test_migrate_user_sql_type_handling(async_session_maker):
         )
         slack_conv_record = result.scalars().first()
         assert slack_conv_record is not None
-        assert (
-            slack_conv_record.org_id == user_uuid
-        ), 'slack_conversation.org_id should be UUID'
+        assert slack_conv_record.org_id == user_uuid, (
+            "slack_conversation.org_id should be UUID"
+        )
 
         # Verify api_keys org_id was set
         result = await session.execute(select(ApiKey).filter(ApiKey.user_id == user_id))
         api_key_record = result.scalars().first()
         assert api_key_record is not None
-        assert api_key_record.org_id == user_uuid, 'api_keys.org_id should be UUID'
+        assert api_key_record.org_id == user_uuid, "api_keys.org_id should be UUID"
 
         # Verify custom_secrets org_id was set
         result = await session.execute(
@@ -1331,9 +1331,9 @@ async def test_migrate_user_sql_type_handling(async_session_maker):
         )
         custom_secret_record = result.scalars().first()
         assert custom_secret_record is not None
-        assert (
-            custom_secret_record.org_id == user_uuid
-        ), 'custom_secrets.org_id should be UUID'
+        assert custom_secret_record.org_id == user_uuid, (
+            "custom_secrets.org_id should be UUID"
+        )
 
         # Verify billing_sessions org_id was set
         result = await session.execute(
@@ -1341,9 +1341,9 @@ async def test_migrate_user_sql_type_handling(async_session_maker):
         )
         billing_record = result.scalars().first()
         assert billing_record is not None
-        assert (
-            billing_record.org_id == user_uuid
-        ), 'billing_sessions.org_id should be UUID'
+        assert billing_record.org_id == user_uuid, (
+            "billing_sessions.org_id should be UUID"
+        )
 
 
 @pytest.mark.asyncio
@@ -1363,7 +1363,7 @@ async def test_migrate_user_sql_no_matching_records(async_session_maker):
     async with async_session_maker() as session:
         # Add conversation_metadata with user_id column for a different user
         await session.execute(
-            text('ALTER TABLE conversation_metadata ADD COLUMN user_id VARCHAR')
+            text("ALTER TABLE conversation_metadata ADD COLUMN user_id VARCHAR")
         )
         await session.execute(
             text(
@@ -1372,11 +1372,11 @@ async def test_migrate_user_sql_no_matching_records(async_session_maker):
                 VALUES (:conv_id, :user_id, 'V0', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                 """
             ),
-            {'conv_id': 'other-conv-1', 'user_id': other_user_id},
+            {"conv_id": "other-conv-1", "user_id": other_user_id},
         )
 
         # Create org and user for our test user
-        org = Org(id=user_uuid, name=f'user_{user_id}_org')
+        org = Org(id=user_uuid, name=f"user_{user_id}_org")
         session.add(org)
         user = User(id=user_uuid, current_org_id=user_uuid)
         session.add(user)
@@ -1395,7 +1395,7 @@ async def test_migrate_user_sql_no_matching_records(async_session_maker):
                 WHERE user_id = :user_id_text
                 """
             ),
-            {'user_uuid': user_uuid_str, 'user_id_text': user_id},
+            {"user_uuid": user_uuid_str, "user_id_text": user_id},
         )
         await session.commit()
 
@@ -1410,9 +1410,9 @@ async def test_migrate_user_sql_no_matching_records(async_session_maker):
             )
         )
         records = result.scalars().all()
-        assert (
-            len(records) == 0
-        ), 'No records should be created for non-matching user_id'
+        assert len(records) == 0, (
+            "No records should be created for non-matching user_id"
+        )
 
 
 @pytest.mark.asyncio
@@ -1426,7 +1426,7 @@ async def test_migrate_user_sql_multiple_conversations(async_session_maker):
 
     async with async_session_maker() as session:
         # Create org and user FIRST (needed for foreign keys)
-        org = Org(id=user_uuid, name=f'user_{user_id}_org')
+        org = Org(id=user_uuid, name=f"user_{user_id}_org")
         session.add(org)
         user = User(id=user_uuid, current_org_id=user_uuid)
         session.add(user)
@@ -1434,7 +1434,7 @@ async def test_migrate_user_sql_multiple_conversations(async_session_maker):
 
         # Add conversation_metadata with user_id column
         await session.execute(
-            text('ALTER TABLE conversation_metadata ADD COLUMN user_id VARCHAR')
+            text("ALTER TABLE conversation_metadata ADD COLUMN user_id VARCHAR")
         )
         await session.commit()
 
@@ -1447,19 +1447,19 @@ async def test_migrate_user_sql_multiple_conversations(async_session_maker):
                     VALUES (:conv_id, :user_id, 'V0', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
                     """
                 ),
-                {'conv_id': f'test-conv-{i}', 'user_id': user_id},
+                {"conv_id": f"test-conv-{i}", "user_id": user_id},
             )
 
         await session.commit()
 
         # Verify that conversation_metadata was inserted
         result = await session.execute(
-            text('SELECT conversation_id, user_id FROM conversation_metadata')
+            text("SELECT conversation_id, user_id FROM conversation_metadata")
         )
         conv_rows = result.fetchall()
-        assert (
-            len(conv_rows) == 3
-        ), f'Expected 3 conversation_metadata rows, got {len(conv_rows)}'
+        assert len(conv_rows) == 3, (
+            f"Expected 3 conversation_metadata rows, got {len(conv_rows)}"
+        )
 
         # Execute migration SQL
         await session.execute(
@@ -1474,7 +1474,7 @@ async def test_migrate_user_sql_multiple_conversations(async_session_maker):
                 WHERE user_id = :user_id_text
                 """
             ),
-            {'user_uuid': user_uuid_str, 'user_id_text': user_id},
+            {"user_uuid": user_uuid_str, "user_id_text": user_id},
         )
         await session.commit()
 
@@ -1482,21 +1482,21 @@ async def test_migrate_user_sql_multiple_conversations(async_session_maker):
         # (SQLite stores UUIDs as strings, ORM comparison may differ)
         result = await session.execute(
             text(
-                'SELECT conversation_id, user_id, org_id FROM conversation_metadata_saas WHERE user_id = :user_uuid'
+                "SELECT conversation_id, user_id, org_id FROM conversation_metadata_saas WHERE user_id = :user_uuid"
             ),
-            {'user_uuid': user_uuid_str},
+            {"user_uuid": user_uuid_str},
         )
         saas_rows = result.fetchall()
-        assert len(saas_rows) == 3, 'All 3 conversations should be migrated'
+        assert len(saas_rows) == 3, "All 3 conversations should be migrated"
 
         # Verify the user_id and org_id values
         for row in saas_rows:
-            assert (
-                row.user_id == user_uuid_str
-            ), f'user_id should match: {row.user_id} vs {user_uuid_str}'
-            assert (
-                row.org_id == user_uuid_str
-            ), f'org_id should match: {row.org_id} vs {user_uuid_str}'
+            assert row.user_id == user_uuid_str, (
+                f"user_id should match: {row.user_id} vs {user_uuid_str}"
+            )
+            assert row.org_id == user_uuid_str, (
+                f"org_id should match: {row.org_id} vs {user_uuid_str}"
+            )
 
 
 # Note: The v1_enabled logic in migrate_user follows the same pattern as OrgStore.create_org:
@@ -1526,14 +1526,14 @@ async def test_mark_onboarding_completed_success(async_session_maker):
 
     # Create test data
     async with async_session_maker() as session:
-        org = Org(id=org_id, name='test-org')
+        org = Org(id=org_id, name="test-org")
         session.add(org)
         user = User(id=user_id, current_org_id=org_id, onboarding_completed=False)
         session.add(user)
         await session.commit()
 
     # Test marking onboarding complete
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         result = await UserStore.mark_onboarding_completed(str(user_id))
 
     assert result is not None
@@ -1546,7 +1546,7 @@ async def test_mark_onboarding_completed_user_not_found(async_session_maker):
     """Test that mark_onboarding_completed returns None for non-existent user."""
     non_existent_id = str(uuid.uuid4())
 
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         result = await UserStore.mark_onboarding_completed(non_existent_id)
 
     assert result is None
@@ -1560,14 +1560,14 @@ async def test_mark_onboarding_completed_already_completed(async_session_maker):
 
     # Create user with onboarding already completed
     async with async_session_maker() as session:
-        org = Org(id=org_id, name='test-org')
+        org = Org(id=org_id, name="test-org")
         session.add(org)
         user = User(id=user_id, current_org_id=org_id, onboarding_completed=True)
         session.add(user)
         await session.commit()
 
     # Should still succeed and return user
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         result = await UserStore.mark_onboarding_completed(str(user_id))
 
     assert result is not None
@@ -1583,7 +1583,7 @@ async def test_mark_onboarding_completed_user_with_null_onboarding(async_session
 
     # Create user with null onboarding_completed (default)
     async with async_session_maker() as session:
-        org = Org(id=org_id, name='test-org')
+        org = Org(id=org_id, name="test-org")
         session.add(org)
         user = User(
             id=user_id, current_org_id=org_id
@@ -1591,7 +1591,7 @@ async def test_mark_onboarding_completed_user_with_null_onboarding(async_session
         session.add(user)
         await session.commit()
 
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         result = await UserStore.mark_onboarding_completed(str(user_id))
 
     assert result is not None
@@ -1616,11 +1616,11 @@ async def test_get_first_owner_in_org_returns_first_owner(async_session_maker):
 
     async with async_session_maker() as session:
         # Create org
-        org = Org(id=org_id, name='test-org')
+        org = Org(id=org_id, name="test-org")
         session.add(org)
 
         # Create owner role
-        owner_role = Role(id=1, name='owner', rank=10)
+        owner_role = Role(id=1, name="owner", rank=10)
         session.add(owner_role)
 
         # Create first owner (earlier TOS acceptance)
@@ -1646,7 +1646,7 @@ async def test_get_first_owner_in_org_returns_first_owner(async_session_maker):
             org_id=org_id,
             user_id=first_owner_id,
             role_id=owner_role.id,
-            llm_api_key='test-key-1',
+            llm_api_key="test-key-1",
         )
         session.add(first_member)
 
@@ -1654,13 +1654,13 @@ async def test_get_first_owner_in_org_returns_first_owner(async_session_maker):
             org_id=org_id,
             user_id=second_owner_id,
             role_id=owner_role.id,
-            llm_api_key='test-key-2',
+            llm_api_key="test-key-2",
         )
         session.add(second_member)
 
         await session.commit()
 
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         result = await UserStore.get_first_owner_in_org(org_id)
 
     assert result is not None
@@ -1681,12 +1681,12 @@ async def test_get_first_owner_in_org_ignores_non_owners(async_session_maker):
 
     async with async_session_maker() as session:
         # Create org
-        org = Org(id=org_id, name='test-org')
+        org = Org(id=org_id, name="test-org")
         session.add(org)
 
         # Create roles
-        owner_role = Role(id=1, name='owner', rank=10)
-        admin_role = Role(id=2, name='admin', rank=20)
+        owner_role = Role(id=1, name="owner", rank=10)
+        admin_role = Role(id=2, name="admin", rank=20)
         session.add(owner_role)
         session.add(admin_role)
 
@@ -1713,7 +1713,7 @@ async def test_get_first_owner_in_org_ignores_non_owners(async_session_maker):
             org_id=org_id,
             user_id=admin_id,
             role_id=admin_role.id,
-            llm_api_key='test-key-admin',
+            llm_api_key="test-key-admin",
         )
         session.add(admin_member)
 
@@ -1722,13 +1722,13 @@ async def test_get_first_owner_in_org_ignores_non_owners(async_session_maker):
             org_id=org_id,
             user_id=owner_id,
             role_id=owner_role.id,
-            llm_api_key='test-key-owner',
+            llm_api_key="test-key-owner",
         )
         session.add(owner_member)
 
         await session.commit()
 
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         result = await UserStore.get_first_owner_in_org(org_id)
 
     # Should return the owner, not the admin (even though admin has earlier TOS)
@@ -1749,11 +1749,11 @@ async def test_get_first_owner_in_org_returns_none_when_no_owners(async_session_
 
     async with async_session_maker() as session:
         # Create org
-        org = Org(id=org_id, name='test-org')
+        org = Org(id=org_id, name="test-org")
         session.add(org)
 
         # Create member role only
-        member_role = Role(id=3, name='member', rank=100)
+        member_role = Role(id=3, name="member", rank=100)
         session.add(member_role)
 
         # Create user with member role
@@ -1771,13 +1771,13 @@ async def test_get_first_owner_in_org_returns_none_when_no_owners(async_session_
             org_id=org_id,
             user_id=member_id,
             role_id=member_role.id,
-            llm_api_key='test-key',
+            llm_api_key="test-key",
         )
         session.add(member)
 
         await session.commit()
 
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         result = await UserStore.get_first_owner_in_org(org_id)
 
     assert result is None
@@ -1797,11 +1797,11 @@ async def test_get_first_owner_in_org_ignores_owners_without_tos(async_session_m
 
     async with async_session_maker() as session:
         # Create org
-        org = Org(id=org_id, name='test-org')
+        org = Org(id=org_id, name="test-org")
         session.add(org)
 
         # Create owner role
-        owner_role = Role(id=1, name='owner', rank=10)
+        owner_role = Role(id=1, name="owner", rank=10)
         session.add(owner_role)
 
         # Create owner without TOS
@@ -1827,7 +1827,7 @@ async def test_get_first_owner_in_org_ignores_owners_without_tos(async_session_m
             org_id=org_id,
             user_id=owner_no_tos_id,
             role_id=owner_role.id,
-            llm_api_key='test-key-1',
+            llm_api_key="test-key-1",
         )
         session.add(member_no_tos)
 
@@ -1835,13 +1835,13 @@ async def test_get_first_owner_in_org_ignores_owners_without_tos(async_session_m
             org_id=org_id,
             user_id=owner_with_tos_id,
             role_id=owner_role.id,
-            llm_api_key='test-key-2',
+            llm_api_key="test-key-2",
         )
         session.add(member_with_tos)
 
         await session.commit()
 
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         result = await UserStore.get_first_owner_in_org(org_id)
 
     # Should return the owner who has accepted TOS
@@ -1856,11 +1856,11 @@ async def test_get_first_owner_in_org_returns_none_for_empty_org(async_session_m
 
     async with async_session_maker() as session:
         # Create org only, no members
-        org = Org(id=org_id, name='empty-org')
+        org = Org(id=org_id, name="empty-org")
         session.add(org)
         await session.commit()
 
-    with patch('storage.user_store.a_session_maker', async_session_maker):
+    with patch("storage.user_store.a_session_maker", async_session_maker):
         result = await UserStore.get_first_owner_in_org(org_id)
 
     assert result is None

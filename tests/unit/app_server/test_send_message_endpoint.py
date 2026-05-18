@@ -30,7 +30,7 @@ from openhands.app_server.sandbox.sandbox_models import (
 )
 
 
-def _make_mock_conversation(conversation_id=None, user_id='test-user', sandbox_id=None):
+def _make_mock_conversation(conversation_id=None, user_id="test-user", sandbox_id=None):
     """Create a mock AppConversation for testing."""
     if conversation_id is None:
         conversation_id = uuid4()
@@ -47,23 +47,23 @@ def _make_mock_conversation(conversation_id=None, user_id='test-user', sandbox_i
 def _make_mock_sandbox(
     sandbox_id=None,
     sandbox_status=SandboxStatus.RUNNING,
-    session_api_key='test-api-key',
-    agent_server_url='http://localhost:3000',
+    session_api_key="test-api-key",
+    agent_server_url="http://localhost:3000",
 ):
     """Create a mock SandboxInfo for testing."""
     if sandbox_id is None:
         sandbox_id = str(uuid4())
     return SandboxInfo(
         id=sandbox_id,
-        sandbox_spec_id='spec-1',
-        created_by_user_id='test-user',
+        sandbox_spec_id="spec-1",
+        created_by_user_id="test-user",
         status=sandbox_status,
         session_api_key=session_api_key,
         exposed_urls=[ExposedUrl(name=AGENT_SERVER, url=agent_server_url, port=3000)],
     )
 
 
-def _make_mock_request(text='Hello, agent!', run=True):
+def _make_mock_request(text="Hello, agent!", run=True):
     """Create a mock AppSendMessageRequest for testing."""
     return AppSendMessageRequest(
         content=[TextContent(text=text)],
@@ -90,7 +90,7 @@ def _make_mock_httpx_client(status_code=200, raise_error=None):
     client = MagicMock()
     response = MagicMock()
     response.status_code = status_code
-    response.text = 'OK'
+    response.text = "OK"
 
     if raise_error:
         client.post = AsyncMock(side_effect=raise_error)
@@ -139,7 +139,7 @@ class TestSendMessageToConversation:
         assert result.message is None
         mock_httpx_client.post.assert_called_once()
         call_kwargs = mock_httpx_client.post.call_args
-        assert f'/api/conversations/{conversation_id}/events' in call_kwargs[0][0]
+        assert f"/api/conversations/{conversation_id}/events" in call_kwargs[0][0]
 
     async def test_returns_404_for_nonexistent_conversation(self):
         """Test that 404 is returned when conversation doesn't exist.
@@ -163,7 +163,7 @@ class TestSendMessageToConversation:
             )
 
         assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
-        assert 'not found' in exc_info.value.detail.lower()
+        assert "not found" in exc_info.value.detail.lower()
 
     async def test_returns_404_for_nonexistent_sandbox(self):
         """Test that 404 is returned when sandbox doesn't exist.
@@ -189,7 +189,7 @@ class TestSendMessageToConversation:
             )
 
         assert exc_info.value.status_code == status.HTTP_404_NOT_FOUND
-        assert 'sandbox not found' in exc_info.value.detail.lower()
+        assert "sandbox not found" in exc_info.value.detail.lower()
 
     async def test_returns_410_for_archived_conversation(self):
         """Test that 410 is returned when sandbox is MISSING (archived).
@@ -222,7 +222,7 @@ class TestSendMessageToConversation:
             )
 
         assert exc_info.value.status_code == status.HTTP_410_GONE
-        assert 'archived' in exc_info.value.detail.lower()
+        assert "archived" in exc_info.value.detail.lower()
 
     async def test_returns_503_for_sandbox_in_error_state(self):
         """Test that 503 is returned when sandbox is in ERROR state.
@@ -255,7 +255,7 @@ class TestSendMessageToConversation:
             )
 
         assert exc_info.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
-        assert 'error state' in exc_info.value.detail.lower()
+        assert "error state" in exc_info.value.detail.lower()
 
     async def test_returns_409_for_paused_sandbox(self):
         """Test that 409 is returned when sandbox is PAUSED.
@@ -291,8 +291,8 @@ class TestSendMessageToConversation:
             )
 
         assert exc_info.value.status_code == status.HTTP_409_CONFLICT
-        assert 'paused' in exc_info.value.detail.lower()
-        assert '/resume' in exc_info.value.detail.lower()
+        assert "paused" in exc_info.value.detail.lower()
+        assert "/resume" in exc_info.value.detail.lower()
 
     async def test_returns_409_for_starting_sandbox(self):
         """Test that 409 is returned when sandbox is STARTING.
@@ -327,7 +327,7 @@ class TestSendMessageToConversation:
             )
 
         assert exc_info.value.status_code == status.HTTP_409_CONFLICT
-        assert 'starting' in exc_info.value.detail.lower()
+        assert "starting" in exc_info.value.detail.lower()
 
     async def test_returns_502_on_agent_server_http_error(self):
         """Test that 502 is returned when agent server returns HTTP error.
@@ -350,9 +350,9 @@ class TestSendMessageToConversation:
         # Create a mock response that will raise HTTPStatusError
         mock_response = MagicMock()
         mock_response.status_code = 500
-        mock_response.text = 'Internal Server Error'
+        mock_response.text = "Internal Server Error"
         error = httpx.HTTPStatusError(
-            'Server error', request=MagicMock(), response=mock_response
+            "Server error", request=MagicMock(), response=mock_response
         )
         mock_httpx_client = _make_mock_httpx_client(raise_error=error)
 
@@ -367,7 +367,7 @@ class TestSendMessageToConversation:
             )
 
         assert exc_info.value.status_code == status.HTTP_502_BAD_GATEWAY
-        assert 'agent server error' in exc_info.value.detail.lower()
+        assert "agent server error" in exc_info.value.detail.lower()
 
     async def test_returns_502_on_connection_error(self):
         """Test that 502 is returned when can't connect to agent server.
@@ -387,7 +387,7 @@ class TestSendMessageToConversation:
         mock_conversation_service = _make_mock_conversation_service(conversation)
         mock_sandbox_service = _make_mock_sandbox_service(sandbox)
 
-        error = httpx.ConnectError('Connection refused')
+        error = httpx.ConnectError("Connection refused")
         mock_httpx_client = _make_mock_httpx_client(raise_error=error)
 
         # Act & Assert
@@ -401,7 +401,7 @@ class TestSendMessageToConversation:
             )
 
         assert exc_info.value.status_code == status.HTTP_502_BAD_GATEWAY
-        assert 'failed to reach agent server' in exc_info.value.detail.lower()
+        assert "failed to reach agent server" in exc_info.value.detail.lower()
 
     async def test_sends_correct_headers_and_payload(self):
         """Test that correct headers and payload are sent to agent server.
@@ -413,7 +413,7 @@ class TestSendMessageToConversation:
         # Arrange
         conversation_id = uuid4()
         sandbox_id = str(uuid4())
-        session_api_key = 'my-session-key'
+        session_api_key = "my-session-key"
         conversation = _make_mock_conversation(
             conversation_id=conversation_id, sandbox_id=sandbox_id
         )
@@ -421,7 +421,7 @@ class TestSendMessageToConversation:
             sandbox_id=sandbox_id, session_api_key=session_api_key
         )
         request = AppSendMessageRequest(
-            content=[TextContent(text='Test message')],
+            content=[TextContent(text="Test message")],
             run=False,
         )
 
@@ -440,12 +440,12 @@ class TestSendMessageToConversation:
 
         # Assert
         call_kwargs = mock_httpx_client.post.call_args
-        assert call_kwargs.kwargs['headers'] == {'X-Session-API-Key': session_api_key}
-        json_payload = call_kwargs.kwargs['json']
-        assert json_payload['role'] == 'user'
-        assert json_payload['run'] is False
-        assert len(json_payload['content']) == 1
-        assert json_payload['content'][0]['text'] == 'Test message'
+        assert call_kwargs.kwargs["headers"] == {"X-Session-API-Key": session_api_key}
+        json_payload = call_kwargs.kwargs["json"]
+        assert json_payload["role"] == "user"
+        assert json_payload["run"] is False
+        assert len(json_payload["content"]) == 1
+        assert json_payload["content"][0]["text"] == "Test message"
 
     async def test_returns_503_when_no_agent_server_url(self):
         """Test that 503 is returned when sandbox has no agent server URL.
@@ -462,10 +462,10 @@ class TestSendMessageToConversation:
         )
         sandbox = SandboxInfo(
             id=sandbox_id,
-            sandbox_spec_id='spec-1',
-            created_by_user_id='test-user',
+            sandbox_spec_id="spec-1",
+            created_by_user_id="test-user",
             status=SandboxStatus.RUNNING,
-            session_api_key='test-key',
+            session_api_key="test-key",
             exposed_urls=[],  # No exposed URLs
         )
 
@@ -483,7 +483,7 @@ class TestSendMessageToConversation:
             )
 
         assert exc_info.value.status_code == status.HTTP_503_SERVICE_UNAVAILABLE
-        assert 'agent server url' in exc_info.value.detail.lower()
+        assert "agent server url" in exc_info.value.detail.lower()
 
 
 class TestAppSendMessageRequestValidation:
@@ -505,8 +505,8 @@ class TestAppSendMessageRequestValidation:
         # Check that the validation error is about min_length
         errors = exc_info.value.errors()
         assert len(errors) == 1
-        assert errors[0]['loc'] == ('content',)
-        assert 'at least 1' in errors[0]['msg'].lower()
+        assert errors[0]["loc"] == ("content",)
+        assert "at least 1" in errors[0]["msg"].lower()
 
     def test_content_accepts_single_item(self):
         """Test that content field accepts a list with one item.
@@ -515,9 +515,9 @@ class TestAppSendMessageRequestValidation:
         Act: Instantiate AppSendMessageRequest
         Assert: Request is created successfully
         """
-        request = AppSendMessageRequest(content=[TextContent(text='Hello')])
+        request = AppSendMessageRequest(content=[TextContent(text="Hello")])
         assert len(request.content) == 1
-        assert request.content[0].text == 'Hello'
+        assert request.content[0].text == "Hello"
 
     def test_content_accepts_multiple_items(self):
         """Test that content field accepts a list with multiple items.
@@ -528,8 +528,8 @@ class TestAppSendMessageRequestValidation:
         """
         request = AppSendMessageRequest(
             content=[
-                TextContent(text='Hello'),
-                TextContent(text='World'),
+                TextContent(text="Hello"),
+                TextContent(text="World"),
             ]
         )
         assert len(request.content) == 2

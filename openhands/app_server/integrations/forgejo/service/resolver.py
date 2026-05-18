@@ -13,10 +13,10 @@ class ForgejoResolverMixin(ForgejoMixinBase):
         self, repository: str, issue_number: int
     ) -> tuple[str, str]:
         owner, repo = self._split_repo(repository)
-        url = self._build_repo_api_url(owner, repo, 'issues', str(issue_number))
+        url = self._build_repo_api_url(owner, repo, "issues", str(issue_number))
         response, _ = await self._make_request(url)
-        title = response.get('title') or ''
-        body = response.get('body') or response.get('content') or ''
+        title = response.get("title") or ""
+        body = response.get("body") or response.get("content") or ""
         return title, body
 
     async def get_issue_comments(
@@ -27,13 +27,13 @@ class ForgejoResolverMixin(ForgejoMixinBase):
     ) -> list[Comment]:
         owner, repo = self._split_repo(repository)
         url = self._build_repo_api_url(
-            owner, repo, 'issues', str(issue_number), 'comments'
+            owner, repo, "issues", str(issue_number), "comments"
         )
         per_page = min(max_comments, 50)
         params = {
-            'page': '1',
-            'limit': str(per_page),
-            'order': 'desc',
+            "page": "1",
+            "limit": str(per_page),
+            "order": "desc",
         }
 
         response, _ = await self._make_request(url, params)
@@ -55,12 +55,12 @@ class ForgejoResolverMixin(ForgejoMixinBase):
         max_comments: int = 50,
     ) -> list[Comment]:
         owner, repo = self._split_repo(repository)
-        url = self._build_repo_api_url(owner, repo, 'pulls', str(pr_number), 'comments')
+        url = self._build_repo_api_url(owner, repo, "pulls", str(pr_number), "comments")
         per_page = min(max_comments, 50)
         params = {
-            'page': '1',
-            'limit': str(per_page),
-            'order': 'desc',
+            "page": "1",
+            "limit": str(per_page),
+            "order": "desc",
         }
 
         response, _ = await self._make_request(url, params)
@@ -78,24 +78,24 @@ class ForgejoResolverMixin(ForgejoMixinBase):
     def _to_comment(self, payload: dict | None) -> Comment | None:
         if not isinstance(payload, dict):
             return None
-        body = payload.get('body') or ''
-        author = (payload.get('user') or {}).get('login') or 'unknown'
-        created_at = self._parse_datetime(payload.get('created_at'))
-        updated_at = self._parse_datetime(payload.get('updated_at'))
+        body = payload.get("body") or ""
+        author = (payload.get("user") or {}).get("login") or "unknown"
+        created_at = self._parse_datetime(payload.get("created_at"))
+        updated_at = self._parse_datetime(payload.get("updated_at"))
 
         return Comment(
-            id=str(payload.get('id', 'unknown')),
+            id=str(payload.get("id", "unknown")),
             body=body,
             author=author,
             created_at=created_at,
             updated_at=updated_at,
-            system=payload.get('void', False),
+            system=payload.get("void", False),
         )
 
     def _parse_datetime(self, value: str | None) -> datetime:
         if not value:
             return datetime.fromtimestamp(0)
         try:
-            return datetime.fromisoformat(value.replace('Z', '+00:00'))
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
         except ValueError:
             return datetime.fromtimestamp(0)

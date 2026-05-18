@@ -19,7 +19,7 @@ class GoogleCloudFileStore(FileStore):
     The storage client and bucket are initialized lazily on first access.
     """
 
-    bucket_name: str = Field(default='')
+    bucket_name: str = Field(default="")
 
     _storage_client: Client | None = PrivateAttr(default=None)
     _bucket: Bucket | None = PrivateAttr(default=None)
@@ -28,7 +28,7 @@ class GoogleCloudFileStore(FileStore):
         """Get bucket name, falling back to environment variable if not set."""
         if self.bucket_name:
             return self.bucket_name
-        return os.environ['GOOGLE_CLOUD_BUCKET_NAME']
+        return os.environ["GOOGLE_CLOUD_BUCKET_NAME"]
 
     @property
     def storage_client(self) -> Client:
@@ -46,23 +46,23 @@ class GoogleCloudFileStore(FileStore):
 
     def write(self, path: str, contents: str | bytes) -> None:
         blob: Blob = self.bucket.blob(path)
-        mode = 'wb' if isinstance(contents, bytes) else 'w'
+        mode = "wb" if isinstance(contents, bytes) else "w"
         with blob.open(mode) as f:
             f.write(contents)
 
     def read(self, path: str) -> str:
         blob: Blob = self.bucket.blob(path)
         try:
-            with blob.open('r') as f:
+            with blob.open("r") as f:
                 return str(f.read())
         except NotFound as err:
             raise FileNotFoundError(err)
 
     def list(self, path: str) -> list[str]:
-        if not path or path == '/':
-            path = ''
-        elif not path.endswith('/'):
-            path += '/'
+        if not path or path == "/":
+            path = ""
+        elif not path.endswith("/"):
+            path += "/"
         # The delimiter logic screens out directories, so we can't use it. :(
         # For example, given a structure:
         #   foo/bar/zap.txt
@@ -77,7 +77,7 @@ class GoogleCloudFileStore(FileStore):
             if name == path:
                 continue
             try:
-                index = name.index('/', prefix_len + 1)
+                index = name.index("/", prefix_len + 1)
                 if index != prefix_len:
                     blobs.add(name[: index + 1])
             except ValueError:
@@ -86,13 +86,13 @@ class GoogleCloudFileStore(FileStore):
 
     def delete(self, path: str) -> None:
         # Sanitize path
-        if not path or path == '/':
-            path = ''
-        if path.endswith('/'):
+        if not path or path == "/":
+            path = ""
+        if path.endswith("/"):
             path = path[:-1]
 
         # Try to delete any child resources (Assume the path is a directory)
-        for blob in self.bucket.list_blobs(prefix=f'{path}/'):
+        for blob in self.bucket.list_blobs(prefix=f"{path}/"):
             blob.delete()
 
         # Next try to delete item as a file

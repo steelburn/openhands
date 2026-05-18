@@ -27,7 +27,7 @@ from openhands.app_server.config import get_global_config
 from openhands.app_server.user_auth import get_user_id
 
 stripe.api_key = STRIPE_API_KEY
-billing_router = APIRouter(prefix='/api/billing', tags=['Billing'])
+billing_router = APIRouter(prefix="/api/billing", tags=["Billing"])
 
 
 async def validate_billing_enabled() -> None:
@@ -38,15 +38,15 @@ async def validate_billing_enabled() -> None:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail=(
-                'Billing is disabled in this environment. '
-                'Please set OH_WEB_CLIENT_FEATURE_FLAGS_ENABLE_BILLING to enable billing.'
+                "Billing is disabled in this environment. "
+                "Please set OH_WEB_CLIENT_FEATURE_FLAGS_ENABLE_BILLING to enable billing."
             ),
         )
 
 
 class BillingSessionType(Enum):
-    DIRECT_PAYMENT = 'DIRECT_PAYMENT'
-    MONTHLY_SUBSCRIPTION = 'MONTHLY_SUBSCRIPTION'
+    DIRECT_PAYMENT = "DIRECT_PAYMENT"
+    MONTHLY_SUBSCRIPTION = "MONTHLY_SUBSCRIPTION"
 
 
 class GetCreditsResponse(BaseModel):
@@ -81,13 +81,13 @@ class LiteLlmUserInfo(typing.TypedDict, total=False):
 
 def calculate_credits(user_info: LiteLlmUserInfo) -> float:
     # using `or` after get with default because it could be missing or present as None.
-    max_budget = user_info.get('max_budget') or 0.0
-    spend = user_info.get('spend') or 0.0
+    max_budget = user_info.get("max_budget") or 0.0
+    spend = user_info.get("spend") or 0.0
     return max(max_budget - spend, 0.0)
 
 
 # Endpoint to retrieve the current organization's credit balance
-@billing_router.get('/credits')
+@billing_router.get("/credits")
 async def get_credits(
     user_id: str = Depends(get_user_id),
     effective_org_id: UUID = EFFECTIVE_ORG_ID,
@@ -101,11 +101,11 @@ async def get_credits(
         user_team_info, user_id, str(effective_org_id)
     )
     credits = max(max_budget - spend, 0)
-    return GetCreditsResponse(credits=Decimal('{:.2f}'.format(credits)))
+    return GetCreditsResponse(credits=Decimal("{:.2f}".format(credits)))
 
 
 # Endpoint to retrieve user's current subscription access
-@billing_router.get('/subscription-access')
+@billing_router.get("/subscription-access")
 async def get_subscription_access(
     user_id: str = Depends(get_user_id),
 ) -> SubscriptionAccessResponse | None:
@@ -114,7 +114,7 @@ async def get_subscription_access(
         now = datetime.now(UTC)
         result = await session.execute(
             select(SubscriptionAccess).where(
-                SubscriptionAccess.status == 'ACTIVE',
+                SubscriptionAccess.status == "ACTIVE",
                 SubscriptionAccess.user_id == user_id,
                 SubscriptionAccess.start_at <= now,
                 SubscriptionAccess.end_at >= now,
@@ -133,7 +133,7 @@ async def get_subscription_access(
 
 
 # Endpoint to check if a user has entered a payment method into stripe
-@billing_router.post('/has-payment-method')
+@billing_router.post("/has-payment-method")
 async def has_payment_method(
     user_id: str = Depends(get_user_id),
     effective_org_id: UUID = EFFECTIVE_ORG_ID,
@@ -146,7 +146,7 @@ async def has_payment_method(
 
 
 # Endpoint to create a new setup intent in stripe
-@billing_router.post('/create-customer-setup-session')
+@billing_router.post("/create-customer-setup-session")
 async def create_customer_setup_session(
     request: Request,
     user_id: str = Depends(get_user_id),
@@ -159,21 +159,21 @@ async def create_customer_setup_session(
     if not customer_info:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Could not find or create customer for user',
+            detail="Could not find or create customer for user",
         )
     base_url = get_web_url(request)
     checkout_session = await stripe.checkout.Session.create_async(
-        customer=customer_info['customer_id'],
-        mode='setup',
-        payment_method_types=['card'],
-        success_url=f'{base_url}?setup=success',
-        cancel_url=f'{base_url}',
+        customer=customer_info["customer_id"],
+        mode="setup",
+        payment_method_types=["card"],
+        success_url=f"{base_url}?setup=success",
+        cancel_url=f"{base_url}",
     )
     return CreateBillingSessionResponse(redirect_url=checkout_session.url)
 
 
 # Endpoint to create a new Stripe checkout session for credit purchase
-@billing_router.post('/create-checkout-session')
+@billing_router.post("/create-checkout-session")
 async def create_checkout_session(
     body: CreateCheckoutSessionRequest,
     request: Request,
@@ -188,49 +188,49 @@ async def create_checkout_session(
     if not customer_info:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='Could not find or create customer for user',
+            detail="Could not find or create customer for user",
         )
     checkout_session = await stripe.checkout.Session.create_async(
-        customer=customer_info['customer_id'],
+        customer=customer_info["customer_id"],
         line_items=[
             {
-                'price_data': {
-                    'unit_amount': body.amount * 100,
-                    'currency': 'usd',
-                    'product_data': {
-                        'name': 'OpenHands Credits',
-                        'tax_code': 'txcd_10000000',
+                "price_data": {
+                    "unit_amount": body.amount * 100,
+                    "currency": "usd",
+                    "product_data": {
+                        "name": "OpenHands Credits",
+                        "tax_code": "txcd_10000000",
                     },
-                    'tax_behavior': 'exclusive',
+                    "tax_behavior": "exclusive",
                 },
-                'quantity': 1,
+                "quantity": 1,
             },
         ],
-        mode='payment',
-        payment_method_types=['card'],
+        mode="payment",
+        payment_method_types=["card"],
         saved_payment_method_options={
-            'payment_method_save': 'enabled',
+            "payment_method_save": "enabled",
         },
-        success_url=f'{base_url}/api/billing/success?session_id={{CHECKOUT_SESSION_ID}}',
-        cancel_url=f'{base_url}/api/billing/cancel?session_id={{CHECKOUT_SESSION_ID}}',
+        success_url=f"{base_url}/api/billing/success?session_id={{CHECKOUT_SESSION_ID}}",
+        cancel_url=f"{base_url}/api/billing/cancel?session_id={{CHECKOUT_SESSION_ID}}",
     )
     logger.info(
-        'created_stripe_checkout_session',
+        "created_stripe_checkout_session",
         extra={
-            'stripe_customer_id': customer_info['customer_id'],
-            'user_id': user_id,
-            'org_id': customer_info['org_id'],
-            'amount': body.amount,
-            'checkout_session_id': checkout_session.id,
+            "stripe_customer_id": customer_info["customer_id"],
+            "user_id": user_id,
+            "org_id": customer_info["org_id"],
+            "amount": body.amount,
+            "checkout_session_id": checkout_session.id,
         },
     )
     async with a_session_maker() as session:
         billing_session = BillingSession(
             id=checkout_session.id,
             user_id=user_id,
-            org_id=customer_info['org_id'],
+            org_id=customer_info["org_id"],
             price=body.amount,
-            price_code='NA',
+            price_code="NA",
         )
         session.add(billing_session)
         await session.commit()
@@ -239,14 +239,14 @@ async def create_checkout_session(
 
 
 # Callback endpoint for successful Stripe payments - updates user credits and billing session status
-@billing_router.get('/success')
+@billing_router.get("/success")
 async def success_callback(session_id: str, request: Request):
     # We can't use the auth cookie because of SameSite=strict
     async with a_session_maker() as session:
         result = await session.execute(
             select(BillingSession).where(
                 BillingSession.id == session_id,
-                BillingSession.status == 'in_progress',
+                BillingSession.status == "in_progress",
             )
         )
         billing_session = result.scalar_one_or_none()
@@ -254,26 +254,26 @@ async def success_callback(session_id: str, request: Request):
         if billing_session is None:
             # Hopefully this never happens - we get a redirect from stripe where the session does not exist
             logger.error(
-                'session_id_not_found', extra={'checkout_session_id': session_id}
+                "session_id_not_found", extra={"checkout_session_id": session_id}
             )
             raise HTTPException(status.HTTP_400_BAD_REQUEST)
 
         stripe_session = stripe.checkout.Session.retrieve(session_id)
-        if stripe_session.status != 'complete':
+        if stripe_session.status != "complete":
             # Hopefully this never happens - we get a redirect from stripe where the payment is not yet complete
             # (Or somebody tried to manually build the URL)
             logger.error(
-                'payment_not_complete',
+                "payment_not_complete",
                 extra={
-                    'checkout_session_id': session_id,
-                    'stripe_customer_id': stripe_session.customer,
+                    "checkout_session_id": session_id,
+                    "stripe_customer_id": stripe_session.customer,
                 },
             )
             raise HTTPException(status.HTTP_400_BAD_REQUEST)
 
         user = await UserStore.get_user_by_id(billing_session.user_id)
         if user is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail='User not found')
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="User not found")
         user_team_info = await LiteLlmManager.get_user_team_info(
             billing_session.user_id, str(user.current_org_id)
         )
@@ -296,18 +296,18 @@ async def success_callback(session_id: str, request: Request):
             org.byor_export_enabled = True
 
         # Store transaction status
-        billing_session.status = 'completed'
+        billing_session.status = "completed"
         billing_session.price = add_credits
         billing_session.updated_at = datetime.now(UTC)
         session.merge(billing_session)
         logger.info(
-            'stripe_checkout_success',
+            "stripe_checkout_success",
             extra={
-                'amount_subtotal': stripe_session.amount_subtotal,
-                'user_id': billing_session.user_id,
-                'org_id': str(user.current_org_id),
-                'checkout_session_id': billing_session.id,
-                'stripe_customer_id': stripe_session.customer,
+                "amount_subtotal": stripe_session.amount_subtotal,
+                "user_id": billing_session.user_id,
+                "org_id": str(user.current_org_id),
+                "checkout_session_id": billing_session.id,
+                "stripe_customer_id": stripe_session.customer,
             },
         )
         await session.commit()
@@ -331,37 +331,37 @@ async def success_callback(session_id: str, request: Request):
                     credit_balance_after=new_max_budget,
                 )
         except Exception:
-            logger.exception('analytics:credit_purchased:failed')
+            logger.exception("analytics:credit_purchased:failed")
 
     return RedirectResponse(
-        f'{get_web_url(request)}/settings/billing?checkout=success', status_code=302
+        f"{get_web_url(request)}/settings/billing?checkout=success", status_code=302
     )
 
 
 # Callback endpoint for cancelled Stripe payments - updates billing session status
-@billing_router.get('/cancel')
+@billing_router.get("/cancel")
 async def cancel_callback(session_id: str, request: Request):
     async with a_session_maker() as session:
         result = await session.execute(
             select(BillingSession).where(
                 BillingSession.id == session_id,
-                BillingSession.status == 'in_progress',
+                BillingSession.status == "in_progress",
             )
         )
         billing_session = result.scalar_one_or_none()
         if billing_session:
             logger.info(
-                'stripe_checkout_cancel',
+                "stripe_checkout_cancel",
                 extra={
-                    'user_id': billing_session.user_id,
-                    'checkout_session_id': billing_session.id,
+                    "user_id": billing_session.user_id,
+                    "checkout_session_id": billing_session.id,
                 },
             )
-            billing_session.status = 'cancelled'
+            billing_session.status = "cancelled"
             billing_session.updated_at = datetime.now(UTC)
             await session.merge(billing_session)
             await session.commit()
 
     return RedirectResponse(
-        f'{get_web_url(request)}/settings/billing?checkout=cancel', status_code=302
+        f"{get_web_url(request)}/settings/billing?checkout=cancel", status_code=302
     )

@@ -5,7 +5,7 @@ import warnings
 from fastapi.routing import Mount
 
 with warnings.catch_warnings():
-    warnings.simplefilter('ignore')
+    warnings.simplefilter("ignore")
 
 from fastapi import (
     FastAPI,
@@ -30,7 +30,7 @@ from openhands.app_server.version import get_version
 # Initialize the Tavily MCP proxy before creating the app
 init_tavily_proxy()
 
-mcp_app = mcp_server.http_app(path='/mcp', stateless_http=True)
+mcp_app = mcp_server.http_app(path="/mcp", stateless_http=True)
 
 
 def combine_lifespans(*lifespans):
@@ -52,11 +52,11 @@ if app_lifespan_:
 
 
 app = FastAPI(
-    title='OpenHands',
-    description='OpenHands: Code Less, Make More',
+    title="OpenHands",
+    description="OpenHands: Code Less, Make More",
     version=get_version(),
     lifespan=combine_lifespans(*lifespans),
-    routes=[Mount(path='/mcp', app=mcp_app)],
+    routes=[Mount(path="/mcp", app=mcp_app)],
 )
 
 
@@ -72,10 +72,10 @@ app.include_router(v1_router.router)
 app.include_router(health_router)
 
 # Middleware and static file setup (merged from listen.py)
-if os.getenv('SERVE_FRONTEND', 'true').lower() == 'true':
-    if os.path.isdir('./frontend/build'):
+if os.getenv("SERVE_FRONTEND", "true").lower() == "true":
+    if os.path.isdir("./frontend/build"):
         app.mount(
-            '/', SPAStaticFiles(directory='./frontend/build', html=True), name='dist'
+            "/", SPAStaticFiles(directory="./frontend/build", html=True), name="dist"
         )
 
 app.add_middleware(LocalhostCORSMiddleware)

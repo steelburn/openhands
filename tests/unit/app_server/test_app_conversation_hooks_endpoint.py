@@ -30,24 +30,24 @@ class TestGetConversationHooks:
     async def test_get_hooks_returns_hook_events(self):
         conversation_id = uuid4()
         sandbox_id = str(uuid4())
-        working_dir = '/workspace'
+        working_dir = "/workspace"
 
         mock_conversation = AppConversation(
             id=conversation_id,
-            created_by_user_id='test-user',
+            created_by_user_id="test-user",
             sandbox_id=sandbox_id,
-            selected_repository='owner/repo',
+            selected_repository="owner/repo",
             sandbox_status=SandboxStatus.RUNNING,
         )
 
         mock_sandbox = SandboxInfo(
             id=sandbox_id,
-            created_by_user_id='test-user',
+            created_by_user_id="test-user",
             status=SandboxStatus.RUNNING,
             sandbox_spec_id=str(uuid4()),
-            session_api_key='test-api-key',
+            session_api_key="test-api-key",
             exposed_urls=[
-                ExposedUrl(name=AGENT_SERVER, url='http://agent-server:8000', port=8000)
+                ExposedUrl(name=AGENT_SERVER, url="http://agent-server:8000", port=8000)
             ],
         )
 
@@ -72,16 +72,16 @@ class TestGetConversationHooks:
         mock_response.status_code = 200
         mock_response.raise_for_status = Mock()
         mock_response.json.return_value = {
-            'hook_config': {
-                'stop': [
+            "hook_config": {
+                "stop": [
                     {
-                        'matcher': '*',
-                        'hooks': [
+                        "matcher": "*",
+                        "hooks": [
                             {
-                                'type': 'command',
-                                'command': '.openhands/hooks/on_stop.sh',
-                                'timeout': 60,
-                                'async': True,
+                                "type": "command",
+                                "command": ".openhands/hooks/on_stop.sh",
+                                "timeout": 60,
+                                "async": True,
                             }
                         ],
                     }
@@ -102,22 +102,22 @@ class TestGetConversationHooks:
 
         assert response.status_code == status.HTTP_200_OK
 
-        data = __import__('json').loads(response.body.decode('utf-8'))
-        assert 'hooks' in data
-        assert data['hooks']
-        assert data['hooks'][0]['event_type'] == 'stop'
-        assert data['hooks'][0]['matchers'][0]['matcher'] == '*'
-        assert data['hooks'][0]['matchers'][0]['hooks'][0]['type'] == 'command'
+        data = __import__("json").loads(response.body.decode("utf-8"))
+        assert "hooks" in data
+        assert data["hooks"]
+        assert data["hooks"][0]["event_type"] == "stop"
+        assert data["hooks"][0]["matchers"][0]["matcher"] == "*"
+        assert data["hooks"][0]["matchers"][0]["hooks"][0]["type"] == "command"
         assert (
-            data['hooks'][0]['matchers'][0]['hooks'][0]['command']
-            == '.openhands/hooks/on_stop.sh'
+            data["hooks"][0]["matchers"][0]["hooks"][0]["command"]
+            == ".openhands/hooks/on_stop.sh"
         )
-        assert data['hooks'][0]['matchers'][0]['hooks'][0]['async'] is True
-        assert 'async_' not in data['hooks'][0]['matchers'][0]['hooks'][0]
+        assert data["hooks"][0]["matchers"][0]["hooks"][0]["async"] is True
+        assert "async_" not in data["hooks"][0]["matchers"][0]["hooks"][0]
 
         mock_httpx_client.post.assert_called_once()
         called_url = mock_httpx_client.post.call_args[0][0]
-        assert called_url == 'http://agent-server:8000/api/hooks'
+        assert called_url == "http://agent-server:8000/api/hooks"
 
     async def test_get_hooks_returns_502_when_agent_server_unreachable(self):
         conversation_id = uuid4()
@@ -125,7 +125,7 @@ class TestGetConversationHooks:
 
         mock_conversation = AppConversation(
             id=conversation_id,
-            created_by_user_id='test-user',
+            created_by_user_id="test-user",
             sandbox_id=sandbox_id,
             selected_repository=None,
             sandbox_status=SandboxStatus.RUNNING,
@@ -133,17 +133,17 @@ class TestGetConversationHooks:
 
         mock_sandbox = SandboxInfo(
             id=sandbox_id,
-            created_by_user_id='test-user',
+            created_by_user_id="test-user",
             status=SandboxStatus.RUNNING,
             sandbox_spec_id=str(uuid4()),
-            session_api_key='test-api-key',
+            session_api_key="test-api-key",
             exposed_urls=[
-                ExposedUrl(name=AGENT_SERVER, url='http://agent-server:8000', port=8000)
+                ExposedUrl(name=AGENT_SERVER, url="http://agent-server:8000", port=8000)
             ],
         )
 
         mock_sandbox_spec = SandboxSpecInfo(
-            id=str(uuid4()), command=None, working_dir='/workspace'
+            id=str(uuid4()), command=None, working_dir="/workspace"
         )
 
         mock_app_conversation_service = MagicMock()
@@ -162,8 +162,8 @@ class TestGetConversationHooks:
         mock_httpx_client = AsyncMock(spec=httpx.AsyncClient)
 
         def _raise_request_error(*args, **_kwargs):
-            request = httpx.Request('POST', args[0])
-            raise httpx.RequestError('Connection error', request=request)
+            request = httpx.Request("POST", args[0])
+            raise httpx.RequestError("Connection error", request=request)
 
         mock_httpx_client.post = AsyncMock(side_effect=_raise_request_error)
 
@@ -176,8 +176,8 @@ class TestGetConversationHooks:
         )
 
         assert response.status_code == status.HTTP_502_BAD_GATEWAY
-        data = __import__('json').loads(response.body.decode('utf-8'))
-        assert 'error' in data
+        data = __import__("json").loads(response.body.decode("utf-8"))
+        assert "error" in data
 
     async def test_get_hooks_returns_502_when_agent_server_returns_error(self):
         conversation_id = uuid4()
@@ -185,7 +185,7 @@ class TestGetConversationHooks:
 
         mock_conversation = AppConversation(
             id=conversation_id,
-            created_by_user_id='test-user',
+            created_by_user_id="test-user",
             sandbox_id=sandbox_id,
             selected_repository=None,
             sandbox_status=SandboxStatus.RUNNING,
@@ -193,17 +193,17 @@ class TestGetConversationHooks:
 
         mock_sandbox = SandboxInfo(
             id=sandbox_id,
-            created_by_user_id='test-user',
+            created_by_user_id="test-user",
             status=SandboxStatus.RUNNING,
             sandbox_spec_id=str(uuid4()),
-            session_api_key='test-api-key',
+            session_api_key="test-api-key",
             exposed_urls=[
-                ExposedUrl(name=AGENT_SERVER, url='http://agent-server:8000', port=8000)
+                ExposedUrl(name=AGENT_SERVER, url="http://agent-server:8000", port=8000)
             ],
         )
 
         mock_sandbox_spec = SandboxSpecInfo(
-            id=str(uuid4()), command=None, working_dir='/workspace'
+            id=str(uuid4()), command=None, working_dir="/workspace"
         )
 
         mock_app_conversation_service = MagicMock()
@@ -225,10 +225,10 @@ class TestGetConversationHooks:
         mock_response.status_code = 500
 
         def _raise_http_status_error(*args, **_kwargs):
-            request = httpx.Request('POST', args[0])
-            response = httpx.Response(status_code=500, text='Internal Server Error')
+            request = httpx.Request("POST", args[0])
+            response = httpx.Response(status_code=500, text="Internal Server Error")
             raise httpx.HTTPStatusError(
-                'Server error', request=request, response=response
+                "Server error", request=request, response=response
             )
 
         mock_httpx_client.post = AsyncMock(side_effect=_raise_http_status_error)
@@ -242,8 +242,8 @@ class TestGetConversationHooks:
         )
 
         assert response.status_code == status.HTTP_502_BAD_GATEWAY
-        data = __import__('json').loads(response.body.decode('utf-8'))
-        assert 'error' in data
+        data = __import__("json").loads(response.body.decode("utf-8"))
+        assert "error" in data
 
     async def test_get_hooks_returns_404_when_conversation_not_found(self):
         conversation_id = uuid4()
@@ -269,7 +269,7 @@ class TestGetConversationHooks:
 
         mock_conversation = AppConversation(
             id=conversation_id,
-            created_by_user_id='test-user',
+            created_by_user_id="test-user",
             sandbox_id=sandbox_id,
             sandbox_status=SandboxStatus.RUNNING,
         )
@@ -298,17 +298,17 @@ class TestGetConversationHooks:
 
         mock_conversation = AppConversation(
             id=conversation_id,
-            created_by_user_id='test-user',
+            created_by_user_id="test-user",
             sandbox_id=sandbox_id,
             sandbox_status=SandboxStatus.PAUSED,
         )
 
         mock_sandbox = SandboxInfo(
             id=sandbox_id,
-            created_by_user_id='test-user',
+            created_by_user_id="test-user",
             status=SandboxStatus.PAUSED,
             sandbox_spec_id=str(uuid4()),
-            session_api_key='test-api-key',
+            session_api_key="test-api-key",
         )
 
         mock_app_conversation_service = MagicMock()
@@ -330,5 +330,5 @@ class TestGetConversationHooks:
         assert response.status_code == status.HTTP_200_OK
         import json
 
-        data = json.loads(response.body.decode('utf-8'))
-        assert data == {'hooks': []}
+        data = json.loads(response.body.decode("utf-8"))
+        assert data == {"hooks": []}

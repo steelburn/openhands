@@ -34,29 +34,29 @@ class TestPermission:
         WHEN: Accessing permission values
         THEN: All expected permissions exist with correct string values
         """
-        assert Permission.MANAGE_SECRETS.value == 'manage_secrets'
-        assert Permission.MANAGE_MCP.value == 'manage_mcp'
-        assert Permission.MANAGE_INTEGRATIONS.value == 'manage_integrations'
+        assert Permission.MANAGE_SECRETS.value == "manage_secrets"
+        assert Permission.MANAGE_MCP.value == "manage_mcp"
+        assert Permission.MANAGE_INTEGRATIONS.value == "manage_integrations"
         assert (
             Permission.MANAGE_APPLICATION_SETTINGS.value
-            == 'manage_application_settings'
+            == "manage_application_settings"
         )
-        assert Permission.MANAGE_API_KEYS.value == 'manage_api_keys'
-        assert Permission.VIEW_LLM_SETTINGS.value == 'view_llm_settings'
-        assert Permission.EDIT_LLM_SETTINGS.value == 'edit_llm_settings'
-        assert Permission.VIEW_BILLING.value == 'view_billing'
-        assert Permission.ADD_CREDITS.value == 'add_credits'
+        assert Permission.MANAGE_API_KEYS.value == "manage_api_keys"
+        assert Permission.VIEW_LLM_SETTINGS.value == "view_llm_settings"
+        assert Permission.EDIT_LLM_SETTINGS.value == "edit_llm_settings"
+        assert Permission.VIEW_BILLING.value == "view_billing"
+        assert Permission.ADD_CREDITS.value == "add_credits"
         assert (
             Permission.INVITE_USER_TO_ORGANIZATION.value
-            == 'invite_user_to_organization'
+            == "invite_user_to_organization"
         )
-        assert Permission.CHANGE_USER_ROLE_MEMBER.value == 'change_user_role:member'
-        assert Permission.CHANGE_USER_ROLE_ADMIN.value == 'change_user_role:admin'
-        assert Permission.CHANGE_USER_ROLE_OWNER.value == 'change_user_role:owner'
-        assert Permission.VIEW_ORG_SETTINGS.value == 'view_org_settings'
-        assert Permission.CHANGE_ORGANIZATION_NAME.value == 'change_organization_name'
-        assert Permission.DELETE_ORGANIZATION.value == 'delete_organization'
-        assert Permission.MANAGE_AUTOMATIONS.value == 'manage_automations'
+        assert Permission.CHANGE_USER_ROLE_MEMBER.value == "change_user_role:member"
+        assert Permission.CHANGE_USER_ROLE_ADMIN.value == "change_user_role:admin"
+        assert Permission.CHANGE_USER_ROLE_OWNER.value == "change_user_role:owner"
+        assert Permission.VIEW_ORG_SETTINGS.value == "view_org_settings"
+        assert Permission.CHANGE_ORGANIZATION_NAME.value == "change_organization_name"
+        assert Permission.DELETE_ORGANIZATION.value == "delete_organization"
+        assert Permission.MANAGE_AUTOMATIONS.value == "manage_automations"
 
     def test_permission_from_string(self):
         """
@@ -64,9 +64,9 @@ class TestPermission:
         WHEN: Creating Permission from string
         THEN: Correct enum value is returned
         """
-        assert Permission('manage_secrets') == Permission.MANAGE_SECRETS
-        assert Permission('view_llm_settings') == Permission.VIEW_LLM_SETTINGS
-        assert Permission('delete_organization') == Permission.DELETE_ORGANIZATION
+        assert Permission("manage_secrets") == Permission.MANAGE_SECRETS
+        assert Permission("view_llm_settings") == Permission.VIEW_LLM_SETTINGS
+        assert Permission("delete_organization") == Permission.DELETE_ORGANIZATION
 
     def test_permission_invalid_string(self):
         """
@@ -75,7 +75,7 @@ class TestPermission:
         THEN: ValueError is raised
         """
         with pytest.raises(ValueError):
-            Permission('invalid_permission')
+            Permission("invalid_permission")
 
 
 # =============================================================================
@@ -92,9 +92,9 @@ class TestRoleName:
         WHEN: Accessing role name values
         THEN: All expected roles exist with correct string values
         """
-        assert RoleName.OWNER.value == 'owner'
-        assert RoleName.ADMIN.value == 'admin'
-        assert RoleName.MEMBER.value == 'member'
+        assert RoleName.OWNER.value == "owner"
+        assert RoleName.ADMIN.value == "admin"
+        assert RoleName.MEMBER.value == "member"
 
     def test_role_name_from_string(self):
         """
@@ -102,9 +102,9 @@ class TestRoleName:
         WHEN: Creating RoleName from string
         THEN: Correct enum value is returned
         """
-        assert RoleName('owner') == RoleName.OWNER
-        assert RoleName('admin') == RoleName.ADMIN
-        assert RoleName('member') == RoleName.MEMBER
+        assert RoleName("owner") == RoleName.OWNER
+        assert RoleName("admin") == RoleName.ADMIN
+        assert RoleName("member") == RoleName.MEMBER
 
     def test_role_name_invalid_string(self):
         """
@@ -113,7 +113,7 @@ class TestRoleName:
         THEN: ValueError is raised
         """
         with pytest.raises(ValueError):
-            RoleName('invalid_role')
+            RoleName("invalid_role")
 
 
 # =============================================================================
@@ -209,7 +209,7 @@ class TestGetRolePermissions:
         WHEN: get_role_permissions is called
         THEN: Owner permissions are returned
         """
-        perms = get_role_permissions('owner')
+        perms = get_role_permissions("owner")
         assert Permission.DELETE_ORGANIZATION in perms
         assert Permission.CHANGE_ORGANIZATION_NAME in perms
 
@@ -219,7 +219,7 @@ class TestGetRolePermissions:
         WHEN: get_role_permissions is called
         THEN: Admin permissions are returned
         """
-        perms = get_role_permissions('admin')
+        perms = get_role_permissions("admin")
         assert Permission.EDIT_LLM_SETTINGS in perms
         assert Permission.DELETE_ORGANIZATION not in perms
 
@@ -229,7 +229,7 @@ class TestGetRolePermissions:
         WHEN: get_role_permissions is called
         THEN: Member permissions are returned
         """
-        perms = get_role_permissions('member')
+        perms = get_role_permissions("member")
         assert Permission.VIEW_LLM_SETTINGS in perms
         assert Permission.EDIT_LLM_SETTINGS not in perms
 
@@ -239,7 +239,7 @@ class TestGetRolePermissions:
         WHEN: get_role_permissions is called
         THEN: Empty frozenset is returned
         """
-        perms = get_role_permissions('invalid_role')
+        perms = get_role_permissions("invalid_role")
         assert perms == frozenset()
 
 
@@ -258,7 +258,7 @@ class TestHasPermission:
         THEN: Returns True
         """
         mock_role = MagicMock()
-        mock_role.name = 'owner'
+        mock_role.name = "owner"
         assert has_permission(mock_role, Permission.DELETE_ORGANIZATION) is True
 
     def test_owner_has_view_llm_settings_permission(self):
@@ -268,7 +268,7 @@ class TestHasPermission:
         THEN: Returns True
         """
         mock_role = MagicMock()
-        mock_role.name = 'owner'
+        mock_role.name = "owner"
         assert has_permission(mock_role, Permission.VIEW_LLM_SETTINGS) is True
 
     def test_admin_has_edit_llm_settings_permission(self):
@@ -278,7 +278,7 @@ class TestHasPermission:
         THEN: Returns True
         """
         mock_role = MagicMock()
-        mock_role.name = 'admin'
+        mock_role.name = "admin"
         assert has_permission(mock_role, Permission.EDIT_LLM_SETTINGS) is True
 
     def test_admin_lacks_delete_organization_permission(self):
@@ -288,7 +288,7 @@ class TestHasPermission:
         THEN: Returns False
         """
         mock_role = MagicMock()
-        mock_role.name = 'admin'
+        mock_role.name = "admin"
         assert has_permission(mock_role, Permission.DELETE_ORGANIZATION) is False
 
     def test_member_has_view_llm_settings_permission(self):
@@ -298,7 +298,7 @@ class TestHasPermission:
         THEN: Returns True
         """
         mock_role = MagicMock()
-        mock_role.name = 'member'
+        mock_role.name = "member"
         assert has_permission(mock_role, Permission.VIEW_LLM_SETTINGS) is True
 
     def test_member_lacks_edit_llm_settings_permission(self):
@@ -308,7 +308,7 @@ class TestHasPermission:
         THEN: Returns False
         """
         mock_role = MagicMock()
-        mock_role.name = 'member'
+        mock_role.name = "member"
         assert has_permission(mock_role, Permission.EDIT_LLM_SETTINGS) is False
 
     def test_member_lacks_delete_organization_permission(self):
@@ -318,7 +318,7 @@ class TestHasPermission:
         THEN: Returns False
         """
         mock_role = MagicMock()
-        mock_role.name = 'member'
+        mock_role.name = "member"
         assert has_permission(mock_role, Permission.DELETE_ORGANIZATION) is False
 
     def test_invalid_role_has_no_permissions(self):
@@ -328,7 +328,7 @@ class TestHasPermission:
         THEN: Returns False
         """
         mock_role = MagicMock()
-        mock_role.name = 'invalid_role'
+        mock_role.name = "invalid_role"
         assert has_permission(mock_role, Permission.VIEW_LLM_SETTINGS) is False
         assert has_permission(mock_role, Permission.DELETE_ORGANIZATION) is False
 
@@ -355,16 +355,16 @@ class TestGetUserOrgRole:
         mock_org_member.role_id = 1
 
         mock_role = MagicMock()
-        mock_role.name = 'admin'
+        mock_role.name = "admin"
 
         with (
             patch(
-                'server.auth.authorization.OrgMemberStore.get_org_member',
+                "server.auth.authorization.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
                 return_value=mock_org_member,
             ),
             patch(
-                'server.auth.authorization.RoleStore.get_role_by_id',
+                "server.auth.authorization.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
                 return_value=mock_role,
             ),
@@ -383,7 +383,7 @@ class TestGetUserOrgRole:
         org_id = uuid4()
 
         with patch(
-            'server.auth.authorization.OrgMemberStore.get_org_member',
+            "server.auth.authorization.OrgMemberStore.get_org_member",
             new_callable=AsyncMock,
             return_value=None,
         ):
@@ -403,20 +403,20 @@ class TestGetUserOrgRole:
         mock_org_member.role_id = 1
 
         mock_role = MagicMock()
-        mock_role.name = 'admin'
+        mock_role.name = "admin"
 
         with (
             patch(
-                'server.auth.authorization.OrgMemberStore.get_org_member_for_current_org',
+                "server.auth.authorization.OrgMemberStore.get_org_member_for_current_org",
                 new_callable=AsyncMock,
                 return_value=mock_org_member,
             ) as mock_get_current,
             patch(
-                'server.auth.authorization.OrgMemberStore.get_org_member',
+                "server.auth.authorization.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_org_member,
             patch(
-                'server.auth.authorization.RoleStore.get_role_by_id',
+                "server.auth.authorization.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
                 return_value=mock_role,
             ),
@@ -436,7 +436,7 @@ class TestGetUserOrgRole:
         user_id = str(uuid4())
 
         with patch(
-            'server.auth.authorization.OrgMemberStore.get_org_member_for_current_org',
+            "server.auth.authorization.OrgMemberStore.get_org_member_for_current_org",
             new_callable=AsyncMock,
             return_value=None,
         ):
@@ -473,10 +473,10 @@ class TestRequirePermission:
         mock_request = _create_mock_request()
 
         mock_role = MagicMock()
-        mock_role.name = 'admin'
+        mock_role.name = "admin"
 
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=mock_role),
         ):
             permission_checker = require_permission(Permission.VIEW_LLM_SETTINGS)
@@ -500,7 +500,7 @@ class TestRequirePermission:
             await permission_checker(request=mock_request, org_id=org_id, user_id=None)
 
         assert exc_info.value.status_code == 401
-        assert 'not authenticated' in exc_info.value.detail.lower()
+        assert "not authenticated" in exc_info.value.detail.lower()
 
     @pytest.mark.asyncio
     async def test_raises_403_when_not_member(self):
@@ -514,7 +514,7 @@ class TestRequirePermission:
         mock_request = _create_mock_request()
 
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=None),
         ):
             permission_checker = require_permission(Permission.VIEW_LLM_SETTINGS)
@@ -524,7 +524,7 @@ class TestRequirePermission:
                 )
 
             assert exc_info.value.status_code == 403
-            assert 'not a member' in exc_info.value.detail.lower()
+            assert "not a member" in exc_info.value.detail.lower()
 
     @pytest.mark.asyncio
     async def test_raises_403_when_insufficient_permission(self):
@@ -538,10 +538,10 @@ class TestRequirePermission:
         mock_request = _create_mock_request()
 
         mock_role = MagicMock()
-        mock_role.name = 'member'
+        mock_role.name = "member"
 
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=mock_role),
         ):
             permission_checker = require_permission(Permission.DELETE_ORGANIZATION)
@@ -551,7 +551,7 @@ class TestRequirePermission:
                 )
 
             assert exc_info.value.status_code == 403
-            assert 'delete_organization' in exc_info.value.detail.lower()
+            assert "delete_organization" in exc_info.value.detail.lower()
 
     @pytest.mark.asyncio
     async def test_owner_can_delete_organization(self):
@@ -565,10 +565,10 @@ class TestRequirePermission:
         mock_request = _create_mock_request()
 
         mock_role = MagicMock()
-        mock_role.name = 'owner'
+        mock_role.name = "owner"
 
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=mock_role),
         ):
             permission_checker = require_permission(Permission.DELETE_ORGANIZATION)
@@ -589,10 +589,10 @@ class TestRequirePermission:
         mock_request = _create_mock_request()
 
         mock_role = MagicMock()
-        mock_role.name = 'admin'
+        mock_role.name = "admin"
 
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=mock_role),
         ):
             permission_checker = require_permission(Permission.DELETE_ORGANIZATION)
@@ -615,14 +615,14 @@ class TestRequirePermission:
         mock_request = _create_mock_request()
 
         mock_role = MagicMock()
-        mock_role.name = 'member'
+        mock_role.name = "member"
 
         with (
             patch(
-                'server.auth.authorization.get_user_org_role',
+                "server.auth.authorization.get_user_org_role",
                 AsyncMock(return_value=mock_role),
             ),
-            patch('server.auth.authorization.logger') as mock_logger,
+            patch("server.auth.authorization.logger") as mock_logger,
         ):
             permission_checker = require_permission(Permission.DELETE_ORGANIZATION)
             with pytest.raises(HTTPException):
@@ -632,9 +632,9 @@ class TestRequirePermission:
 
             mock_logger.warning.assert_called()
             call_args = mock_logger.warning.call_args
-            assert call_args[1]['extra']['user_id'] == user_id
-            assert call_args[1]['extra']['user_role'] == 'member'
-            assert call_args[1]['extra']['required_permission'] == 'delete_organization'
+            assert call_args[1]["extra"]["user_id"] == user_id
+            assert call_args[1]["extra"]["user_role"] == "member"
+            assert call_args[1]["extra"]["required_permission"] == "delete_organization"
 
     @pytest.mark.asyncio
     async def test_returns_user_id_when_org_id_is_none(self):
@@ -647,10 +647,10 @@ class TestRequirePermission:
         mock_request = _create_mock_request()
 
         mock_role = MagicMock()
-        mock_role.name = 'admin'
+        mock_role.name = "admin"
 
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=mock_role),
         ) as mock_get_role:
             permission_checker = require_permission(Permission.VIEW_LLM_SETTINGS)
@@ -671,7 +671,7 @@ class TestRequirePermission:
         mock_request = _create_mock_request()
 
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=None),
         ):
             permission_checker = require_permission(Permission.VIEW_LLM_SETTINGS)
@@ -681,7 +681,7 @@ class TestRequirePermission:
                 )
 
             assert exc_info.value.status_code == 403
-            assert 'not a member' in exc_info.value.detail
+            assert "not a member" in exc_info.value.detail
 
 
 # =============================================================================
@@ -704,10 +704,10 @@ class TestPermissionScenarios:
         mock_request = _create_mock_request()
 
         mock_role = MagicMock()
-        mock_role.name = 'member'
+        mock_role.name = "member"
 
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=mock_role),
         ):
             permission_checker = require_permission(Permission.MANAGE_SECRETS)
@@ -728,10 +728,10 @@ class TestPermissionScenarios:
         mock_request = _create_mock_request()
 
         mock_role = MagicMock()
-        mock_role.name = 'member'
+        mock_role.name = "member"
 
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=mock_role),
         ):
             permission_checker = require_permission(
@@ -756,10 +756,10 @@ class TestPermissionScenarios:
         mock_request = _create_mock_request()
 
         mock_role = MagicMock()
-        mock_role.name = 'admin'
+        mock_role.name = "admin"
 
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=mock_role),
         ):
             permission_checker = require_permission(
@@ -782,10 +782,10 @@ class TestPermissionScenarios:
         mock_request = _create_mock_request()
 
         mock_role = MagicMock()
-        mock_role.name = 'admin'
+        mock_role.name = "admin"
 
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=mock_role),
         ):
             permission_checker = require_permission(Permission.CHANGE_USER_ROLE_OWNER)
@@ -808,10 +808,10 @@ class TestPermissionScenarios:
         mock_request = _create_mock_request()
 
         mock_role = MagicMock()
-        mock_role.name = 'owner'
+        mock_role.name = "owner"
 
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=mock_role),
         ):
             permission_checker = require_permission(Permission.CHANGE_USER_ROLE_OWNER)
@@ -842,11 +842,11 @@ class TestApiKeyOrgValidation:
         mock_request = _create_mock_request(api_key_org_id=org_id)
 
         mock_role = MagicMock()
-        mock_role.name = 'admin'
+        mock_role.name = "admin"
 
         # Act & Assert
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=mock_role),
         ):
             permission_checker = require_permission(Permission.VIEW_LLM_SETTINGS)
@@ -877,7 +877,7 @@ class TestApiKeyOrgValidation:
 
         assert exc_info.value.status_code == 403
         assert (
-            'API key is not authorized for this organization' in exc_info.value.detail
+            "API key is not authorized for this organization" in exc_info.value.detail
         )
 
     @pytest.mark.asyncio
@@ -893,11 +893,11 @@ class TestApiKeyOrgValidation:
         mock_request = _create_mock_request(api_key_org_id=None)
 
         mock_role = MagicMock()
-        mock_role.name = 'admin'
+        mock_role.name = "admin"
 
         # Act & Assert
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=mock_role),
         ):
             permission_checker = require_permission(Permission.VIEW_LLM_SETTINGS)
@@ -919,11 +919,11 @@ class TestApiKeyOrgValidation:
         mock_request = _create_mock_request(api_key_org_id=None)
 
         mock_role = MagicMock()
-        mock_role.name = 'admin'
+        mock_role.name = "admin"
 
         # Act & Assert
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=mock_role),
         ):
             permission_checker = require_permission(Permission.VIEW_LLM_SETTINGS)
@@ -946,7 +946,7 @@ class TestApiKeyOrgValidation:
         mock_request = _create_mock_request(api_key_org_id=api_key_org_id)
 
         # Act & Assert
-        with patch('server.auth.authorization.logger') as mock_logger:
+        with patch("server.auth.authorization.logger") as mock_logger:
             permission_checker = require_permission(Permission.VIEW_LLM_SETTINGS)
             with pytest.raises(HTTPException):
                 await permission_checker(
@@ -955,9 +955,9 @@ class TestApiKeyOrgValidation:
 
             mock_logger.warning.assert_called()
             call_args = mock_logger.warning.call_args
-            assert call_args[1]['extra']['user_id'] == user_id
-            assert call_args[1]['extra']['api_key_org_id'] == str(api_key_org_id)
-            assert call_args[1]['extra']['target_org_id'] == str(target_org_id)
+            assert call_args[1]["extra"]["user_id"] == user_id
+            assert call_args[1]["extra"]["api_key_org_id"] == str(api_key_org_id)
+            assert call_args[1]["extra"]["target_org_id"] == str(target_org_id)
 
 
 class TestGetApiKeyOrgIdFromRequest:
@@ -1019,7 +1019,7 @@ class TestGetApiKeyOrgIdFromRequest:
 # =============================================================================
 
 
-def _create_mock_request_with_email(api_key_org_id=None, user_email='user@example.com'):
+def _create_mock_request_with_email(api_key_org_id=None, user_email="user@example.com"):
     """Helper to create a mock request with optional api_key_org_id and email."""
     mock_request = MagicMock()
     mock_user_auth = MagicMock()
@@ -1046,10 +1046,10 @@ class TestRequireFinancialDataAccess:
         # Arrange
         user_id = str(uuid4())
         org_id = uuid4()
-        mock_request = _create_mock_request_with_email(user_email='admin@openhands.dev')
+        mock_request = _create_mock_request_with_email(user_email="admin@openhands.dev")
 
         with patch(
-            'server.auth.authorization.get_user_auth',
+            "server.auth.authorization.get_user_auth",
             AsyncMock(return_value=mock_request.state.user_auth),
         ):
             # Act
@@ -1072,17 +1072,17 @@ class TestRequireFinancialDataAccess:
         # Arrange
         user_id = str(uuid4())
         org_id = uuid4()
-        mock_request = _create_mock_request_with_email(user_email='user@company.com')
+        mock_request = _create_mock_request_with_email(user_email="user@company.com")
         mock_role = MagicMock()
-        mock_role.name = 'owner'
+        mock_role.name = "owner"
 
         with (
             patch(
-                'server.auth.authorization.get_user_auth',
+                "server.auth.authorization.get_user_auth",
                 AsyncMock(return_value=mock_request.state.user_auth),
             ),
             patch(
-                'server.auth.authorization.get_user_org_role',
+                "server.auth.authorization.get_user_org_role",
                 AsyncMock(return_value=mock_role),
             ),
         ):
@@ -1106,17 +1106,17 @@ class TestRequireFinancialDataAccess:
         # Arrange
         user_id = str(uuid4())
         org_id = uuid4()
-        mock_request = _create_mock_request_with_email(user_email='user@company.com')
+        mock_request = _create_mock_request_with_email(user_email="user@company.com")
         mock_role = MagicMock()
-        mock_role.name = 'admin'
+        mock_role.name = "admin"
 
         with (
             patch(
-                'server.auth.authorization.get_user_auth',
+                "server.auth.authorization.get_user_auth",
                 AsyncMock(return_value=mock_request.state.user_auth),
             ),
             patch(
-                'server.auth.authorization.get_user_org_role',
+                "server.auth.authorization.get_user_org_role",
                 AsyncMock(return_value=mock_role),
             ),
         ):
@@ -1140,17 +1140,17 @@ class TestRequireFinancialDataAccess:
         # Arrange
         user_id = str(uuid4())
         org_id = uuid4()
-        mock_request = _create_mock_request_with_email(user_email='user@company.com')
+        mock_request = _create_mock_request_with_email(user_email="user@company.com")
         mock_role = MagicMock()
-        mock_role.name = 'member'
+        mock_role.name = "member"
 
         with (
             patch(
-                'server.auth.authorization.get_user_auth',
+                "server.auth.authorization.get_user_auth",
                 AsyncMock(return_value=mock_request.state.user_auth),
             ),
             patch(
-                'server.auth.authorization.get_user_org_role',
+                "server.auth.authorization.get_user_org_role",
                 AsyncMock(return_value=mock_role),
             ),
         ):
@@ -1161,7 +1161,7 @@ class TestRequireFinancialDataAccess:
                 )
 
             assert exc_info.value.status_code == 403
-            assert 'admins, owners, or OpenHands' in exc_info.value.detail
+            assert "admins, owners, or OpenHands" in exc_info.value.detail
 
     @pytest.mark.asyncio
     async def test_denies_access_for_non_member(self):
@@ -1175,15 +1175,15 @@ class TestRequireFinancialDataAccess:
         # Arrange
         user_id = str(uuid4())
         org_id = uuid4()
-        mock_request = _create_mock_request_with_email(user_email='user@company.com')
+        mock_request = _create_mock_request_with_email(user_email="user@company.com")
 
         with (
             patch(
-                'server.auth.authorization.get_user_auth',
+                "server.auth.authorization.get_user_auth",
                 AsyncMock(return_value=mock_request.state.user_auth),
             ),
             patch(
-                'server.auth.authorization.get_user_org_role',
+                "server.auth.authorization.get_user_org_role",
                 AsyncMock(return_value=None),
             ),
         ):
@@ -1194,7 +1194,7 @@ class TestRequireFinancialDataAccess:
                 )
 
             assert exc_info.value.status_code == 403
-            assert 'not a member' in exc_info.value.detail
+            assert "not a member" in exc_info.value.detail
 
     @pytest.mark.asyncio
     async def test_denies_access_when_not_authenticated(self):
@@ -1216,7 +1216,7 @@ class TestRequireFinancialDataAccess:
             )
 
         assert exc_info.value.status_code == 401
-        assert 'not authenticated' in exc_info.value.detail
+        assert "not authenticated" in exc_info.value.detail
 
     @pytest.mark.asyncio
     async def test_denies_access_when_api_key_org_mismatch(self):
@@ -1232,7 +1232,7 @@ class TestRequireFinancialDataAccess:
         api_key_org_id = uuid4()  # Org A
         target_org_id = uuid4()  # Org B
         mock_request = _create_mock_request_with_email(
-            api_key_org_id=api_key_org_id, user_email='admin@openhands.dev'
+            api_key_org_id=api_key_org_id, user_email="admin@openhands.dev"
         )
 
         # Act & Assert
@@ -1242,4 +1242,4 @@ class TestRequireFinancialDataAccess:
             )
 
         assert exc_info.value.status_code == 403
-        assert 'API key is not authorized' in exc_info.value.detail
+        assert "API key is not authorized" in exc_info.value.detail

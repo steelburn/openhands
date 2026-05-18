@@ -12,14 +12,14 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '103'
-down_revision: Union[str, None] = '102'
+revision: str = "103"
+down_revision: Union[str, None] = "102"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column('org_member', sa.Column('mcp_config', sa.JSON(), nullable=True))
+    op.add_column("org_member", sa.Column("mcp_config", sa.JSON(), nullable=True))
 
     # Migrate existing org-level MCP configs to all members in each org.
     # This preserves existing configurations while transitioning to user-specific settings.
@@ -38,4 +38,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_column('org_member', 'mcp_config')
+    op.drop_column("org_member", "mcp_config")

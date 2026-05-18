@@ -44,7 +44,7 @@ def owner_role():
     """Create a mock owner role."""
     role = MagicMock(spec=Role)
     role.id = 1
-    role.name = 'owner'
+    role.name = "owner"
     role.rank = 10
     return role
 
@@ -54,7 +54,7 @@ def admin_role():
     """Create a mock admin role."""
     role = MagicMock(spec=Role)
     role.id = 2
-    role.name = 'admin'
+    role.name = "admin"
     role.rank = 20
     return role
 
@@ -64,7 +64,7 @@ def member_role():
     """Create a mock member role."""
     role = MagicMock(spec=Role)
     role.id = 3
-    role.name = 'member'
+    role.name = "member"
     role.rank = 1000
     return role
 
@@ -116,7 +116,7 @@ class TestOrgMemberServiceGetOrgMembers:
     def mock_user(self):
         """Create a mock user."""
         user = MagicMock()
-        user.email = 'test@example.com'
+        user.email = "test@example.com"
         return user
 
     @pytest.fixture
@@ -124,7 +124,7 @@ class TestOrgMemberServiceGetOrgMembers:
         """Create a mock role."""
         role = MagicMock(spec=Role)
         role.id = 1
-        role.name = 'owner'
+        role.name = "owner"
         role.rank = 10
         return role
 
@@ -135,7 +135,7 @@ class TestOrgMemberServiceGetOrgMembers:
         member.org_id = org_id
         member.user_id = current_user_id
         member.role_id = mock_role.id
-        member.status = 'active'
+        member.status = "active"
         member.user = mock_user
         member.role = mock_role
         return member
@@ -150,11 +150,11 @@ class TestOrgMemberServiceGetOrgMembers:
 
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_members_paginated',
+                "server.services.org_member_service.OrgMemberStore.get_org_members_paginated",
                 new_callable=AsyncMock,
             ) as mock_get_paginated,
         ):
@@ -178,18 +178,18 @@ class TestOrgMemberServiceGetOrgMembers:
             assert data.current_page == 1
             assert data.per_page == 100
             assert data.items[0].user_id == str(current_user_id)
-            assert data.items[0].email == 'test@example.com'
+            assert data.items[0].email == "test@example.com"
             assert data.items[0].role_id == 1
-            assert data.items[0].role == 'owner'
+            assert data.items[0].role == "owner"
             assert data.items[0].role_rank == 10
-            assert data.items[0].status == 'active'
+            assert data.items[0].status == "active"
 
     @pytest.mark.asyncio
     async def test_user_not_a_member_returns_error(self, org_id, current_user_id):
         """Test that retrieval fails when user is not a member."""
         # Arrange
         with patch(
-            'server.services.org_member_service.OrgMemberStore.get_org_member',
+            "server.services.org_member_service.OrgMemberStore.get_org_member",
             new_callable=AsyncMock,
         ) as mock_get_member:
             mock_get_member.return_value = None
@@ -204,7 +204,7 @@ class TestOrgMemberServiceGetOrgMembers:
 
             # Assert
             assert success is False
-            assert error_code == 'not_a_member'
+            assert error_code == "not_a_member"
             assert data is None
 
     @pytest.mark.asyncio
@@ -214,7 +214,7 @@ class TestOrgMemberServiceGetOrgMembers:
         """Test that negative page_id returns error."""
         # Arrange
         with patch(
-            'server.services.org_member_service.OrgMemberStore.get_org_member',
+            "server.services.org_member_service.OrgMemberStore.get_org_member",
             new_callable=AsyncMock,
         ) as mock_get_member:
             mock_get_member.return_value = requester_membership_owner
@@ -223,13 +223,13 @@ class TestOrgMemberServiceGetOrgMembers:
             success, error_code, data = await OrgMemberService.get_org_members(
                 org_id=org_id,
                 current_user_id=current_user_id,
-                page_id='-1',
+                page_id="-1",
                 limit=100,
             )
 
             # Assert
             assert success is False
-            assert error_code == 'invalid_page_id'
+            assert error_code == "invalid_page_id"
             assert data is None
 
     @pytest.mark.asyncio
@@ -239,7 +239,7 @@ class TestOrgMemberServiceGetOrgMembers:
         """Test that non-integer page_id returns error."""
         # Arrange
         with patch(
-            'server.services.org_member_service.OrgMemberStore.get_org_member',
+            "server.services.org_member_service.OrgMemberStore.get_org_member",
             new_callable=AsyncMock,
         ) as mock_get_member:
             mock_get_member.return_value = requester_membership_owner
@@ -248,13 +248,13 @@ class TestOrgMemberServiceGetOrgMembers:
             success, error_code, data = await OrgMemberService.get_org_members(
                 org_id=org_id,
                 current_user_id=current_user_id,
-                page_id='not-a-number',
+                page_id="not-a-number",
                 limit=100,
             )
 
             # Assert
             assert success is False
-            assert error_code == 'invalid_page_id'
+            assert error_code == "invalid_page_id"
             assert data is None
 
     @pytest.mark.asyncio
@@ -265,11 +265,11 @@ class TestOrgMemberServiceGetOrgMembers:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_members_paginated',
+                "server.services.org_member_service.OrgMemberStore.get_org_members_paginated",
                 new_callable=AsyncMock,
             ) as mock_get_paginated,
         ):
@@ -300,11 +300,11 @@ class TestOrgMemberServiceGetOrgMembers:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_members_paginated',
+                "server.services.org_member_service.OrgMemberStore.get_org_members_paginated",
                 new_callable=AsyncMock,
             ) as mock_get_paginated,
         ):
@@ -315,7 +315,7 @@ class TestOrgMemberServiceGetOrgMembers:
             success, error_code, data = await OrgMemberService.get_org_members(
                 org_id=org_id,
                 current_user_id=current_user_id,
-                page_id='100',
+                page_id="100",
                 limit=50,
             )
 
@@ -335,11 +335,11 @@ class TestOrgMemberServiceGetOrgMembers:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_members_paginated',
+                "server.services.org_member_service.OrgMemberStore.get_org_members_paginated",
                 new_callable=AsyncMock,
             ) as mock_get_paginated,
         ):
@@ -350,7 +350,7 @@ class TestOrgMemberServiceGetOrgMembers:
             success, error_code, data = await OrgMemberService.get_org_members(
                 org_id=org_id,
                 current_user_id=current_user_id,
-                page_id='200',
+                page_id="200",
                 limit=100,
             )
 
@@ -367,11 +367,11 @@ class TestOrgMemberServiceGetOrgMembers:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_members_paginated',
+                "server.services.org_member_service.OrgMemberStore.get_org_members_paginated",
                 new_callable=AsyncMock,
             ) as mock_get_paginated,
         ):
@@ -401,17 +401,17 @@ class TestOrgMemberServiceGetOrgMembers:
         member_no_user.org_id = org_id
         member_no_user.user_id = current_user_id
         member_no_user.role_id = mock_role.id
-        member_no_user.status = 'active'
+        member_no_user.status = "active"
         member_no_user.user = None
         member_no_user.role = mock_role
 
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_members_paginated',
+                "server.services.org_member_service.OrgMemberStore.get_org_members_paginated",
                 new_callable=AsyncMock,
             ) as mock_get_paginated,
         ):
@@ -442,17 +442,17 @@ class TestOrgMemberServiceGetOrgMembers:
         member_no_role.org_id = org_id
         member_no_role.user_id = current_user_id
         member_no_role.role_id = 1
-        member_no_role.status = 'active'
+        member_no_role.status = "active"
         member_no_role.user = mock_user
         member_no_role.role = None
 
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_members_paginated',
+                "server.services.org_member_service.OrgMemberStore.get_org_members_paginated",
                 new_callable=AsyncMock,
             ) as mock_get_paginated,
         ):
@@ -471,7 +471,7 @@ class TestOrgMemberServiceGetOrgMembers:
             assert success is True
             assert data is not None
             assert len(data.items) == 1
-            assert data.items[0].role == ''
+            assert data.items[0].role == ""
             assert data.items[0].role_rank == 0
 
     @pytest.mark.asyncio
@@ -484,7 +484,7 @@ class TestOrgMemberServiceGetOrgMembers:
         member1.org_id = org_id
         member1.user_id = current_user_id
         member1.role_id = mock_role.id
-        member1.status = 'active'
+        member1.status = "active"
         member1.user = mock_user
         member1.role = mock_role
 
@@ -492,17 +492,17 @@ class TestOrgMemberServiceGetOrgMembers:
         member2.org_id = org_id
         member2.user_id = uuid.uuid4()
         member2.role_id = mock_role.id
-        member2.status = 'active'
+        member2.status = "active"
         member2.user = mock_user
         member2.role = mock_role
 
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_members_paginated',
+                "server.services.org_member_service.OrgMemberStore.get_org_members_paginated",
                 new_callable=AsyncMock,
             ) as mock_get_paginated,
         ):
@@ -530,11 +530,11 @@ class TestOrgMemberServiceGetOrgMembers:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_members_paginated',
+                "server.services.org_member_service.OrgMemberStore.get_org_members_paginated",
                 new_callable=AsyncMock,
             ) as mock_get_paginated,
         ):
@@ -547,12 +547,12 @@ class TestOrgMemberServiceGetOrgMembers:
                 current_user_id=current_user_id,
                 page_id=None,
                 limit=10,
-                email_filter='alice',
+                email_filter="alice",
             )
 
             # Assert
             mock_get_paginated.assert_called_once_with(
-                org_id=org_id, offset=0, limit=10, email_filter='alice'
+                org_id=org_id, offset=0, limit=10, email_filter="alice"
             )
 
     @pytest.mark.asyncio
@@ -563,11 +563,11 @@ class TestOrgMemberServiceGetOrgMembers:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_members_paginated',
+                "server.services.org_member_service.OrgMemberStore.get_org_members_paginated",
                 new_callable=AsyncMock,
             ) as mock_get_paginated,
         ):
@@ -578,7 +578,7 @@ class TestOrgMemberServiceGetOrgMembers:
             success, error_code, data = await OrgMemberService.get_org_members(
                 org_id=org_id,
                 current_user_id=current_user_id,
-                page_id='10',
+                page_id="10",
                 limit=10,
             )
 
@@ -609,11 +609,11 @@ class TestOrgMemberServiceGetOrgMembersCount:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_members_count',
+                "server.services.org_member_service.OrgMemberStore.get_org_members_count",
                 new_callable=AsyncMock,
             ) as mock_get_count,
         ):
@@ -638,11 +638,11 @@ class TestOrgMemberServiceGetOrgMembersCount:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_members_count',
+                "server.services.org_member_service.OrgMemberStore.get_org_members_count",
                 new_callable=AsyncMock,
             ) as mock_get_count,
         ):
@@ -653,19 +653,19 @@ class TestOrgMemberServiceGetOrgMembersCount:
             count = await OrgMemberService.get_org_members_count(
                 org_id=org_id,
                 current_user_id=current_user_id,
-                email_filter='alice',
+                email_filter="alice",
             )
 
             # Assert
             assert count == 5
-            mock_get_count.assert_called_once_with(org_id=org_id, email_filter='alice')
+            mock_get_count.assert_called_once_with(org_id=org_id, email_filter="alice")
 
     @pytest.mark.asyncio
     async def test_not_a_member_raises_error(self, org_id, current_user_id):
         """Test that non-member raises OrgMemberNotFoundError."""
         # Arrange
         with patch(
-            'server.services.org_member_service.OrgMemberStore.get_org_member',
+            "server.services.org_member_service.OrgMemberStore.get_org_member",
             new_callable=AsyncMock,
         ) as mock_get_member:
             mock_get_member.return_value = None
@@ -706,19 +706,19 @@ class TestOrgMemberServiceRemoveOrgMember:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.OrgMemberStore.remove_user_from_org',
+                "server.services.org_member_service.OrgMemberStore.remove_user_from_org",
                 new_callable=AsyncMock,
             ) as mock_remove,
             patch(
-                'server.services.org_member_service.UserStore.get_user_by_id',
+                "server.services.org_member_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
         ):
@@ -755,19 +755,19 @@ class TestOrgMemberServiceRemoveOrgMember:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.OrgMemberStore.remove_user_from_org',
+                "server.services.org_member_service.OrgMemberStore.remove_user_from_org",
                 new_callable=AsyncMock,
             ) as mock_remove,
             patch(
-                'server.services.org_member_service.UserStore.get_user_by_id',
+                "server.services.org_member_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
         ):
@@ -803,19 +803,19 @@ class TestOrgMemberServiceRemoveOrgMember:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.OrgMemberStore.remove_user_from_org',
+                "server.services.org_member_service.OrgMemberStore.remove_user_from_org",
                 new_callable=AsyncMock,
             ) as mock_remove,
             patch(
-                'server.services.org_member_service.UserStore.get_user_by_id',
+                "server.services.org_member_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
         ):
@@ -843,7 +843,7 @@ class TestOrgMemberServiceRemoveOrgMember:
         """Test that removing fails when requester is not a member of the organization."""
         # Arrange
         with patch(
-            'server.services.org_member_service.OrgMemberStore.get_org_member',
+            "server.services.org_member_service.OrgMemberStore.get_org_member",
             new_callable=AsyncMock,
         ) as mock_get_member:
             mock_get_member.return_value = None
@@ -855,7 +855,7 @@ class TestOrgMemberServiceRemoveOrgMember:
 
             # Assert
             assert success is False
-            assert error == 'not_a_member'
+            assert error == "not_a_member"
 
     @pytest.mark.asyncio
     async def test_cannot_remove_self_returns_error(
@@ -864,7 +864,7 @@ class TestOrgMemberServiceRemoveOrgMember:
         """Test that removing fails when trying to remove oneself."""
         # Arrange
         with patch(
-            'server.services.org_member_service.OrgMemberStore.get_org_member',
+            "server.services.org_member_service.OrgMemberStore.get_org_member",
             new_callable=AsyncMock,
         ) as mock_get_member:
             mock_get_member.return_value = requester_membership_owner
@@ -876,7 +876,7 @@ class TestOrgMemberServiceRemoveOrgMember:
 
             # Assert
             assert success is False
-            assert error == 'cannot_remove_self'
+            assert error == "cannot_remove_self"
 
     @pytest.mark.asyncio
     async def test_target_member_not_found_returns_error(
@@ -890,7 +890,7 @@ class TestOrgMemberServiceRemoveOrgMember:
         """Test that removing fails when target member is not found."""
         # Arrange
         with patch(
-            'server.services.org_member_service.OrgMemberStore.get_org_member',
+            "server.services.org_member_service.OrgMemberStore.get_org_member",
             new_callable=AsyncMock,
         ) as mock_get_member:
             mock_get_member.side_effect = [requester_membership_owner, None]
@@ -902,7 +902,7 @@ class TestOrgMemberServiceRemoveOrgMember:
 
             # Assert
             assert success is False
-            assert error == 'member_not_found'
+            assert error == "member_not_found"
 
     @pytest.mark.asyncio
     async def test_role_not_found_returns_error(
@@ -918,11 +918,11 @@ class TestOrgMemberServiceRemoveOrgMember:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
         ):
@@ -939,7 +939,7 @@ class TestOrgMemberServiceRemoveOrgMember:
 
             # Assert
             assert success is False
-            assert error == 'role_not_found'
+            assert error == "role_not_found"
 
     @pytest.mark.asyncio
     async def test_admin_can_remove_admin_succeeds(
@@ -955,23 +955,23 @@ class TestOrgMemberServiceRemoveOrgMember:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.OrgMemberStore.remove_user_from_org',
+                "server.services.org_member_service.OrgMemberStore.remove_user_from_org",
                 new_callable=AsyncMock,
             ) as mock_remove,
             patch(
-                'server.services.org_member_service.UserStore.get_user_by_id',
+                "server.services.org_member_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
             patch(
-                'server.services.org_member_service.LiteLlmManager.remove_user_from_team'
+                "server.services.org_member_service.LiteLlmManager.remove_user_from_team"
             ) as mock_remove_litellm,
         ):
             mock_get_member.side_effect = [
@@ -1007,11 +1007,11 @@ class TestOrgMemberServiceRemoveOrgMember:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
         ):
@@ -1028,7 +1028,7 @@ class TestOrgMemberServiceRemoveOrgMember:
 
             # Assert
             assert success is False
-            assert error == 'insufficient_permission'
+            assert error == "insufficient_permission"
 
     @pytest.mark.asyncio
     async def test_user_cannot_remove_anyone_returns_error(
@@ -1049,11 +1049,11 @@ class TestOrgMemberServiceRemoveOrgMember:
 
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
         ):
@@ -1070,7 +1070,7 @@ class TestOrgMemberServiceRemoveOrgMember:
 
             # Assert
             assert success is False
-            assert error == 'insufficient_permission'
+            assert error == "insufficient_permission"
 
     @pytest.mark.asyncio
     async def test_cannot_remove_last_owner_returns_error(
@@ -1086,15 +1086,15 @@ class TestOrgMemberServiceRemoveOrgMember:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_members',
+                "server.services.org_member_service.OrgMemberStore.get_org_members",
                 new_callable=AsyncMock,
             ) as mock_get_members,
         ):
@@ -1113,7 +1113,7 @@ class TestOrgMemberServiceRemoveOrgMember:
 
             # Assert
             assert success is False
-            assert error == 'cannot_remove_last_owner'
+            assert error == "cannot_remove_last_owner"
 
     @pytest.mark.asyncio
     async def test_can_remove_owner_when_multiple_owners_exist(
@@ -1133,23 +1133,23 @@ class TestOrgMemberServiceRemoveOrgMember:
 
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_members',
+                "server.services.org_member_service.OrgMemberStore.get_org_members",
                 new_callable=AsyncMock,
             ) as mock_get_members,
             patch(
-                'server.services.org_member_service.OrgMemberStore.remove_user_from_org',
+                "server.services.org_member_service.OrgMemberStore.remove_user_from_org",
                 new_callable=AsyncMock,
             ) as mock_remove,
             patch(
-                'server.services.org_member_service.UserStore.get_user_by_id',
+                "server.services.org_member_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
         ):
@@ -1191,15 +1191,15 @@ class TestOrgMemberServiceRemoveOrgMember:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.OrgMemberStore.remove_user_from_org',
+                "server.services.org_member_service.OrgMemberStore.remove_user_from_org",
                 new_callable=AsyncMock,
             ) as mock_remove,
         ):
@@ -1217,7 +1217,7 @@ class TestOrgMemberServiceRemoveOrgMember:
 
             # Assert
             assert success is False
-            assert error == 'removal_failed'
+            assert error == "removal_failed"
 
     @pytest.mark.asyncio
     async def test_remove_member_updates_current_org_id_when_matching(
@@ -1239,23 +1239,23 @@ class TestOrgMemberServiceRemoveOrgMember:
 
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.OrgMemberStore.remove_user_from_org',
+                "server.services.org_member_service.OrgMemberStore.remove_user_from_org",
                 new_callable=AsyncMock,
             ) as mock_remove,
             patch(
-                'server.services.org_member_service.UserStore.get_user_by_id',
+                "server.services.org_member_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
             patch(
-                'server.services.org_member_service.UserStore.update_current_org',
+                "server.services.org_member_service.UserStore.update_current_org",
                 new_callable=AsyncMock,
             ) as mock_update_org,
         ):
@@ -1298,23 +1298,23 @@ class TestOrgMemberServiceRemoveOrgMember:
 
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.OrgMemberStore.remove_user_from_org',
+                "server.services.org_member_service.OrgMemberStore.remove_user_from_org",
                 new_callable=AsyncMock,
             ) as mock_remove,
             patch(
-                'server.services.org_member_service.UserStore.get_user_by_id',
+                "server.services.org_member_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
             patch(
-                'server.services.org_member_service.UserStore.update_current_org',
+                "server.services.org_member_service.UserStore.update_current_org",
                 new_callable=AsyncMock,
             ) as mock_update_org,
         ):
@@ -1351,23 +1351,23 @@ class TestOrgMemberServiceRemoveOrgMember:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.OrgMemberStore.remove_user_from_org',
+                "server.services.org_member_service.OrgMemberStore.remove_user_from_org",
                 new_callable=AsyncMock,
             ) as mock_remove,
             patch(
-                'server.services.org_member_service.UserStore.get_user_by_id',
+                "server.services.org_member_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
             patch(
-                'server.services.org_member_service.UserStore.update_current_org',
+                "server.services.org_member_service.UserStore.update_current_org",
                 new_callable=AsyncMock,
             ) as mock_update_org,
         ):
@@ -1404,23 +1404,23 @@ class TestOrgMemberServiceRemoveOrgMember:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.OrgMemberStore.remove_user_from_org',
+                "server.services.org_member_service.OrgMemberStore.remove_user_from_org",
                 new_callable=AsyncMock,
             ) as mock_remove,
             patch(
-                'server.services.org_member_service.UserStore.get_user_by_id',
+                "server.services.org_member_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
             patch(
-                'server.services.org_member_service.LiteLlmManager.remove_user_from_team',
+                "server.services.org_member_service.LiteLlmManager.remove_user_from_team",
                 new_callable=AsyncMock,
             ) as mock_litellm_remove,
         ):
@@ -1458,23 +1458,23 @@ class TestOrgMemberServiceRemoveOrgMember:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.OrgMemberStore.remove_user_from_org',
+                "server.services.org_member_service.OrgMemberStore.remove_user_from_org",
                 new_callable=AsyncMock,
             ) as mock_remove,
             patch(
-                'server.services.org_member_service.UserStore.get_user_by_id',
+                "server.services.org_member_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
             patch(
-                'server.services.org_member_service.LiteLlmManager.remove_user_from_team',
+                "server.services.org_member_service.LiteLlmManager.remove_user_from_team",
                 new_callable=AsyncMock,
             ) as mock_litellm_remove,
         ):
@@ -1485,7 +1485,7 @@ class TestOrgMemberServiceRemoveOrgMember:
             mock_get_role.side_effect = [owner_role, member_role]
             mock_remove.return_value = True
             mock_get_user.return_value = None
-            mock_litellm_remove.side_effect = Exception('LiteLLM API error')
+            mock_litellm_remove.side_effect = Exception("LiteLLM API error")
 
             # Act
             success, error = await OrgMemberService.remove_org_member(
@@ -1511,19 +1511,19 @@ class TestOrgMemberServiceRemoveOrgMember:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.OrgMemberStore.remove_user_from_org',
+                "server.services.org_member_service.OrgMemberStore.remove_user_from_org",
                 new_callable=AsyncMock,
             ) as mock_remove,
             patch(
-                'server.services.org_member_service.LiteLlmManager.remove_user_from_team',
+                "server.services.org_member_service.LiteLlmManager.remove_user_from_team",
                 new_callable=AsyncMock,
             ) as mock_litellm_remove,
         ):
@@ -1550,7 +1550,7 @@ class TestOrgMemberServiceCanRemoveMember:
     def test_owner_can_remove_admin(self):
         """Test that owner can remove admin."""
         # Act
-        result = OrgMemberService._can_remove_member('owner', 'admin')
+        result = OrgMemberService._can_remove_member("owner", "admin")
 
         # Assert
         assert result is True
@@ -1558,7 +1558,7 @@ class TestOrgMemberServiceCanRemoveMember:
     def test_owner_can_remove_user(self):
         """Test that owner can remove user."""
         # Act
-        result = OrgMemberService._can_remove_member('owner', 'member')
+        result = OrgMemberService._can_remove_member("owner", "member")
 
         # Assert
         assert result is True
@@ -1566,7 +1566,7 @@ class TestOrgMemberServiceCanRemoveMember:
     def test_admin_can_remove_member(self):
         """Test that admin can remove member."""
         # Act
-        result = OrgMemberService._can_remove_member('admin', 'member')
+        result = OrgMemberService._can_remove_member("admin", "member")
 
         # Assert
         assert result is True
@@ -1574,7 +1574,7 @@ class TestOrgMemberServiceCanRemoveMember:
     def test_admin_can_remove_admin(self):
         """Test that admin can remove another admin."""
         # Act
-        result = OrgMemberService._can_remove_member('admin', 'admin')
+        result = OrgMemberService._can_remove_member("admin", "admin")
 
         # Assert
         assert result is True
@@ -1582,7 +1582,7 @@ class TestOrgMemberServiceCanRemoveMember:
     def test_admin_cannot_remove_owner(self):
         """Test that admin cannot remove owner."""
         # Act
-        result = OrgMemberService._can_remove_member('admin', 'owner')
+        result = OrgMemberService._can_remove_member("admin", "owner")
 
         # Assert
         assert result is False
@@ -1590,7 +1590,7 @@ class TestOrgMemberServiceCanRemoveMember:
     def test_member_cannot_remove_anyone(self):
         """Test that member cannot remove anyone."""
         # Act
-        result = OrgMemberService._can_remove_member('member', 'member')
+        result = OrgMemberService._can_remove_member("member", "member")
 
         # Assert
         assert result is False
@@ -1616,28 +1616,28 @@ class TestOrgMemberServiceUpdateOrgMember:
         updated_member = MagicMock(spec=OrgMember)
         updated_member.user_id = target_user_id
         updated_member.role_id = admin_role.id
-        updated_member.status = 'active'
+        updated_member.status = "active"
         mock_user = MagicMock()
-        mock_user.email = 'target@example.com'
+        mock_user.email = "target@example.com"
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_name',
+                "server.services.org_member_service.RoleStore.get_role_by_name",
                 new_callable=AsyncMock,
             ) as mock_get_role_by_name,
             patch(
-                'server.services.org_member_service.OrgMemberStore.update_user_role_in_org',
+                "server.services.org_member_service.OrgMemberStore.update_user_role_in_org",
                 new_callable=AsyncMock,
             ) as mock_update,
             patch(
-                'server.services.org_member_service.UserStore.get_user_by_id',
+                "server.services.org_member_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
         ):
@@ -1652,12 +1652,12 @@ class TestOrgMemberServiceUpdateOrgMember:
 
             # Act
             data = await OrgMemberService.update_org_member(
-                org_id, target_user_id, current_user_id, OrgMemberUpdate(role='admin')
+                org_id, target_user_id, current_user_id, OrgMemberUpdate(role="admin")
             )
 
             # Assert
             assert isinstance(data, OrgMemberResponse)
-            assert data.role == 'admin'
+            assert data.role == "admin"
             assert data.role_rank == 20
             mock_update.assert_called_once_with(org_id, target_user_id, admin_role.id)
 
@@ -1677,28 +1677,28 @@ class TestOrgMemberServiceUpdateOrgMember:
         updated_member = MagicMock(spec=OrgMember)
         updated_member.user_id = target_user_id
         updated_member.role_id = admin_role.id
-        updated_member.status = 'active'
+        updated_member.status = "active"
         mock_user = MagicMock()
-        mock_user.email = 'target@example.com'
+        mock_user.email = "target@example.com"
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_name',
+                "server.services.org_member_service.RoleStore.get_role_by_name",
                 new_callable=AsyncMock,
             ) as mock_get_role_by_name,
             patch(
-                'server.services.org_member_service.OrgMemberStore.update_user_role_in_org',
+                "server.services.org_member_service.OrgMemberStore.update_user_role_in_org",
                 new_callable=AsyncMock,
             ) as mock_update,
             patch(
-                'server.services.org_member_service.UserStore.get_user_by_id',
+                "server.services.org_member_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
         ):
@@ -1713,7 +1713,7 @@ class TestOrgMemberServiceUpdateOrgMember:
 
             # Act
             data = await OrgMemberService.update_org_member(
-                org_id, target_user_id, current_user_id, OrgMemberUpdate(role='admin')
+                org_id, target_user_id, current_user_id, OrgMemberUpdate(role="admin")
             )
 
             # Assert
@@ -1736,28 +1736,28 @@ class TestOrgMemberServiceUpdateOrgMember:
         updated_member = MagicMock(spec=OrgMember)
         updated_member.user_id = target_user_id
         updated_member.role_id = member_role.id
-        updated_member.status = 'active'
+        updated_member.status = "active"
         mock_user = MagicMock()
-        mock_user.email = 'target@example.com'
+        mock_user.email = "target@example.com"
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_name',
+                "server.services.org_member_service.RoleStore.get_role_by_name",
                 new_callable=AsyncMock,
             ) as mock_get_role_by_name,
             patch(
-                'server.services.org_member_service.OrgMemberStore.update_user_role_in_org',
+                "server.services.org_member_service.OrgMemberStore.update_user_role_in_org",
                 new_callable=AsyncMock,
             ) as mock_update,
             patch(
-                'server.services.org_member_service.UserStore.get_user_by_id',
+                "server.services.org_member_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
         ):
@@ -1775,12 +1775,12 @@ class TestOrgMemberServiceUpdateOrgMember:
                 org_id,
                 target_user_id,
                 current_user_id,
-                OrgMemberUpdate(role='member'),
+                OrgMemberUpdate(role="member"),
             )
 
             # Assert
             assert isinstance(data, OrgMemberResponse)
-            assert data.role == 'member'
+            assert data.role == "member"
             mock_update.assert_called_once_with(org_id, target_user_id, member_role.id)
 
     @pytest.mark.asyncio
@@ -1799,33 +1799,33 @@ class TestOrgMemberServiceUpdateOrgMember:
         updated_member = MagicMock(spec=OrgMember)
         updated_member.user_id = target_user_id
         updated_member.role_id = admin_role.id
-        updated_member.status = 'active'
+        updated_member.status = "active"
         mock_user = MagicMock()
-        mock_user.email = 'target@example.com'
+        mock_user.email = "target@example.com"
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_name',
+                "server.services.org_member_service.RoleStore.get_role_by_name",
                 new_callable=AsyncMock,
             ) as mock_get_role_by_name,
             patch(
-                'server.services.org_member_service.OrgMemberStore.update_user_role_in_org',
+                "server.services.org_member_service.OrgMemberStore.update_user_role_in_org",
                 new_callable=AsyncMock,
             ) as mock_update,
             patch(
-                'server.services.org_member_service.UserStore.get_user_by_id',
+                "server.services.org_member_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
             patch.object(
                 OrgMemberService,
-                '_is_last_owner',
+                "_is_last_owner",
                 new_callable=AsyncMock,
                 return_value=False,
             ),
@@ -1844,12 +1844,12 @@ class TestOrgMemberServiceUpdateOrgMember:
                 org_id,
                 target_user_id,
                 current_user_id,
-                OrgMemberUpdate(role='admin'),
+                OrgMemberUpdate(role="admin"),
             )
 
             # Assert
             assert isinstance(data, OrgMemberResponse)
-            assert data.role == 'admin'
+            assert data.role == "admin"
             mock_update.assert_called_once_with(org_id, target_user_id, admin_role.id)
 
     @pytest.mark.asyncio
@@ -1859,7 +1859,7 @@ class TestOrgMemberServiceUpdateOrgMember:
         """GIVEN requester not in org WHEN update_org_member THEN raises OrgMemberNotFoundError."""
         # Arrange
         with patch(
-            'server.services.org_member_service.OrgMemberStore.get_org_member',
+            "server.services.org_member_service.OrgMemberStore.get_org_member",
             new_callable=AsyncMock,
         ) as mock_get_member:
             mock_get_member.return_value = None
@@ -1870,7 +1870,7 @@ class TestOrgMemberServiceUpdateOrgMember:
                     org_id,
                     target_user_id,
                     current_user_id,
-                    OrgMemberUpdate(role='member'),
+                    OrgMemberUpdate(role="member"),
                 )
 
     @pytest.mark.asyncio
@@ -1880,7 +1880,7 @@ class TestOrgMemberServiceUpdateOrgMember:
         """GIVEN requester updates self WHEN update_org_member THEN raises CannotModifySelfError."""
         # Arrange
         with patch(
-            'server.services.org_member_service.OrgMemberStore.get_org_member',
+            "server.services.org_member_service.OrgMemberStore.get_org_member",
             new_callable=AsyncMock,
         ) as mock_get_member:
             mock_get_member.return_value = requester_membership_owner
@@ -1891,7 +1891,7 @@ class TestOrgMemberServiceUpdateOrgMember:
                     org_id,
                     current_user_id,
                     current_user_id,
-                    OrgMemberUpdate(role='member'),
+                    OrgMemberUpdate(role="member"),
                 )
 
     @pytest.mark.asyncio
@@ -1906,7 +1906,7 @@ class TestOrgMemberServiceUpdateOrgMember:
         """GIVEN target not in org WHEN update_org_member THEN raises OrgMemberNotFoundError."""
         # Arrange
         with patch(
-            'server.services.org_member_service.OrgMemberStore.get_org_member',
+            "server.services.org_member_service.OrgMemberStore.get_org_member",
             new_callable=AsyncMock,
         ) as mock_get_member:
             mock_get_member.side_effect = [requester_membership_owner, None]
@@ -1917,7 +1917,7 @@ class TestOrgMemberServiceUpdateOrgMember:
                     org_id,
                     target_user_id,
                     current_user_id,
-                    OrgMemberUpdate(role='member'),
+                    OrgMemberUpdate(role="member"),
                 )
 
     @pytest.mark.asyncio
@@ -1935,15 +1935,15 @@ class TestOrgMemberServiceUpdateOrgMember:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_name',
+                "server.services.org_member_service.RoleStore.get_role_by_name",
                 new_callable=AsyncMock,
             ) as mock_get_role_by_name,
         ):
@@ -1960,7 +1960,7 @@ class TestOrgMemberServiceUpdateOrgMember:
                     org_id,
                     target_user_id,
                     current_user_id,
-                    OrgMemberUpdate(role='superuser'),
+                    OrgMemberUpdate(role="superuser"),
                 )
 
     @pytest.mark.asyncio
@@ -1978,22 +1978,22 @@ class TestOrgMemberServiceUpdateOrgMember:
         # Arrange: patch _can_update_member_role so we reach the last-owner check (owner cannot normally modify owner)
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_name',
+                "server.services.org_member_service.RoleStore.get_role_by_name",
                 new_callable=AsyncMock,
             ) as mock_get_role_by_name,
             patch(
-                'server.services.org_member_service.OrgMemberService._can_update_member_role'
+                "server.services.org_member_service.OrgMemberService._can_update_member_role"
             ) as mock_can_update,
             patch(
-                'server.services.org_member_service.OrgMemberService._is_last_owner',
+                "server.services.org_member_service.OrgMemberService._is_last_owner",
                 new_callable=AsyncMock,
             ) as mock_is_last_owner,
         ):
@@ -2012,7 +2012,7 @@ class TestOrgMemberServiceUpdateOrgMember:
                     org_id,
                     target_user_id,
                     current_user_id,
-                    OrgMemberUpdate(role='admin'),
+                    OrgMemberUpdate(role="admin"),
                 )
 
     @pytest.mark.asyncio
@@ -2029,19 +2029,19 @@ class TestOrgMemberServiceUpdateOrgMember:
         """GIVEN update with no role WHEN update_org_member THEN returns current member without changing role."""
         # Arrange
         mock_user = MagicMock()
-        mock_user.email = 'target@example.com'
-        target_membership_user.status = 'active'
+        mock_user.email = "target@example.com"
+        target_membership_user.status = "active"
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.UserStore.get_user_by_id',
+                "server.services.org_member_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
         ):
@@ -2059,7 +2059,7 @@ class TestOrgMemberServiceUpdateOrgMember:
 
             # Assert
             assert data is not None
-            assert data.role == 'member'
+            assert data.role == "member"
             assert data.role_rank == 1000
 
 
@@ -2069,54 +2069,54 @@ class TestOrgMemberServiceCanUpdateMemberRole:
     def test_owner_can_set_any_role_for_non_owner(self):
         """Owner can change admin/user target to any role."""
         assert (
-            OrgMemberService._can_update_member_role('owner', 'admin', 'owner') is True
+            OrgMemberService._can_update_member_role("owner", "admin", "owner") is True
         )
         assert (
-            OrgMemberService._can_update_member_role('owner', 'admin', 'admin') is True
+            OrgMemberService._can_update_member_role("owner", "admin", "admin") is True
         )
         assert (
-            OrgMemberService._can_update_member_role('owner', 'member', 'owner') is True
+            OrgMemberService._can_update_member_role("owner", "member", "owner") is True
         )
 
     def test_owner_can_modify_owner(self):
         """Owner can change another owner's role."""
         assert (
-            OrgMemberService._can_update_member_role('owner', 'owner', 'admin') is True
+            OrgMemberService._can_update_member_role("owner", "owner", "admin") is True
         )
 
     def test_admin_can_set_admin_or_member_for_member(self):
         """Admin can set admin or member role for a member target."""
         assert (
-            OrgMemberService._can_update_member_role('admin', 'member', 'admin') is True
+            OrgMemberService._can_update_member_role("admin", "member", "admin") is True
         )
         assert (
-            OrgMemberService._can_update_member_role('admin', 'member', 'member')
+            OrgMemberService._can_update_member_role("admin", "member", "member")
             is True
         )
 
     def test_admin_can_modify_admin(self):
         """Admin can modify another admin's role to member."""
         assert (
-            OrgMemberService._can_update_member_role('admin', 'admin', 'member') is True
+            OrgMemberService._can_update_member_role("admin", "admin", "member") is True
         )
 
     def test_admin_cannot_modify_owner(self):
         """Admin cannot modify owner targets."""
         assert (
-            OrgMemberService._can_update_member_role('admin', 'owner', 'admin') is False
+            OrgMemberService._can_update_member_role("admin", "owner", "admin") is False
         )
 
     def test_admin_cannot_set_owner_role(self):
         """Admin cannot set role to owner."""
         assert (
-            OrgMemberService._can_update_member_role('admin', 'member', 'owner')
+            OrgMemberService._can_update_member_role("admin", "member", "owner")
             is False
         )
 
     def test_member_cannot_update_anyone(self):
         """Member cannot update any member's role."""
         assert (
-            OrgMemberService._can_update_member_role('member', 'member', 'admin')
+            OrgMemberService._can_update_member_role("member", "member", "admin")
             is False
         )
 
@@ -2135,11 +2135,11 @@ class TestOrgMemberServiceIsLastOwner:
 
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_members',
+                "server.services.org_member_service.OrgMemberStore.get_org_members",
                 new_callable=AsyncMock,
             ) as mock_get_members,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
         ):
@@ -2167,11 +2167,11 @@ class TestOrgMemberServiceIsLastOwner:
 
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_members',
+                "server.services.org_member_service.OrgMemberStore.get_org_members",
                 new_callable=AsyncMock,
             ) as mock_get_members,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
         ):
@@ -2195,11 +2195,11 @@ class TestOrgMemberServiceIsLastOwner:
 
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_members',
+                "server.services.org_member_service.OrgMemberStore.get_org_members",
                 new_callable=AsyncMock,
             ) as mock_get_members,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
         ):
@@ -2223,17 +2223,17 @@ class TestOrgMemberServiceGetMe:
         member.org_id = org_id
         member.user_id = current_user_id
         member.role_id = 1
-        member.llm_api_key = SecretStr('sk-test-key-12345')
+        member.llm_api_key = SecretStr("sk-test-key-12345")
         member.agent_settings_diff = {
-            'llm': {
-                'model': 'gpt-4',
-                'base_url': 'https://api.example.com',
+            "llm": {
+                "model": "gpt-4",
+                "base_url": "https://api.example.com",
             },
         }
         member.conversation_settings_diff = {
-            'max_iterations': 50,
+            "max_iterations": 50,
         }
-        member.status = 'active'
+        member.status = "active"
         return member
 
     @pytest.fixture
@@ -2241,7 +2241,7 @@ class TestOrgMemberServiceGetMe:
         """Create a mock User."""
         user = MagicMock(spec=User)
         user.id = current_user_id
-        user.email = 'test@example.com'
+        user.email = "test@example.com"
         return user
 
     @pytest.mark.asyncio
@@ -2255,15 +2255,15 @@ class TestOrgMemberServiceGetMe:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.UserStore.get_user_by_id',
+                "server.services.org_member_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
         ):
@@ -2278,11 +2278,11 @@ class TestOrgMemberServiceGetMe:
             assert isinstance(result, MeResponse)
             assert result.org_id == str(org_id)
             assert result.user_id == str(current_user_id)
-            assert result.email == 'test@example.com'
-            assert result.role == 'owner'
-            assert result.agent_settings_diff['llm']['model'] == 'gpt-4'
-            assert result.conversation_settings_diff['max_iterations'] == 50
-            assert result.status == 'active'
+            assert result.email == "test@example.com"
+            assert result.role == "owner"
+            assert result.agent_settings_diff["llm"]["model"] == "gpt-4"
+            assert result.conversation_settings_diff["max_iterations"] == 50
+            assert result.status == "active"
 
     @pytest.mark.asyncio
     async def test_get_me_member_not_found_raises_error(self, org_id, current_user_id):
@@ -2292,7 +2292,7 @@ class TestOrgMemberServiceGetMe:
         """
         # Arrange
         with patch(
-            'server.services.org_member_service.OrgMemberStore.get_org_member',
+            "server.services.org_member_service.OrgMemberStore.get_org_member",
             new_callable=AsyncMock,
         ) as mock_get_member:
             mock_get_member.return_value = None
@@ -2314,11 +2314,11 @@ class TestOrgMemberServiceGetMe:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
         ):
@@ -2342,15 +2342,15 @@ class TestOrgMemberServiceGetMe:
         # Arrange
         with (
             patch(
-                'server.services.org_member_service.OrgMemberStore.get_org_member',
+                "server.services.org_member_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_member_service.RoleStore.get_role_by_id',
+                "server.services.org_member_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_role,
             patch(
-                'server.services.org_member_service.UserStore.get_user_by_id',
+                "server.services.org_member_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
         ):
@@ -2362,4 +2362,4 @@ class TestOrgMemberServiceGetMe:
             result = await OrgMemberService.get_me(org_id, current_user_id)
 
             # Assert
-            assert result.email == ''
+            assert result.email == ""

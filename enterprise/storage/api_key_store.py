@@ -26,16 +26,16 @@ class ApiKeyValidationResult:
 
 @dataclass
 class ApiKeyStore:
-    API_KEY_PREFIX = 'sk-oh-'
+    API_KEY_PREFIX = "sk-oh-"
     # Prefix for system keys created by internal services (e.g., automations)
     # Keys with this prefix are hidden from users and cannot be deleted by users
-    SYSTEM_KEY_NAME_PREFIX = '__SYSTEM__:'
+    SYSTEM_KEY_NAME_PREFIX = "__SYSTEM__:"
 
     def generate_api_key(self, length: int = 32) -> str:
         """Generate a random API key with the sk-oh- prefix."""
         alphabet = string.ascii_letters + string.digits
-        random_part = ''.join(secrets.choice(alphabet) for _ in range(length))
-        return f'{self.API_KEY_PREFIX}{random_part}'
+        random_part = "".join(secrets.choice(alphabet) for _ in range(length))
+        return f"{self.API_KEY_PREFIX}{random_part}"
 
     @classmethod
     def is_system_key_name(cls, name: str | None) -> bool:
@@ -48,7 +48,7 @@ class ApiKeyStore:
 
         Format: __SYSTEM__:<name>
         """
-        return f'{cls.SYSTEM_KEY_NAME_PREFIX}{name}'
+        return f"{cls.SYSTEM_KEY_NAME_PREFIX}{name}"
 
     async def create_api_key(
         self,
@@ -76,7 +76,7 @@ class ApiKeyStore:
         if org_id is None:
             user = await UserStore.get_user_by_id(user_id)
             if user is None:
-                raise ValueError(f'User not found: {user_id}')
+                raise ValueError(f"User not found: {user_id}")
             org_id = user.current_org_id
 
         # Column is TIMESTAMP WITHOUT TIME ZONE; strip tzinfo before writing.
@@ -146,11 +146,11 @@ class ApiKeyStore:
                     if expires_at < now:
                         # Key is expired, delete it and create new one
                         logger.info(
-                            'System API key expired, re-issuing',
+                            "System API key expired, re-issuing",
                             extra={
-                                'user_id': user_id,
-                                'org_id': str(org_id),
-                                'key_name': system_key_name,
+                                "user_id": user_id,
+                                "org_id": str(org_id),
+                                "key_name": system_key_name,
                             },
                         )
                         await session.delete(existing_key)
@@ -158,22 +158,22 @@ class ApiKeyStore:
                     else:
                         # Key exists and is not expired, return it
                         logger.debug(
-                            'Returning existing system API key',
+                            "Returning existing system API key",
                             extra={
-                                'user_id': user_id,
-                                'org_id': str(org_id),
-                                'key_name': system_key_name,
+                                "user_id": user_id,
+                                "org_id": str(org_id),
+                                "key_name": system_key_name,
                             },
                         )
                         return existing_key.key
                 else:
                     # Key exists and has no expiration, return it
                     logger.debug(
-                        'Returning existing system API key',
+                        "Returning existing system API key",
                         extra={
-                            'user_id': user_id,
-                            'org_id': str(org_id),
-                            'key_name': system_key_name,
+                            "user_id": user_id,
+                            "org_id": str(org_id),
+                            "key_name": system_key_name,
                         },
                     )
                     return existing_key.key
@@ -193,11 +193,11 @@ class ApiKeyStore:
             await session.commit()
 
         logger.info(
-            'Created system API key',
+            "Created system API key",
             extra={
-                'user_id': user_id,
-                'org_id': str(org_id),
-                'key_name': system_key_name,
+                "user_id": user_id,
+                "org_id": str(org_id),
+                "key_name": system_key_name,
             },
         )
 
@@ -226,7 +226,7 @@ class ApiKeyStore:
                     expires_at = expires_at.replace(tzinfo=UTC)
 
                 if expires_at < now:
-                    logger.info(f'API key has expired: {key_record.id}')
+                    logger.info(f"API key has expired: {key_record.id}")
                     return None
 
             # Update last_used_at timestamp
@@ -280,8 +280,8 @@ class ApiKeyStore:
             # Protect system keys from deletion unless explicitly allowed
             if self.is_system_key_name(key_record.name) and not allow_system:
                 logger.warning(
-                    'Attempted to delete system API key',
-                    extra={'key_id': key_id, 'user_id': key_record.user_id},
+                    "Attempted to delete system API key",
+                    extra={"key_id": key_id, "user_id": key_record.user_id},
                 )
                 return False
 
@@ -308,7 +308,7 @@ class ApiKeyStore:
         if org_id is None:
             user = await UserStore.get_user_by_id(user_id)
             if user is None:
-                raise ValueError(f'User not found: {user_id}')
+                raise ValueError(f"User not found: {user_id}")
             org_id = user.current_org_id
 
         async with a_session_maker() as session:
@@ -323,7 +323,7 @@ class ApiKeyStore:
             return [
                 key
                 for key in keys
-                if key.name != 'MCP_API_KEY' and not self.is_system_key_name(key.name)
+                if key.name != "MCP_API_KEY" and not self.is_system_key_name(key.name)
             ]
 
     async def retrieve_mcp_api_key(
@@ -332,7 +332,7 @@ class ApiKeyStore:
         if org_id is None:
             user = await UserStore.get_user_by_id(user_id)
             if user is None:
-                raise ValueError(f'User not found: {user_id}')
+                raise ValueError(f"User not found: {user_id}")
             org_id = user.current_org_id
 
         async with a_session_maker() as session:
@@ -343,7 +343,7 @@ class ApiKeyStore:
             )
             keys = result.scalars().all()
             for key in keys:
-                if key.name == 'MCP_API_KEY':
+                if key.name == "MCP_API_KEY":
                     return key.key
 
         return None
@@ -390,8 +390,8 @@ class ApiKeyStore:
             # Protect system keys from deletion unless explicitly allowed
             if self.is_system_key_name(key_record.name) and not allow_system:
                 logger.warning(
-                    'Attempted to delete system API key',
-                    extra={'user_id': user_id, 'key_name': name},
+                    "Attempted to delete system API key",
+                    extra={"user_id": user_id, "key_name": name},
                 )
                 return False
 
@@ -403,5 +403,5 @@ class ApiKeyStore:
     @classmethod
     def get_instance(cls) -> ApiKeyStore:
         """Get an instance of the ApiKeyStore."""
-        logger.debug('api_key_store.get_instance')
+        logger.debug("api_key_store.get_instance")
         return ApiKeyStore()

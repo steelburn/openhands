@@ -34,7 +34,7 @@ class MockAnalyticsUserProvider(AnalyticsUserProvider):
 def _patch_user_provider(provider: AnalyticsUserProvider):
     """Create a patch context that makes _get_user_provider return the given provider."""
     return patch(
-        'openhands.analytics.analytics_context._get_user_provider',
+        "openhands.analytics.analytics_context._get_user_provider",
         return_value=provider,
     )
 
@@ -51,7 +51,7 @@ class TestAnalyticsUserProvider:
     async def test_default_provider_returns_none(self):
         """DefaultAnalyticsUserProvider.get_user_by_id returns None for any user_id."""
         provider = DefaultAnalyticsUserProvider()
-        result = await provider.get_user_by_id('any-user-id')
+        result = await provider.get_user_by_id("any-user-id")
         assert result is None
 
 
@@ -67,25 +67,25 @@ class TestAnalyticsContext:
         """AnalyticsContext constructed with explicit values stores user_id, consented, org_id, user fields correctly."""
         mock_user = MagicMock()
         ctx = AnalyticsContext(
-            user_id='user-123',
+            user_id="user-123",
             consented=True,
-            org_id='org-456',
+            org_id="org-456",
             user=mock_user,
         )
-        assert ctx.user_id == 'user-123'
+        assert ctx.user_id == "user-123"
         assert ctx.consented is True
-        assert ctx.org_id == 'org-456'
+        assert ctx.org_id == "org-456"
         assert ctx.user is mock_user
 
     def test_context_default_safe_values(self):
         """AnalyticsContext can be created with safe defaults (consented=False, org_id=None, user=None)."""
         ctx = AnalyticsContext(
-            user_id='user-123',
+            user_id="user-123",
             consented=False,
             org_id=None,
             user=None,
         )
-        assert ctx.user_id == 'user-123'
+        assert ctx.user_id == "user-123"
         assert ctx.consented is False
         assert ctx.org_id is None
         assert ctx.user is None
@@ -104,15 +104,15 @@ class TestResolveContext:
         """resolve_analytics_context with valid user_id returns AnalyticsContext with consented from user, org_id from user."""
         mock_user = MagicMock()
         mock_user.user_consents_to_analytics = True
-        mock_user.current_org_id = 'org-abc-123'
+        mock_user.current_org_id = "org-abc-123"
 
         provider = MockAnalyticsUserProvider(user=mock_user)
         with _patch_user_provider(provider):
-            ctx = await resolve_analytics_context('user-42')
+            ctx = await resolve_analytics_context("user-42")
 
-        assert ctx.user_id == 'user-42'
+        assert ctx.user_id == "user-42"
         assert ctx.consented is True
-        assert ctx.org_id == 'org-abc-123'
+        assert ctx.org_id == "org-abc-123"
         assert ctx.user is mock_user
 
     @pytest.mark.asyncio
@@ -120,11 +120,11 @@ class TestResolveContext:
         """resolve_analytics_context with user.user_consents_to_analytics=None returns consented=False."""
         mock_user = MagicMock()
         mock_user.user_consents_to_analytics = None
-        mock_user.current_org_id = 'org-1'
+        mock_user.current_org_id = "org-1"
 
         provider = MockAnalyticsUserProvider(user=mock_user)
         with _patch_user_provider(provider):
-            ctx = await resolve_analytics_context('user-42')
+            ctx = await resolve_analytics_context("user-42")
 
         assert ctx.consented is False
 
@@ -137,7 +137,7 @@ class TestResolveContext:
 
         provider = MockAnalyticsUserProvider(user=mock_user)
         with _patch_user_provider(provider):
-            ctx = await resolve_analytics_context('user-42')
+            ctx = await resolve_analytics_context("user-42")
 
         assert ctx.org_id is None
 
@@ -146,9 +146,9 @@ class TestResolveContext:
         """resolve_analytics_context when provider returns None returns safe default."""
         provider = MockAnalyticsUserProvider(user=None)
         with _patch_user_provider(provider):
-            ctx = await resolve_analytics_context('nonexistent-user')
+            ctx = await resolve_analytics_context("nonexistent-user")
 
-        assert ctx.user_id == 'nonexistent-user'
+        assert ctx.user_id == "nonexistent-user"
         assert ctx.consented is False
         assert ctx.org_id is None
         assert ctx.user is None
@@ -157,12 +157,12 @@ class TestResolveContext:
     async def test_resolve_analytics_context_provider_raises_exception(self):
         """resolve_analytics_context when provider raises Exception returns safe default (no exception leaks)."""
         provider = MockAnalyticsUserProvider(
-            raise_exception=RuntimeError('DB connection failed')
+            raise_exception=RuntimeError("DB connection failed")
         )
         with _patch_user_provider(provider):
-            ctx = await resolve_analytics_context('user-42')
+            ctx = await resolve_analytics_context("user-42")
 
-        assert ctx.user_id == 'user-42'
+        assert ctx.user_id == "user-42"
         assert ctx.consented is False
         assert ctx.org_id is None
         assert ctx.user is None
@@ -170,25 +170,25 @@ class TestResolveContext:
     @pytest.mark.asyncio
     async def test_resolve_analytics_context_logs_warning_on_failure(self):
         """resolve_analytics_context logs a warning when user lookup fails."""
-        provider = MockAnalyticsUserProvider(raise_exception=RuntimeError('DB error'))
+        provider = MockAnalyticsUserProvider(raise_exception=RuntimeError("DB error"))
         with (
             _patch_user_provider(provider),
-            patch('openhands.analytics.analytics_context.logger') as mock_logger,
+            patch("openhands.analytics.analytics_context.logger") as mock_logger,
         ):
-            await resolve_analytics_context('user-42')
+            await resolve_analytics_context("user-42")
 
         mock_logger.warning.assert_called_once()
         call_args = mock_logger.warning.call_args
-        assert 'user-42' in str(call_args)
+        assert "user-42" in str(call_args)
 
     @pytest.mark.asyncio
     async def test_resolve_analytics_context_with_default_provider(self):
         """resolve_analytics_context with DefaultAnalyticsUserProvider returns safe defaults."""
         provider = DefaultAnalyticsUserProvider()
         with _patch_user_provider(provider):
-            ctx = await resolve_analytics_context('user-42')
+            ctx = await resolve_analytics_context("user-42")
 
-        assert ctx.user_id == 'user-42'
+        assert ctx.user_id == "user-42"
         assert ctx.consented is False
         assert ctx.org_id is None
         assert ctx.user is None

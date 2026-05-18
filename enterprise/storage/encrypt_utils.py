@@ -114,7 +114,7 @@ class EncryptedJSON(TypeDecorator[dict[str, Any]]):
         if value is None:
             return None
         if isinstance(value, BaseModel):
-            value = value.model_dump(mode='json', context={'expose_secrets': True})
+            value = value.model_dump(mode="json", context={"expose_secrets": True})
         return encrypt_value(json.dumps(value))
 
     def process_result_value(

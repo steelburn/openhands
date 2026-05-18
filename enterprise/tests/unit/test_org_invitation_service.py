@@ -20,9 +20,9 @@ class TestAcceptInvitationEmailValidation:
         """Create a mock invitation with pending status."""
         invitation = MagicMock(spec=OrgInvitation)
         invitation.id = 1
-        invitation.email = 'alice@example.com'
+        invitation.email = "alice@example.com"
         invitation.status = OrgInvitation.STATUS_PENDING
-        invitation.org_id = UUID('12345678-1234-5678-1234-567812345678')
+        invitation.org_id = UUID("12345678-1234-5678-1234-567812345678")
         invitation.role_id = 1
         return invitation
 
@@ -30,8 +30,8 @@ class TestAcceptInvitationEmailValidation:
     def mock_user(self):
         """Create a mock user with email."""
         user = MagicMock()
-        user.id = UUID('87654321-4321-8765-4321-876543218765')
-        user.email = 'alice@example.com'
+        user.id = UUID("87654321-4321-8765-4321-876543218765")
+        user.email = "alice@example.com"
         return user
 
     @pytest.mark.asyncio
@@ -39,10 +39,10 @@ class TestAcceptInvitationEmailValidation:
         """Test that invitation is accepted when user email matches invitation email."""
         # Arrange
         user_id = mock_user.id
-        token = 'inv-test-token-12345'
+        token = "inv-test-token-12345"
 
         with patch.object(
-            OrgInvitationService, 'accept_invitation', new_callable=AsyncMock
+            OrgInvitationService, "accept_invitation", new_callable=AsyncMock
         ) as mock_accept:
             mock_accept.return_value = mock_invitation
 
@@ -59,19 +59,19 @@ class TestAcceptInvitationEmailValidation:
         """Test that EmailMismatchError is raised when emails don't match."""
         # Arrange
         user_id = mock_user.id
-        token = 'inv-test-token-12345'
-        mock_user.email = 'bob@example.com'  # Different email
+        token = "inv-test-token-12345"
+        mock_user.email = "bob@example.com"  # Different email
 
         with (
             patch(
-                'server.services.org_invitation_service.OrgInvitationStore.get_invitation_by_token',
+                "server.services.org_invitation_service.OrgInvitationStore.get_invitation_by_token",
                 new_callable=AsyncMock,
             ) as mock_get_invitation,
             patch(
-                'server.services.org_invitation_service.OrgInvitationStore.is_token_expired'
+                "server.services.org_invitation_service.OrgInvitationStore.is_token_expired"
             ) as mock_is_expired,
             patch(
-                'server.services.org_invitation_service.UserStore.get_user_by_id',
+                "server.services.org_invitation_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
         ):
@@ -89,55 +89,55 @@ class TestAcceptInvitationEmailValidation:
     ):
         """Test that Keycloak email is used when user has no email in database."""
         # Arrange
-        user_id = UUID('87654321-4321-8765-4321-876543218765')
-        token = 'inv-test-token-12345'
+        user_id = UUID("87654321-4321-8765-4321-876543218765")
+        token = "inv-test-token-12345"
 
         mock_user = MagicMock()
         mock_user.id = user_id
         mock_user.email = None  # No email in database
 
-        mock_keycloak_user_info = {'email': 'alice@example.com'}  # Email from Keycloak
+        mock_keycloak_user_info = {"email": "alice@example.com"}  # Email from Keycloak
 
         mock_org = MagicMock()
-        mock_org.agent_settings = {'llm': {'model': 'test-model'}}
+        mock_org.agent_settings = {"llm": {"model": "test-model"}}
 
         with (
             patch(
-                'server.services.org_invitation_service.OrgInvitationStore.get_invitation_by_token',
+                "server.services.org_invitation_service.OrgInvitationStore.get_invitation_by_token",
                 new_callable=AsyncMock,
             ) as mock_get_invitation,
             patch(
-                'server.services.org_invitation_service.OrgInvitationStore.is_token_expired'
+                "server.services.org_invitation_service.OrgInvitationStore.is_token_expired"
             ) as mock_is_expired,
             patch(
-                'server.services.org_invitation_service.UserStore.get_user_by_id',
+                "server.services.org_invitation_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
             patch(
-                'server.services.org_invitation_service.TokenManager'
+                "server.services.org_invitation_service.TokenManager"
             ) as mock_token_manager_class,
             patch(
-                'server.services.org_invitation_service.OrgMemberStore.get_org_member',
+                "server.services.org_invitation_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_invitation_service.OrgService.create_litellm_integration',
+                "server.services.org_invitation_service.OrgService.create_litellm_integration",
                 new_callable=AsyncMock,
             ) as mock_create_litellm,
             patch(
-                'server.services.org_invitation_service.OrgStore.get_org_by_id',
+                "server.services.org_invitation_service.OrgStore.get_org_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_org,
             patch(
-                'server.services.org_invitation_service.OrgMemberStore.add_user_to_org',
+                "server.services.org_invitation_service.OrgMemberStore.add_user_to_org",
                 new_callable=AsyncMock,
             ),
             patch(
-                'server.services.org_invitation_service.OrgInvitationStore.update_invitation_status',
+                "server.services.org_invitation_service.OrgInvitationStore.update_invitation_status",
                 new_callable=AsyncMock,
             ) as mock_update_status,
             patch(
-                'server.services.org_invitation_service.UserStore.backfill_user_email',
+                "server.services.org_invitation_service.UserStore.backfill_user_email",
                 new_callable=AsyncMock,
             ),
         ):
@@ -154,7 +154,7 @@ class TestAcceptInvitationEmailValidation:
 
             mock_get_member.return_value = None  # Not already a member
             mock_settings = MagicMock()
-            mock_settings.llm_api_key = SecretStr('test-key')
+            mock_settings.llm_api_key = SecretStr("test-key")
             mock_create_litellm.return_value = mock_settings
             mock_get_org.return_value = mock_org
             mock_update_status.return_value = mock_invitation
@@ -176,8 +176,8 @@ class TestAcceptInvitationEmailValidation:
         members list shows it without requiring the user to log out and back in.
         """
         # Arrange
-        user_id = UUID('87654321-4321-8765-4321-876543218765')
-        token = 'inv-test-token-12345'
+        user_id = UUID("87654321-4321-8765-4321-876543218765")
+        token = "inv-test-token-12345"
 
         mock_user = MagicMock()
         mock_user.id = user_id
@@ -185,50 +185,50 @@ class TestAcceptInvitationEmailValidation:
 
         # Keycloak admin API returns camelCase `emailVerified`.
         mock_keycloak_user_info = {
-            'email': 'alice@example.com',
-            'emailVerified': True,
+            "email": "alice@example.com",
+            "emailVerified": True,
         }
 
         mock_org = MagicMock()
-        mock_org.agent_settings = {'llm': {'model': 'test-model'}}
+        mock_org.agent_settings = {"llm": {"model": "test-model"}}
 
         with (
             patch(
-                'server.services.org_invitation_service.OrgInvitationStore.get_invitation_by_token',
+                "server.services.org_invitation_service.OrgInvitationStore.get_invitation_by_token",
                 new_callable=AsyncMock,
             ) as mock_get_invitation,
             patch(
-                'server.services.org_invitation_service.OrgInvitationStore.is_token_expired'
+                "server.services.org_invitation_service.OrgInvitationStore.is_token_expired"
             ) as mock_is_expired,
             patch(
-                'server.services.org_invitation_service.UserStore.get_user_by_id',
+                "server.services.org_invitation_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
             patch(
-                'server.services.org_invitation_service.TokenManager'
+                "server.services.org_invitation_service.TokenManager"
             ) as mock_token_manager_class,
             patch(
-                'server.services.org_invitation_service.OrgMemberStore.get_org_member',
+                "server.services.org_invitation_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_invitation_service.OrgService.create_litellm_integration',
+                "server.services.org_invitation_service.OrgService.create_litellm_integration",
                 new_callable=AsyncMock,
             ) as mock_create_litellm,
             patch(
-                'server.services.org_invitation_service.OrgStore.get_org_by_id',
+                "server.services.org_invitation_service.OrgStore.get_org_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_org,
             patch(
-                'server.services.org_invitation_service.OrgMemberStore.add_user_to_org',
+                "server.services.org_invitation_service.OrgMemberStore.add_user_to_org",
                 new_callable=AsyncMock,
             ),
             patch(
-                'server.services.org_invitation_service.OrgInvitationStore.update_invitation_status',
+                "server.services.org_invitation_service.OrgInvitationStore.update_invitation_status",
                 new_callable=AsyncMock,
             ) as mock_update_status,
             patch(
-                'server.services.org_invitation_service.UserStore.backfill_user_email',
+                "server.services.org_invitation_service.UserStore.backfill_user_email",
                 new_callable=AsyncMock,
             ) as mock_backfill,
         ):
@@ -244,7 +244,7 @@ class TestAcceptInvitationEmailValidation:
 
             mock_get_member.return_value = None
             mock_settings = MagicMock()
-            mock_settings.llm_api_key = SecretStr('test-key')
+            mock_settings.llm_api_key = SecretStr("test-key")
             mock_create_litellm.return_value = mock_settings
             mock_get_org.return_value = mock_org
             mock_update_status.return_value = mock_invitation
@@ -256,7 +256,7 @@ class TestAcceptInvitationEmailValidation:
             # Keycloak's camelCase `emailVerified`.
             mock_backfill.assert_awaited_once_with(
                 str(user_id),
-                {'email': 'alice@example.com', 'email_verified': True},
+                {"email": "alice@example.com", "email_verified": True},
             )
 
     @pytest.mark.asyncio
@@ -265,8 +265,8 @@ class TestAcceptInvitationEmailValidation:
     ):
         """Test that EmailMismatchError is raised when user has no email in database or Keycloak."""
         # Arrange
-        user_id = UUID('87654321-4321-8765-4321-876543218765')
-        token = 'inv-test-token-12345'
+        user_id = UUID("87654321-4321-8765-4321-876543218765")
+        token = "inv-test-token-12345"
 
         mock_user = MagicMock()
         mock_user.id = user_id
@@ -274,18 +274,18 @@ class TestAcceptInvitationEmailValidation:
 
         with (
             patch(
-                'server.services.org_invitation_service.OrgInvitationStore.get_invitation_by_token',
+                "server.services.org_invitation_service.OrgInvitationStore.get_invitation_by_token",
                 new_callable=AsyncMock,
             ) as mock_get_invitation,
             patch(
-                'server.services.org_invitation_service.OrgInvitationStore.is_token_expired'
+                "server.services.org_invitation_service.OrgInvitationStore.is_token_expired"
             ) as mock_is_expired,
             patch(
-                'server.services.org_invitation_service.UserStore.get_user_by_id',
+                "server.services.org_invitation_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
             patch(
-                'server.services.org_invitation_service.TokenManager'
+                "server.services.org_invitation_service.TokenManager"
             ) as mock_token_manager_class,
         ):
             mock_get_invitation.return_value = mock_invitation
@@ -301,7 +301,7 @@ class TestAcceptInvitationEmailValidation:
             with pytest.raises(EmailMismatchError) as exc_info:
                 await OrgInvitationService.accept_invitation(token, user_id)
 
-            assert 'does not have an email address' in str(exc_info.value)
+            assert "does not have an email address" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_accept_invitation_email_comparison_is_case_insensitive(
@@ -309,48 +309,48 @@ class TestAcceptInvitationEmailValidation:
     ):
         """Test that email comparison is case insensitive."""
         # Arrange
-        user_id = UUID('87654321-4321-8765-4321-876543218765')
-        token = 'inv-test-token-12345'
+        user_id = UUID("87654321-4321-8765-4321-876543218765")
+        token = "inv-test-token-12345"
 
         mock_user = MagicMock()
         mock_user.id = user_id
-        mock_user.email = 'ALICE@EXAMPLE.COM'  # Uppercase email
+        mock_user.email = "ALICE@EXAMPLE.COM"  # Uppercase email
 
-        mock_invitation.email = 'alice@example.com'  # Lowercase in invitation
+        mock_invitation.email = "alice@example.com"  # Lowercase in invitation
 
         mock_org = MagicMock()
-        mock_org.agent_settings = {'llm': {'model': 'test-model'}}
+        mock_org.agent_settings = {"llm": {"model": "test-model"}}
 
         with (
             patch(
-                'server.services.org_invitation_service.OrgInvitationStore.get_invitation_by_token',
+                "server.services.org_invitation_service.OrgInvitationStore.get_invitation_by_token",
                 new_callable=AsyncMock,
             ) as mock_get_invitation,
             patch(
-                'server.services.org_invitation_service.OrgInvitationStore.is_token_expired'
+                "server.services.org_invitation_service.OrgInvitationStore.is_token_expired"
             ) as mock_is_expired,
             patch(
-                'server.services.org_invitation_service.UserStore.get_user_by_id',
+                "server.services.org_invitation_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
             patch(
-                'server.services.org_invitation_service.OrgMemberStore.get_org_member',
+                "server.services.org_invitation_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_invitation_service.OrgService.create_litellm_integration',
+                "server.services.org_invitation_service.OrgService.create_litellm_integration",
                 new_callable=AsyncMock,
             ) as mock_create_litellm,
             patch(
-                'server.services.org_invitation_service.OrgStore.get_org_by_id',
+                "server.services.org_invitation_service.OrgStore.get_org_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_org,
             patch(
-                'server.services.org_invitation_service.OrgMemberStore.add_user_to_org',
+                "server.services.org_invitation_service.OrgMemberStore.add_user_to_org",
                 new_callable=AsyncMock,
             ),
             patch(
-                'server.services.org_invitation_service.OrgInvitationStore.update_invitation_status',
+                "server.services.org_invitation_service.OrgInvitationStore.update_invitation_status",
                 new_callable=AsyncMock,
             ) as mock_update_status,
         ):
@@ -359,7 +359,7 @@ class TestAcceptInvitationEmailValidation:
             mock_get_user.return_value = mock_user
             mock_get_member.return_value = None
             mock_settings = MagicMock()
-            mock_settings.llm_api_key = SecretStr('test-key')
+            mock_settings.llm_api_key = SecretStr("test-key")
             mock_create_litellm.return_value = mock_settings
             mock_get_org.return_value = mock_org
             mock_update_status.return_value = mock_invitation
@@ -376,54 +376,54 @@ class TestAcceptInvitationEmailValidation:
     ):
         """Test that new members start without copied org agent-setting overrides."""
         # Arrange
-        user_id = UUID('87654321-4321-8765-4321-876543218765')
-        token = 'inv-test-token-12345'
+        user_id = UUID("87654321-4321-8765-4321-876543218765")
+        token = "inv-test-token-12345"
 
         mock_user = MagicMock()
         mock_user.id = user_id
-        mock_user.email = 'alice@example.com'
+        mock_user.email = "alice@example.com"
 
         mock_org = MagicMock()
         mock_org.agent_settings = {
-            'llm': {
-                'model': 'claude-sonnet-4',
-                'base_url': 'https://api.anthropic.com',
+            "llm": {
+                "model": "claude-sonnet-4",
+                "base_url": "https://api.anthropic.com",
             },
         }
         mock_org.conversation_settings = {
-            'max_iterations': 100,
+            "max_iterations": 100,
         }
 
         with (
             patch(
-                'server.services.org_invitation_service.OrgInvitationStore.get_invitation_by_token',
+                "server.services.org_invitation_service.OrgInvitationStore.get_invitation_by_token",
                 new_callable=AsyncMock,
             ) as mock_get_invitation,
             patch(
-                'server.services.org_invitation_service.OrgInvitationStore.is_token_expired'
+                "server.services.org_invitation_service.OrgInvitationStore.is_token_expired"
             ) as mock_is_expired,
             patch(
-                'server.services.org_invitation_service.UserStore.get_user_by_id',
+                "server.services.org_invitation_service.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_user,
             patch(
-                'server.services.org_invitation_service.OrgMemberStore.get_org_member',
+                "server.services.org_invitation_service.OrgMemberStore.get_org_member",
                 new_callable=AsyncMock,
             ) as mock_get_member,
             patch(
-                'server.services.org_invitation_service.OrgService.create_litellm_integration',
+                "server.services.org_invitation_service.OrgService.create_litellm_integration",
                 new_callable=AsyncMock,
             ) as mock_create_litellm,
             patch(
-                'server.services.org_invitation_service.OrgStore.get_org_by_id',
+                "server.services.org_invitation_service.OrgStore.get_org_by_id",
                 new_callable=AsyncMock,
             ) as mock_get_org,
             patch(
-                'server.services.org_invitation_service.OrgMemberStore.add_user_to_org',
+                "server.services.org_invitation_service.OrgMemberStore.add_user_to_org",
                 new_callable=AsyncMock,
             ) as mock_add_user,
             patch(
-                'server.services.org_invitation_service.OrgInvitationStore.update_invitation_status',
+                "server.services.org_invitation_service.OrgInvitationStore.update_invitation_status",
                 new_callable=AsyncMock,
             ) as mock_update_status,
         ):
@@ -432,7 +432,7 @@ class TestAcceptInvitationEmailValidation:
             mock_get_user.return_value = mock_user
             mock_get_member.return_value = None
             mock_settings = MagicMock()
-            mock_settings.agent_settings.llm.api_key = SecretStr('test-key')
+            mock_settings.agent_settings.llm.api_key = SecretStr("test-key")
             mock_create_litellm.return_value = mock_settings
             mock_get_org.return_value = mock_org
             mock_update_status.return_value = mock_invitation
@@ -444,8 +444,8 @@ class TestAcceptInvitationEmailValidation:
             # not by storing a copied snapshot as personal overrides.
             mock_add_user.assert_called_once()
             call_kwargs = mock_add_user.call_args.kwargs
-            assert call_kwargs['llm_api_key'] == 'test-key'
-            assert call_kwargs['agent_settings_diff'] == {}
+            assert call_kwargs["llm_api_key"] == "test-key"
+            assert call_kwargs["agent_settings_diff"] == {}
 
 
 class TestCreateInvitationsBatch:
@@ -454,26 +454,26 @@ class TestCreateInvitationsBatch:
     @pytest.fixture
     def org_id(self):
         """Organization UUID for testing."""
-        return UUID('12345678-1234-5678-1234-567812345678')
+        return UUID("12345678-1234-5678-1234-567812345678")
 
     @pytest.fixture
     def inviter_id(self):
         """Inviter UUID for testing."""
-        return UUID('87654321-4321-8765-4321-876543218765')
+        return UUID("87654321-4321-8765-4321-876543218765")
 
     @pytest.fixture
     def mock_org(self):
         """Create a mock organization."""
         org = MagicMock()
-        org.id = UUID('12345678-1234-5678-1234-567812345678')
-        org.name = 'Test Org'
+        org.id = UUID("12345678-1234-5678-1234-567812345678")
+        org.name = "Test Org"
         return org
 
     @pytest.fixture
     def mock_inviter_member(self):
         """Create a mock inviter member with owner role."""
         member = MagicMock()
-        member.user_id = UUID('87654321-4321-8765-4321-876543218765')
+        member.user_id = UUID("87654321-4321-8765-4321-876543218765")
         member.role_id = 1
         return member
 
@@ -482,7 +482,7 @@ class TestCreateInvitationsBatch:
         """Create a mock owner role."""
         role = MagicMock()
         role.id = 1
-        role.name = 'owner'
+        role.name = "owner"
         return role
 
     @pytest.fixture
@@ -490,7 +490,7 @@ class TestCreateInvitationsBatch:
         """Create a mock member role."""
         role = MagicMock()
         role.id = 3
-        role.name = 'member'
+        role.name = "member"
         return role
 
     @pytest.mark.asyncio
@@ -505,7 +505,7 @@ class TestCreateInvitationsBatch:
     ):
         """Test that batch creation succeeds for all valid emails."""
         # Arrange
-        emails = ['alice@example.com', 'bob@example.com']
+        emails = ["alice@example.com", "bob@example.com"]
         mock_invitation_1 = MagicMock(spec=OrgInvitation)
         mock_invitation_1.id = 1
         mock_invitation_2 = MagicMock(spec=OrgInvitation)
@@ -513,26 +513,26 @@ class TestCreateInvitationsBatch:
 
         with (
             patch(
-                'server.services.org_invitation_service.OrgStore.get_org_by_id',
+                "server.services.org_invitation_service.OrgStore.get_org_by_id",
                 return_value=mock_org,
             ),
             patch(
-                'server.services.org_invitation_service.OrgMemberStore.get_org_member',
+                "server.services.org_invitation_service.OrgMemberStore.get_org_member",
                 return_value=mock_inviter_member,
             ),
             patch(
-                'server.services.org_invitation_service.RoleStore.get_role_by_id',
+                "server.services.org_invitation_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
                 return_value=mock_owner_role,
             ),
             patch(
-                'server.services.org_invitation_service.RoleStore.get_role_by_name',
+                "server.services.org_invitation_service.RoleStore.get_role_by_name",
                 new_callable=AsyncMock,
                 return_value=mock_member_role,
             ),
             patch.object(
                 OrgInvitationService,
-                'create_invitation',
+                "create_invitation",
                 new_callable=AsyncMock,
                 side_effect=[mock_invitation_1, mock_invitation_2],
             ),
@@ -541,7 +541,7 @@ class TestCreateInvitationsBatch:
             successful, failed = await OrgInvitationService.create_invitations_batch(
                 org_id=org_id,
                 emails=emails,
-                role_name='member',
+                role_name="member",
                 inviter_id=inviter_id,
             )
 
@@ -563,32 +563,32 @@ class TestCreateInvitationsBatch:
         # Arrange
         from server.routes.org_invitation_models import UserAlreadyMemberError
 
-        emails = ['alice@example.com', 'existing@example.com']
+        emails = ["alice@example.com", "existing@example.com"]
         mock_invitation = MagicMock(spec=OrgInvitation)
         mock_invitation.id = 1
 
         with (
             patch(
-                'server.services.org_invitation_service.OrgStore.get_org_by_id',
+                "server.services.org_invitation_service.OrgStore.get_org_by_id",
                 return_value=mock_org,
             ),
             patch(
-                'server.services.org_invitation_service.OrgMemberStore.get_org_member',
+                "server.services.org_invitation_service.OrgMemberStore.get_org_member",
                 return_value=mock_inviter_member,
             ),
             patch(
-                'server.services.org_invitation_service.RoleStore.get_role_by_id',
+                "server.services.org_invitation_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
                 return_value=mock_owner_role,
             ),
             patch(
-                'server.services.org_invitation_service.RoleStore.get_role_by_name',
+                "server.services.org_invitation_service.RoleStore.get_role_by_name",
                 new_callable=AsyncMock,
                 return_value=mock_member_role,
             ),
             patch.object(
                 OrgInvitationService,
-                'create_invitation',
+                "create_invitation",
                 new_callable=AsyncMock,
                 side_effect=[mock_invitation, UserAlreadyMemberError()],
             ),
@@ -597,24 +597,24 @@ class TestCreateInvitationsBatch:
             successful, failed = await OrgInvitationService.create_invitations_batch(
                 org_id=org_id,
                 emails=emails,
-                role_name='member',
+                role_name="member",
                 inviter_id=inviter_id,
             )
 
             # Assert
             assert len(successful) == 1
             assert len(failed) == 1
-            assert failed[0][0] == 'existing@example.com'
+            assert failed[0][0] == "existing@example.com"
 
     @pytest.mark.asyncio
     async def test_batch_fails_entirely_on_permission_error(self, org_id, inviter_id):
         """Test that permission error fails the entire batch upfront."""
         # Arrange
 
-        emails = ['alice@example.com', 'bob@example.com']
+        emails = ["alice@example.com", "bob@example.com"]
 
         with patch(
-            'server.services.org_invitation_service.OrgStore.get_org_by_id',
+            "server.services.org_invitation_service.OrgStore.get_org_by_id",
             return_value=None,  # Organization not found
         ):
             # Act & Assert
@@ -622,11 +622,11 @@ class TestCreateInvitationsBatch:
                 await OrgInvitationService.create_invitations_batch(
                     org_id=org_id,
                     emails=emails,
-                    role_name='member',
+                    role_name="member",
                     inviter_id=inviter_id,
                 )
 
-            assert 'not found' in str(exc_info.value)
+            assert "not found" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_batch_fails_on_invalid_role(
@@ -634,24 +634,24 @@ class TestCreateInvitationsBatch:
     ):
         """Test that invalid role fails the entire batch."""
         # Arrange
-        emails = ['alice@example.com']
+        emails = ["alice@example.com"]
 
         with (
             patch(
-                'server.services.org_invitation_service.OrgStore.get_org_by_id',
+                "server.services.org_invitation_service.OrgStore.get_org_by_id",
                 return_value=mock_org,
             ),
             patch(
-                'server.services.org_invitation_service.OrgMemberStore.get_org_member',
+                "server.services.org_invitation_service.OrgMemberStore.get_org_member",
                 return_value=mock_inviter_member,
             ),
             patch(
-                'server.services.org_invitation_service.RoleStore.get_role_by_id',
+                "server.services.org_invitation_service.RoleStore.get_role_by_id",
                 new_callable=AsyncMock,
                 return_value=mock_owner_role,
             ),
             patch(
-                'server.services.org_invitation_service.RoleStore.get_role_by_name',
+                "server.services.org_invitation_service.RoleStore.get_role_by_name",
                 new_callable=AsyncMock,
                 return_value=None,  # Invalid role
             ),
@@ -661,8 +661,8 @@ class TestCreateInvitationsBatch:
                 await OrgInvitationService.create_invitations_batch(
                     org_id=org_id,
                     emails=emails,
-                    role_name='invalid_role',
+                    role_name="invalid_role",
                     inviter_id=inviter_id,
                 )
 
-            assert 'Invalid role' in str(exc_info.value)
+            assert "Invalid role" in str(exc_info.value)

@@ -3,7 +3,7 @@ import warnings
 from pydantic import BaseModel
 
 with warnings.catch_warnings():
-    warnings.simplefilter('ignore')
+    warnings.simplefilter("ignore")
     import litellm
     from litellm import LlmProviders, ProviderConfigManager, get_llm_provider
 
@@ -34,22 +34,22 @@ from openhands.sdk.llm.utils.verified_models import (
 )
 
 # Build the ``openhands/…`` model list from the SDK.
-OPENHANDS_MODELS: list[str] = [f'openhands/{m}' for m in _SDK_OPENHANDS]
+OPENHANDS_MODELS: list[str] = [f"openhands/{m}" for m in _SDK_OPENHANDS]
 
 CLARIFAI_MODELS = [
-    'clarifai/openai.chat-completion.gpt-oss-120b',
-    'clarifai/openai.chat-completion.gpt-oss-20b',
-    'clarifai/openai.chat-completion.gpt-5',
-    'clarifai/openai.chat-completion.gpt-5-mini',
-    'clarifai/qwen.qwen3.qwen3-next-80B-A3B-Thinking',
-    'clarifai/qwen.qwenLM.Qwen3-30B-A3B-Instruct-2507',
-    'clarifai/qwen.qwenLM.Qwen3-30B-A3B-Thinking-2507',
-    'clarifai/qwen.qwenLM.Qwen3-14B',
-    'clarifai/qwen.qwenCoder.Qwen3-Coder-30B-A3B-Instruct',
-    'clarifai/deepseek-ai.deepseek-chat.DeepSeek-R1-0528-Qwen3-8B',
-    'clarifai/deepseek-ai.deepseek-chat.DeepSeek-V3_1',
-    'clarifai/zai.completion.GLM_4_5',
-    'clarifai/moonshotai.kimi.Kimi-K2-Instruct',
+    "clarifai/openai.chat-completion.gpt-oss-120b",
+    "clarifai/openai.chat-completion.gpt-oss-20b",
+    "clarifai/openai.chat-completion.gpt-5",
+    "clarifai/openai.chat-completion.gpt-5-mini",
+    "clarifai/qwen.qwen3.qwen3-next-80B-A3B-Thinking",
+    "clarifai/qwen.qwenLM.Qwen3-30B-A3B-Instruct-2507",
+    "clarifai/qwen.qwenLM.Qwen3-30B-A3B-Thinking-2507",
+    "clarifai/qwen.qwenLM.Qwen3-14B",
+    "clarifai/qwen.qwenCoder.Qwen3-Coder-30B-A3B-Instruct",
+    "clarifai/deepseek-ai.deepseek-chat.DeepSeek-R1-0528-Qwen3-8B",
+    "clarifai/deepseek-ai.deepseek-chat.DeepSeek-V3_1",
+    "clarifai/zai.completion.GLM_4_5",
+    "clarifai/moonshotai.kimi.Kimi-K2-Instruct",
 ]
 
 # ---------------------------------------------------------------------------
@@ -65,7 +65,7 @@ _BARE_OPENAI_MODELS: set[str] = set(_SDK_OPENAI)
 _BARE_ANTHROPIC_MODELS: set[str] = set(_SDK_ANTHROPIC)
 _BARE_MISTRAL_MODELS: set[str] = set(_SDK_MISTRAL)
 
-DEFAULT_OPENHANDS_MODEL = 'openhands/claude-opus-4-5-20251101'
+DEFAULT_OPENHANDS_MODEL = "openhands/claude-opus-4-5-20251101"
 
 
 # ---------------------------------------------------------------------------
@@ -104,7 +104,7 @@ def is_openhands_model(model: str | None) -> bool:
         False otherwise.
     """
     return bool(
-        model and (model.startswith('openhands/') or model.startswith('litellm_proxy/'))
+        model and (model.startswith("openhands/") or model.startswith("litellm_proxy/"))
     )
 
 
@@ -114,7 +114,7 @@ def is_openhands_model(model: str | None) -> bool:
 # enterprise org-settings validator constructs by hand. Importers should treat
 # this as the single source of truth for "a key exists but its value is
 # intentionally hidden."
-MASKED_API_KEY = '**********'
+MASKED_API_KEY = "**********"
 
 
 def resolve_llm_base_url(
@@ -146,7 +146,7 @@ def resolve_llm_base_url(
     Exceptions from ``litellm`` are logged and swallowed so a flaky provider
     lookup can never break a settings save.
     """
-    if base_url == '':
+    if base_url == "":
         return None
     if base_url is not None:
         return base_url
@@ -157,7 +157,7 @@ def resolve_llm_base_url(
     try:
         return get_provider_api_base(model)
     except Exception as e:
-        logger.error(f'Failed to get api_base from litellm for model {model}: {e}')
+        logger.error(f"Failed to get api_base from litellm for model {model}: {e}")
         return None
 
 
@@ -194,7 +194,7 @@ def get_provider_api_base(model: str) -> str | None:
                 model_info = ProviderConfigManager.get_provider_model_info(
                     model, provider_enum
                 )
-                if model_info and hasattr(model_info, 'get_api_base'):
+                if model_info and hasattr(model_info, "get_api_base"):
                     return model_info.get_api_base()
             except ValueError:
                 pass  # Provider not in enum
@@ -232,31 +232,31 @@ def _assign_provider(model: str) -> str:
     tables so that unverified names like ``claude-opus-4-7`` or
     ``gemini-2.0-flash`` still reach the provider-keyed dropdown.
     """
-    if '/' in model:
+    if "/" in model:
         return model
 
     # Prefix well-known bare SDK model names with their canonical provider.
     # The provider sets are loaded from the SDK once at import time.
     if model in _BARE_OPENAI_MODELS:
-        return f'openai/{model}'
+        return f"openai/{model}"
     if model in _BARE_ANTHROPIC_MODELS:
-        return f'anthropic/{model}'
+        return f"anthropic/{model}"
     if model in _BARE_MISTRAL_MODELS:
-        return f'mistral/{model}'
+        return f"mistral/{model}"
 
     try:
         _, provider, _, _ = get_llm_provider(model)
     except Exception:
         return model
-    return f'{provider}/{model}' if provider else model
+    return f"{provider}/{model}" if provider else model
 
 
 def _derive_verified_models(openhands_models: list[str]) -> list[str]:
     """Extract the bare model names from the ``openhands/…`` model list."""
     return [
-        m.removeprefix('openhands/')
+        m.removeprefix("openhands/")
         for m in openhands_models
-        if m.startswith('openhands/')
+        if m.startswith("openhands/")
     ]
 
 
@@ -304,4 +304,4 @@ def get_supported_llm_models(
 
 
 def remove_error_modelId(model_list: list[str]) -> list[str]:
-    return list(filter(lambda m: not m.startswith('bedrock'), model_list))
+    return list(filter(lambda m: not m.startswith("bedrock"), model_list))

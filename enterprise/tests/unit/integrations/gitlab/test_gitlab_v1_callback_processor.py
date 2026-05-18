@@ -39,11 +39,11 @@ from openhands.sdk.event import ConversationStateUpdateEvent
 def gitlab_callback_processor():
     return GitlabV1CallbackProcessor(
         gitlab_view_data={
-            'keycloak_user_id': 'test_keycloak_user',
-            'project_id': '12345',
-            'issue_number': '42',
-            'discussion_id': 'discussion_123',
-            'is_mr': False,
+            "keycloak_user_id": "test_keycloak_user",
+            "project_id": "12345",
+            "issue_number": "42",
+            "discussion_id": "discussion_123",
+            "is_mr": False,
         },
         should_request_summary=True,
         inline_mr_comment=False,
@@ -54,11 +54,11 @@ def gitlab_callback_processor():
 def gitlab_callback_processor_mr():
     return GitlabV1CallbackProcessor(
         gitlab_view_data={
-            'keycloak_user_id': 'test_keycloak_user',
-            'project_id': '12345',
-            'issue_number': '42',
-            'discussion_id': 'discussion_123',
-            'is_mr': True,
+            "keycloak_user_id": "test_keycloak_user",
+            "project_id": "12345",
+            "issue_number": "42",
+            "discussion_id": "discussion_123",
+            "is_mr": True,
         },
         should_request_summary=True,
         inline_mr_comment=True,
@@ -67,7 +67,7 @@ def gitlab_callback_processor_mr():
 
 @pytest.fixture
 def conversation_state_update_event():
-    return ConversationStateUpdateEvent(key='execution_status', value='finished')
+    return ConversationStateUpdateEvent(key="execution_status", value="finished")
 
 
 @pytest.fixture
@@ -80,7 +80,7 @@ def wrong_event():
 
 @pytest.fixture
 def wrong_state_event():
-    return ConversationStateUpdateEvent(key='execution_status', value='running')
+    return ConversationStateUpdateEvent(key="execution_status", value="running")
 
 
 @pytest.fixture
@@ -89,7 +89,7 @@ def event_callback():
         id=uuid4(),
         conversation_id=uuid4(),
         processor=GitlabV1CallbackProcessor(),
-        event_kind='ConversationStateUpdateEvent',
+        event_kind="ConversationStateUpdateEvent",
     )
 
 
@@ -97,22 +97,22 @@ def event_callback():
 def mock_app_conversation_info():
     return AppConversationInfo(
         conversation_id=uuid4(),
-        sandbox_id='sandbox_123',
-        title='Test Conversation',
-        created_by_user_id='test_user_123',
+        sandbox_id="sandbox_123",
+        title="Test Conversation",
+        created_by_user_id="test_user_123",
     )
 
 
 @pytest.fixture
 def mock_sandbox_info():
     return SandboxInfo(
-        id='sandbox_123',
+        id="sandbox_123",
         status=SandboxStatus.RUNNING,
-        session_api_key='test_api_key',
-        created_by_user_id='test_user_123',
-        sandbox_spec_id='spec_123',
+        session_api_key="test_api_key",
+        created_by_user_id="test_user_123",
+        sandbox_spec_id="spec_123",
         exposed_urls=[
-            ExposedUrl(name='AGENT_SERVER', url='http://localhost:8000', port=8000),
+            ExposedUrl(name="AGENT_SERVER", url="http://localhost:8000", port=8000),
         ],
     )
 
@@ -128,7 +128,7 @@ async def _setup_happy_path_services(
     mock_get_httpx_client,
     app_conversation_info,
     sandbox_info,
-    agent_response_text='Test summary from agent',
+    agent_response_text="Test summary from agent",
 ):
     # app_conversation_info_service
     mock_app_conversation_info_service = AsyncMock()
@@ -147,7 +147,7 @@ async def _setup_happy_path_services(
     # httpx_client
     mock_httpx_client = AsyncMock()
     mock_response = MagicMock()
-    mock_response.json.return_value = {'response': agent_response_text}
+    mock_response.json.return_value = {"response": agent_response_text}
     mock_response.raise_for_status.return_value = None
     mock_httpx_client.post.return_value = mock_response
     mock_get_httpx_client.return_value.__aenter__.return_value = mock_httpx_client
@@ -197,11 +197,11 @@ class TestGitlabV1CallbackProcessor:
     # Successful paths
     # ------------------------------------------------------------------ #
 
-    @patch('openhands.app_server.config.get_app_conversation_info_service')
-    @patch('openhands.app_server.config.get_sandbox_service')
-    @patch('openhands.app_server.config.get_httpx_client')
-    @patch('integrations.gitlab.gitlab_v1_callback_processor.get_summary_instruction')
-    @patch('integrations.gitlab.gitlab_service.SaaSGitLabService')
+    @patch("openhands.app_server.config.get_app_conversation_info_service")
+    @patch("openhands.app_server.config.get_sandbox_service")
+    @patch("openhands.app_server.config.get_httpx_client")
+    @patch("integrations.gitlab.gitlab_v1_callback_processor.get_summary_instruction")
+    @patch("integrations.gitlab.gitlab_service.SaaSGitLabService")
     async def test_successful_callback_execution_issue(
         self,
         mock_saas_gitlab_service_cls,
@@ -226,7 +226,7 @@ class TestGitlabV1CallbackProcessor:
             mock_sandbox_info,
         )
 
-        mock_get_summary_instruction.return_value = 'Please provide a summary'
+        mock_get_summary_instruction.return_value = "Please provide a summary"
 
         # GitLab service mock
         mock_gitlab_service = AsyncMock()
@@ -243,31 +243,31 @@ class TestGitlabV1CallbackProcessor:
         assert result.event_callback_id == event_callback.id
         assert result.event_id == conversation_state_update_event.id
         assert result.conversation_id == conversation_id
-        assert result.detail == 'Test summary from agent'
+        assert result.detail == "Test summary from agent"
         assert gitlab_callback_processor.should_request_summary is False
 
         # Verify GitLab service was called correctly for issue
         mock_saas_gitlab_service_cls.assert_called_once_with(
-            external_auth_id='test_keycloak_user'
+            external_auth_id="test_keycloak_user"
         )
         mock_gitlab_service.reply_to_issue.assert_called_once_with(
-            '12345', '42', 'discussion_123', 'Test summary from agent'
+            "12345", "42", "discussion_123", "Test summary from agent"
         )
         mock_gitlab_service.reply_to_mr.assert_not_called()
 
         # Verify httpx call
         mock_httpx_client.post.assert_called_once()
         url_arg, kwargs = mock_httpx_client.post.call_args
-        url = url_arg[0] if url_arg else kwargs['url']
-        assert 'ask_agent' in url
-        assert kwargs['headers']['X-Session-API-Key'] == 'test_api_key'
-        assert kwargs['json']['question'] == 'Please provide a summary'
+        url = url_arg[0] if url_arg else kwargs["url"]
+        assert "ask_agent" in url
+        assert kwargs["headers"]["X-Session-API-Key"] == "test_api_key"
+        assert kwargs["json"]["question"] == "Please provide a summary"
 
-    @patch('openhands.app_server.config.get_app_conversation_info_service')
-    @patch('openhands.app_server.config.get_sandbox_service')
-    @patch('openhands.app_server.config.get_httpx_client')
-    @patch('integrations.gitlab.gitlab_v1_callback_processor.get_summary_instruction')
-    @patch('integrations.gitlab.gitlab_service.SaaSGitLabService')
+    @patch("openhands.app_server.config.get_app_conversation_info_service")
+    @patch("openhands.app_server.config.get_sandbox_service")
+    @patch("openhands.app_server.config.get_httpx_client")
+    @patch("integrations.gitlab.gitlab_v1_callback_processor.get_summary_instruction")
+    @patch("integrations.gitlab.gitlab_service.SaaSGitLabService")
     async def test_successful_callback_execution_mr(
         self,
         mock_saas_gitlab_service_cls,
@@ -291,7 +291,7 @@ class TestGitlabV1CallbackProcessor:
             mock_sandbox_info,
         )
 
-        mock_get_summary_instruction.return_value = 'Please provide a summary'
+        mock_get_summary_instruction.return_value = "Please provide a summary"
 
         # GitLab service mock
         mock_gitlab_service = AsyncMock()
@@ -308,7 +308,7 @@ class TestGitlabV1CallbackProcessor:
 
         # Verify GitLab service was called correctly for MR
         mock_gitlab_service.reply_to_mr.assert_called_once_with(
-            '12345', '42', 'discussion_123', 'Test summary from agent'
+            "12345", "42", "discussion_123", "Test summary from agent"
         )
         mock_gitlab_service.reply_to_issue.assert_not_called()
 
@@ -319,16 +319,16 @@ class TestGitlabV1CallbackProcessor:
     async def test_post_summary_to_gitlab_missing_keycloak_user_id(
         self, gitlab_callback_processor
     ):
-        gitlab_callback_processor.gitlab_view_data['keycloak_user_id'] = None
+        gitlab_callback_processor.gitlab_view_data["keycloak_user_id"] = None
 
-        with pytest.raises(RuntimeError, match='Missing keycloak user ID for GitLab'):
-            await gitlab_callback_processor._post_summary_to_gitlab('Test summary')
+        with pytest.raises(RuntimeError, match="Missing keycloak user ID for GitLab"):
+            await gitlab_callback_processor._post_summary_to_gitlab("Test summary")
 
-    @patch('openhands.app_server.config.get_app_conversation_info_service')
-    @patch('openhands.app_server.config.get_sandbox_service')
-    @patch('openhands.app_server.config.get_httpx_client')
-    @patch('integrations.gitlab.gitlab_v1_callback_processor.get_summary_instruction')
-    @patch('integrations.gitlab.gitlab_service.SaaSGitLabService')
+    @patch("openhands.app_server.config.get_app_conversation_info_service")
+    @patch("openhands.app_server.config.get_sandbox_service")
+    @patch("openhands.app_server.config.get_httpx_client")
+    @patch("integrations.gitlab.gitlab_v1_callback_processor.get_summary_instruction")
+    @patch("integrations.gitlab.gitlab_service.SaaSGitLabService")
     async def test_exception_handling_posts_error_to_gitlab(
         self,
         mock_saas_gitlab_service_cls,
@@ -352,8 +352,8 @@ class TestGitlabV1CallbackProcessor:
             mock_app_conversation_info,
             mock_sandbox_info,
         )
-        mock_httpx_client.post.side_effect = Exception('Simulated agent server error')
-        mock_get_summary_instruction.return_value = 'Please provide a summary'
+        mock_httpx_client.post.side_effect = Exception("Simulated agent server error")
+        mock_get_summary_instruction.return_value = "Please provide a summary"
 
         # GitLab service mock
         mock_gitlab_service = AsyncMock()
@@ -367,22 +367,22 @@ class TestGitlabV1CallbackProcessor:
 
         assert result is not None
         assert result.status == EventCallbackResultStatus.ERROR
-        assert 'Simulated agent server error' in result.detail
+        assert "Simulated agent server error" in result.detail
 
         # Verify error was posted to GitLab
         mock_gitlab_service.reply_to_issue.assert_called_once()
         call_args = mock_gitlab_service.reply_to_issue.call_args
         error_comment = call_args[0][3]  # 4th positional arg is the body
-        assert 'OpenHands encountered an error' in error_comment
-        assert 'Simulated agent server error' in error_comment
-        assert f'conversations/{conversation_id}' in error_comment
+        assert "OpenHands encountered an error" in error_comment
+        assert "Simulated agent server error" in error_comment
+        assert f"conversations/{conversation_id}" in error_comment
 
-    @patch('openhands.app_server.config.get_app_conversation_info_service')
-    @patch('openhands.app_server.config.get_sandbox_service')
-    @patch('openhands.app_server.config.get_httpx_client')
-    @patch('integrations.gitlab.gitlab_v1_callback_processor.get_summary_instruction')
-    @patch('integrations.gitlab.gitlab_service.SaaSGitLabService')
-    @patch('integrations.gitlab.gitlab_v1_callback_processor._logger')
+    @patch("openhands.app_server.config.get_app_conversation_info_service")
+    @patch("openhands.app_server.config.get_sandbox_service")
+    @patch("openhands.app_server.config.get_httpx_client")
+    @patch("integrations.gitlab.gitlab_v1_callback_processor.get_summary_instruction")
+    @patch("integrations.gitlab.gitlab_service.SaaSGitLabService")
+    @patch("integrations.gitlab.gitlab_v1_callback_processor._logger")
     async def test_budget_exceeded_error_logs_info_and_sends_friendly_message(
         self,
         mock_logger,
@@ -414,7 +414,7 @@ class TestGitlabV1CallbackProcessor:
             'Budget has been exceeded! Current cost: 12.65, Max budget: 12.62"}'
         )
         mock_httpx_client.post.side_effect = Exception(budget_error_msg)
-        mock_get_summary_instruction.return_value = 'Please provide a summary'
+        mock_get_summary_instruction.return_value = "Please provide a summary"
 
         mock_gitlab_service = AsyncMock()
         mock_saas_gitlab_service_cls.return_value = mock_gitlab_service
@@ -433,15 +433,15 @@ class TestGitlabV1CallbackProcessor:
 
         # Verify budget exceeded info log was called
         info_calls = [str(call) for call in mock_logger.info.call_args_list]
-        budget_log_found = any('Budget exceeded' in call for call in info_calls)
-        assert budget_log_found, f'Expected budget exceeded log, got: {info_calls}'
+        budget_log_found = any("Budget exceeded" in call for call in info_calls)
+        assert budget_log_found, f"Expected budget exceeded log, got: {info_calls}"
 
         # Verify user-friendly message was posted to GitLab
         mock_gitlab_service.reply_to_issue.assert_called_once()
         call_args = mock_gitlab_service.reply_to_issue.call_args
         posted_comment = call_args[0][3]  # 4th positional arg is the body
-        assert 'OpenHands encountered an error' in posted_comment
-        assert 'LLM budget has been exceeded' in posted_comment
-        assert 'please re-fill' in posted_comment
+        assert "OpenHands encountered an error" in posted_comment
+        assert "LLM budget has been exceeded" in posted_comment
+        assert "please re-fill" in posted_comment
         # Should NOT contain the raw error message
-        assert 'litellm.BadRequestError' not in posted_comment
+        assert "litellm.BadRequestError" not in posted_comment

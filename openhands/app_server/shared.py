@@ -13,7 +13,7 @@ load_dotenv()
 
 server_config_interface: ServerConfigInterface = load_server_config()
 assert isinstance(server_config_interface, ServerConfig), (
-    'Loaded server config interface is not a ServerConfig, despite this being assumed'
+    "Loaded server config interface is not a ServerConfig, despite this being assumed"
 )
 server_config: ServerConfig = server_config_interface
 

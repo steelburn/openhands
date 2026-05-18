@@ -11,8 +11,8 @@ async def test_store_token_new_record(async_session_maker):
 
     store_module.a_session_maker = async_session_maker
 
-    token_store = OfflineTokenStore('test_user_id')
-    test_token = 'test_offline_token'
+    token_store = OfflineTokenStore("test_user_id")
+    test_token = "test_offline_token"
 
     # Execute
     await token_store.store_token(test_token)
@@ -21,12 +21,12 @@ async def test_store_token_new_record(async_session_maker):
     async with async_session_maker() as session:
         result = await session.execute(
             select(StoredOfflineToken).where(
-                StoredOfflineToken.user_id == 'test_user_id'
+                StoredOfflineToken.user_id == "test_user_id"
             )
         )
         record = result.scalar_one_or_none()
         assert record is not None
-        assert record.user_id == 'test_user_id'
+        assert record.user_id == "test_user_id"
         assert record.offline_token == test_token
 
 
@@ -37,15 +37,15 @@ async def test_store_token_existing_record(async_session_maker):
 
     store_module.a_session_maker = async_session_maker
 
-    token_store = OfflineTokenStore('test_user_id')
+    token_store = OfflineTokenStore("test_user_id")
 
     async with async_session_maker() as session:
         session.add(
-            StoredOfflineToken(user_id='test_user_id', offline_token='old_token')
+            StoredOfflineToken(user_id="test_user_id", offline_token="old_token")
         )
         await session.commit()
 
-    test_token = 'new_offline_token'
+    test_token = "new_offline_token"
 
     # Execute
     await token_store.store_token(test_token)
@@ -56,7 +56,7 @@ async def test_store_token_existing_record(async_session_maker):
 
         result = await session.execute(
             select(StoredOfflineToken).where(
-                StoredOfflineToken.user_id == 'test_user_id'
+                StoredOfflineToken.user_id == "test_user_id"
             )
         )
         record = result.scalar_one_or_none()
@@ -71,12 +71,12 @@ async def test_load_token_existing(async_session_maker):
 
     store_module.a_session_maker = async_session_maker
 
-    token_store = OfflineTokenStore('test_user_id')
+    token_store = OfflineTokenStore("test_user_id")
 
     async with async_session_maker() as session:
         session.add(
             StoredOfflineToken(
-                user_id='test_user_id', offline_token='test_offline_token'
+                user_id="test_user_id", offline_token="test_offline_token"
             )
         )
         await session.commit()
@@ -85,7 +85,7 @@ async def test_load_token_existing(async_session_maker):
     result = await token_store.load_token()
 
     # Verify
-    assert result == 'test_offline_token'
+    assert result == "test_offline_token"
 
 
 @pytest.mark.asyncio
@@ -95,7 +95,7 @@ async def test_load_token_not_found(async_session_maker):
 
     store_module.a_session_maker = async_session_maker
 
-    token_store = OfflineTokenStore('nonexistent_user')
+    token_store = OfflineTokenStore("nonexistent_user")
 
     # Execute
     result = await token_store.load_token()
@@ -107,7 +107,7 @@ async def test_load_token_not_found(async_session_maker):
 @pytest.mark.asyncio
 async def test_get_instance():
     # Setup
-    test_user_id = 'test_user_id'
+    test_user_id = "test_user_id"
 
     # Execute
     result = await OfflineTokenStore.get_instance(test_user_id)

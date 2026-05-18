@@ -25,8 +25,8 @@ class SetAuthCookieMiddleware:
     """
 
     async def __call__(self, request: Request, call_next: Callable):
-        keycloak_auth_cookie = request.cookies.get('keycloak_auth')
-        logger.debug('request_with_cookie', extra={'cookie': keycloak_auth_cookie})
+        keycloak_auth_cookie = request.cookies.get("keycloak_auth")
+        logger.debug("request_with_cookie", extra={"cookie": keycloak_auth_cookie})
         try:
             if self._should_attach(request):
                 self._check_tos(request)
@@ -45,7 +45,7 @@ class SetAuthCookieMiddleware:
                     response=response,
                     keycloak_access_token=user_auth.access_token.get_secret_value(),
                     keycloak_refresh_token=user_auth.refresh_token.get_secret_value(),
-                    secure=False if request.url.hostname == 'localhost' else True,
+                    secure=False if request.url.hostname == "localhost" else True,
                     accepted_tos=user_auth.accepted_tos or False,
                 )
 
@@ -56,9 +56,9 @@ class SetAuthCookieMiddleware:
 
             if (
                 self._should_attach(request)
-                and not request.url.path.startswith('/api/email')
+                and not request.url.path.startswith("/api/email")
                 and request.url.path
-                not in ('/api/settings', '/api/logout', '/api/authenticate')
+                not in ("/api/settings", "/api/logout", "/api/authenticate")
                 and not user_auth.email_verified
             ):
                 raise EmailNotVerifiedError
@@ -66,16 +66,16 @@ class SetAuthCookieMiddleware:
             return response
         except EmailNotVerifiedError as e:
             return JSONResponse(
-                {'error': str(e) or e.__class__.__name__}, status.HTTP_403_FORBIDDEN
+                {"error": str(e) or e.__class__.__name__}, status.HTTP_403_FORBIDDEN
             )
         except NoCredentialsError as e:
             logger.info(e.__class__.__name__)
             # The user is trying to use an expired token or has not logged in. No special event handling is required
             return JSONResponse(
-                {'error': str(e) or e.__class__.__name__}, status.HTTP_401_UNAUTHORIZED
+                {"error": str(e) or e.__class__.__name__}, status.HTTP_401_UNAUTHORIZED
             )
         except AuthError as e:
-            logger.warning('auth_error', exc_info=True)
+            logger.warning("auth_error", exc_info=True)
             try:
                 await self._logout(request)
             except Exception as logout_error:
@@ -83,31 +83,31 @@ class SetAuthCookieMiddleware:
 
             # Send a response that deletes the auth cookie if needed
             response = JSONResponse(
-                {'error': str(e) or e.__class__.__name__}, status.HTTP_401_UNAUTHORIZED
+                {"error": str(e) or e.__class__.__name__}, status.HTTP_401_UNAUTHORIZED
             )
             if keycloak_auth_cookie:
                 response.delete_cookie(
-                    key='keycloak_auth',
+                    key="keycloak_auth",
                     domain=get_cookie_domain(),
                     samesite=get_cookie_samesite(),
                 )
             return response
 
     def _get_user_auth(self, request: Request) -> SaasUserAuth | None:
-        user_auth: UserAuth | None = getattr(request.state, 'user_auth', None)
+        user_auth: UserAuth | None = getattr(request.state, "user_auth", None)
         if user_auth is None:
             return None
         return cast(SaasUserAuth, user_auth)
 
     def _check_tos(self, request: Request):
-        keycloak_auth_cookie = request.cookies.get('keycloak_auth')
-        auth_header = request.headers.get('Authorization')
-        mcp_auth_header = request.headers.get('X-Session-API-Key')
-        api_auth_header = request.headers.get('X-Access-Token')
+        keycloak_auth_cookie = request.cookies.get("keycloak_auth")
+        auth_header = request.headers.get("Authorization")
+        mcp_auth_header = request.headers.get("X-Session-API-Key")
+        api_auth_header = request.headers.get("X-Access-Token")
         accepted_tos: bool | None = False
         if (
             keycloak_auth_cookie is None
-            and (auth_header is None or not auth_header.startswith('Bearer '))
+            and (auth_header is None or not auth_header.startswith("Bearer "))
             and mcp_auth_header is None
             and api_auth_header is None
         ):
@@ -118,13 +118,13 @@ class SetAuthCookieMiddleware:
                 from storage.encrypt_utils import get_jwt_service
 
                 decoded = get_jwt_service().verify_jws_token(keycloak_auth_cookie)
-                accepted_tos = decoded.get('accepted_tos')
+                accepted_tos = decoded.get("accepted_tos")
             except (jwt.InvalidTokenError, ValueError):
-                logger.warning('Invalid JWT signature detected')
-                raise AuthError('Invalid authentication token')
+                logger.warning("Invalid JWT signature detected")
+                raise AuthError("Invalid authentication token")
             except Exception as e:
-                logger.warning(f'JWT decode error: {str(e)}')
-                raise AuthError('Invalid authentication token')
+                logger.warning(f"JWT decode error: {str(e)}")
+                raise AuthError("Invalid authentication token")
         else:
             # Don't fail an API call if the TOS has not been accepted.
             # The user will accept the TOS the next time they login.
@@ -140,47 +140,47 @@ class SetAuthCookieMiddleware:
         # after this change (12 hrs max), this should be changed to check
         # "if accepted_tos is not None" as there should not be any users with
         # accepted_tos equal to "None"
-        if accepted_tos is False and request.url.path != '/api/accept_tos':
-            logger.warning('User has not accepted the terms of service')
+        if accepted_tos is False and request.url.path != "/api/accept_tos":
+            logger.warning("User has not accepted the terms of service")
             raise TosNotAcceptedError
 
     def _should_attach(self, request: Request) -> bool:
-        if request.method == 'OPTIONS':
+        if request.method == "OPTIONS":
             return False
         path = request.url.path
 
         ignore_paths = (
-            '/api/options/config',
-            '/api/keycloak/callback',
-            '/api/billing/success',
-            '/api/billing/cancel',
-            '/api/billing/customer-setup-success',
-            '/api/billing/stripe-webhook',
-            '/api/email/resend',
-            '/api/organizations/members/invite/accept',
-            '/oauth/device/authorize',
-            '/oauth/device/token',
-            '/api/v1/web-client/config',
+            "/api/options/config",
+            "/api/keycloak/callback",
+            "/api/billing/success",
+            "/api/billing/cancel",
+            "/api/billing/customer-setup-success",
+            "/api/billing/stripe-webhook",
+            "/api/email/resend",
+            "/api/organizations/members/invite/accept",
+            "/oauth/device/authorize",
+            "/oauth/device/token",
+            "/api/v1/web-client/config",
         )
         if path in ignore_paths:
             return False
 
         # Allow public access to shared conversations and events
-        if path.startswith('/api/shared-conversations') or path.startswith(
-            '/api/shared-events'
+        if path.startswith("/api/shared-conversations") or path.startswith(
+            "/api/shared-events"
         ):
             return False
 
         # Webhooks access is controlled using separate API keys
-        if path.startswith('/api/v1/webhooks/'):
+        if path.startswith("/api/v1/webhooks/"):
             return False
 
         # Service API uses its own authentication (X-Service-API-Key header)
-        if path.startswith('/api/service/'):
+        if path.startswith("/api/service/"):
             return False
 
-        is_mcp = path.startswith('/mcp')
-        is_api_route = path.startswith('/api')
+        is_mcp = path.startswith("/mcp")
+        is_api_route = path.startswith("/api")
         return is_api_route or is_mcp
 
     async def _logout(self, request: Request):
@@ -190,7 +190,7 @@ class SetAuthCookieMiddleware:
             if user_auth and user_auth.refresh_token:
                 await token_manager.logout(user_auth.refresh_token.get_secret_value())
         except Exception:
-            logger.debug('Error logging out')
+            logger.debug("Error logging out")
 
 
 class PostHogSessionMiddleware:
@@ -205,5 +205,5 @@ class PostHogSessionMiddleware:
     """
 
     async def __call__(self, request: Request, call_next: Callable):
-        request.state.posthog_session_id = request.headers.get('X-POSTHOG-SESSION-ID')
+        request.state.posthog_session_id = request.headers.get("X-POSTHOG-SESSION-ID")
         return await call_next(request)

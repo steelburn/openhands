@@ -19,7 +19,7 @@ class SaaSBitbucketDCService(BitbucketDCService):
         base_domain: str | None = None,
     ):
         logger.debug(
-            f'SaaSBitbucketDCService created with user_id {user_id}, external_auth_id {external_auth_id}, external_auth_token {'set' if external_auth_token else 'None'}, token {'set' if token else 'None'}, external_token_manager {external_token_manager}'
+            f"SaaSBitbucketDCService created with user_id {user_id}, external_auth_id {external_auth_id}, external_auth_token {'set' if external_auth_token else 'None'}, token {'set' if token else 'None'}, external_token_manager {external_token_manager}"
         )
         super().__init__(
             user_id=user_id,
@@ -42,7 +42,7 @@ class SaaSBitbucketDCService(BitbucketDCService):
                     idp=ProviderType.BITBUCKET_DATA_CENTER,
                 )
             )
-            logger.debug('Got Bitbucket DC token via external_auth_token')
+            logger.debug("Got Bitbucket DC token via external_auth_token")
         elif self.external_auth_id:
             offline_token = await self.token_manager.load_offline_token(
                 self.external_auth_id
@@ -52,14 +52,14 @@ class SaaSBitbucketDCService(BitbucketDCService):
                     offline_token, ProviderType.BITBUCKET_DATA_CENTER
                 )
             )
-            logger.debug('Got Bitbucket DC token via external_auth_id')
+            logger.debug("Got Bitbucket DC token via external_auth_id")
         elif self.user_id:
             bitbucket_dc_token = SecretStr(
                 await self.token_manager.get_idp_token_from_idp_user_id(
                     self.user_id, ProviderType.BITBUCKET_DATA_CENTER
                 )
             )
-            logger.debug('Got Bitbucket DC token via user_id')
+            logger.debug("Got Bitbucket DC token via user_id")
         else:
-            logger.warning('external_auth_token and user_id not set!')
+            logger.warning("external_auth_token and user_id not set!")
         return bitbucket_dc_token

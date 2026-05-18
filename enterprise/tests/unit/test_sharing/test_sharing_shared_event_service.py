@@ -52,9 +52,9 @@ def sample_public_conversation():
     """Create a sample public conversation."""
     return SharedConversation(
         id=uuid4(),
-        created_by_user_id='test_user',
-        sandbox_id='test_sandbox',
-        title='Test Public Conversation',
+        created_by_user_id="test_user",
+        sandbox_id="test_sandbox",
+        title="Test Public Conversation",
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
         metrics=MetricsSnapshot(
@@ -152,7 +152,7 @@ class TestSharedEventService:
         # Call the method
         result = await shared_event_service.search_shared_events(
             conversation_id=conversation_id,
-            kind__eq='ActionEvent',
+            kind__eq="ActionEvent",
             limit=10,
         )
 
@@ -163,7 +163,7 @@ class TestSharedEventService:
         shared_event_service.get_event_service.assert_called_once_with(conversation_id)
         mock_event_service.search_events.assert_called_once_with(
             conversation_id=conversation_id,
-            kind__eq='ActionEvent',
+            kind__eq="ActionEvent",
             timestamp__gte=None,
             timestamp__lt=None,
             sort_order=EventSortOrder.TIMESTAMP,
@@ -219,7 +219,7 @@ class TestSharedEventService:
         # Call the method
         result = await shared_event_service.count_shared_events(
             conversation_id=conversation_id,
-            kind__eq='ActionEvent',
+            kind__eq="ActionEvent",
         )
 
         # Verify the result
@@ -228,7 +228,7 @@ class TestSharedEventService:
         shared_event_service.get_event_service.assert_called_once_with(conversation_id)
         mock_event_service.count_events.assert_called_once_with(
             conversation_id=conversation_id,
-            kind__eq='ActionEvent',
+            kind__eq="ActionEvent",
             timestamp__gte=None,
             timestamp__lt=None,
         )
@@ -338,17 +338,17 @@ class TestSharedEventService:
         )
 
         # Mock the event service to return events
-        mock_event_page = EventPage(items=[], next_page_id='next_page')
+        mock_event_page = EventPage(items=[], next_page_id="next_page")
         mock_event_service.search_events.return_value = mock_event_page
 
         # Call the method with all parameters
         result = await shared_event_service.search_shared_events(
             conversation_id=conversation_id,
-            kind__eq='ObservationEvent',
+            kind__eq="ObservationEvent",
             timestamp__gte=timestamp_gte,
             timestamp__lt=timestamp_lt,
             sort_order=EventSortOrder.TIMESTAMP_DESC,
-            page_id='current_page',
+            page_id="current_page",
             limit=50,
         )
 
@@ -357,11 +357,11 @@ class TestSharedEventService:
 
         mock_event_service.search_events.assert_called_once_with(
             conversation_id=conversation_id,
-            kind__eq='ObservationEvent',
+            kind__eq="ObservationEvent",
             timestamp__gte=timestamp_gte,
             timestamp__lt=timestamp_lt,
             sort_order=EventSortOrder.TIMESTAMP_DESC,
-            page_id='current_page',
+            page_id="current_page",
             limit=50,
         )
 
@@ -416,24 +416,24 @@ class TestGoogleCloudSharedEventServiceInjector:
 
     def test_bucket_name_from_environment_variable(self):
         """Test that bucket_name is read from FILE_STORE_PATH environment variable."""
-        test_bucket_name = 'test-bucket-name'
-        with patch.dict(os.environ, {'FILE_STORE_PATH': test_bucket_name}):
+        test_bucket_name = "test-bucket-name"
+        with patch.dict(os.environ, {"FILE_STORE_PATH": test_bucket_name}):
             # Create a new injector instance to pick up the environment variable
             # Note: The class attribute is evaluated at class definition time,
             # so we need to test that the attribute exists and can be overridden
             injector = GoogleCloudSharedEventServiceInjector()
-            injector.bucket_name = os.environ.get('FILE_STORE_PATH')
+            injector.bucket_name = os.environ.get("FILE_STORE_PATH")
             assert injector.bucket_name == test_bucket_name
 
     def test_bucket_name_default_value_when_env_not_set(self):
         """Test that bucket_name is None when FILE_STORE_PATH is not set."""
         with patch.dict(os.environ, {}, clear=True):
             # Remove FILE_STORE_PATH if it exists
-            os.environ.pop('FILE_STORE_PATH', None)
+            os.environ.pop("FILE_STORE_PATH", None)
             injector = GoogleCloudSharedEventServiceInjector()
             # The bucket_name will be whatever was set at class definition time
             # or None if FILE_STORE_PATH was not set when the class was defined
-            assert hasattr(injector, 'bucket_name')
+            assert hasattr(injector, "bucket_name")
 
     async def test_injector_yields_google_cloud_shared_event_service(self):
         """Test that the injector yields a GoogleCloudSharedEventService instance."""
@@ -443,7 +443,7 @@ class TestGoogleCloudSharedEventServiceInjector:
 
         # Create the injector
         injector = GoogleCloudSharedEventServiceInjector()
-        injector.bucket_name = 'test-bucket'
+        injector.bucket_name = "test-bucket"
 
         # Mock the get_db_session context manager
         mock_db_context = AsyncMock()
@@ -457,11 +457,11 @@ class TestGoogleCloudSharedEventServiceInjector:
 
         with (
             patch(
-                'server.sharing.google_cloud_shared_event_service._get_shared_storage_client',
+                "server.sharing.google_cloud_shared_event_service._get_shared_storage_client",
                 return_value=mock_storage_client,
             ),
             patch(
-                'openhands.app_server.config.get_db_session',
+                "openhands.app_server.config.get_db_session",
                 return_value=mock_db_context,
             ),
         ):
@@ -472,7 +472,7 @@ class TestGoogleCloudSharedEventServiceInjector:
                 assert service.bucket == mock_bucket
 
             # Verify the storage client was called with the correct bucket name
-            mock_storage_client.bucket.assert_called_once_with('test-bucket')
+            mock_storage_client.bucket.assert_called_once_with("test-bucket")
 
     async def test_injector_uses_bucket_name_from_instance(self):
         """Test that the injector uses the bucket_name from the instance."""
@@ -482,7 +482,7 @@ class TestGoogleCloudSharedEventServiceInjector:
 
         # Create the injector with a specific bucket name
         injector = GoogleCloudSharedEventServiceInjector()
-        injector.bucket_name = 'my-custom-bucket'
+        injector.bucket_name = "my-custom-bucket"
 
         # Mock the get_db_session context manager
         mock_db_context = AsyncMock()
@@ -496,11 +496,11 @@ class TestGoogleCloudSharedEventServiceInjector:
 
         with (
             patch(
-                'server.sharing.google_cloud_shared_event_service._get_shared_storage_client',
+                "server.sharing.google_cloud_shared_event_service._get_shared_storage_client",
                 return_value=mock_storage_client,
             ),
             patch(
-                'openhands.app_server.config.get_db_session',
+                "openhands.app_server.config.get_db_session",
                 return_value=mock_db_context,
             ),
         ):
@@ -509,7 +509,7 @@ class TestGoogleCloudSharedEventServiceInjector:
                 pass
 
             # Verify the storage client was called with the custom bucket name
-            mock_storage_client.bucket.assert_called_once_with('my-custom-bucket')
+            mock_storage_client.bucket.assert_called_once_with("my-custom-bucket")
 
     async def test_injector_creates_sql_shared_conversation_info_service(self):
         """Test that the injector creates SQLSharedConversationInfoService with db_session."""
@@ -519,7 +519,7 @@ class TestGoogleCloudSharedEventServiceInjector:
 
         # Create the injector
         injector = GoogleCloudSharedEventServiceInjector()
-        injector.bucket_name = 'test-bucket'
+        injector.bucket_name = "test-bucket"
 
         # Mock the get_db_session context manager
         mock_db_context = AsyncMock()
@@ -533,15 +533,15 @@ class TestGoogleCloudSharedEventServiceInjector:
 
         with (
             patch(
-                'server.sharing.google_cloud_shared_event_service._get_shared_storage_client',
+                "server.sharing.google_cloud_shared_event_service._get_shared_storage_client",
                 return_value=mock_storage_client,
             ),
             patch(
-                'openhands.app_server.config.get_db_session',
+                "openhands.app_server.config.get_db_session",
                 return_value=mock_db_context,
             ),
             patch(
-                'server.sharing.google_cloud_shared_event_service.SQLSharedConversationInfoService'
+                "server.sharing.google_cloud_shared_event_service.SQLSharedConversationInfoService"
             ) as mock_sql_service_class,
         ):
             mock_sql_service = MagicMock()
@@ -562,7 +562,7 @@ class TestGoogleCloudSharedEventServiceInjector:
 
         # Create the injector
         injector = GoogleCloudSharedEventServiceInjector()
-        injector.bucket_name = 'test-bucket'
+        injector.bucket_name = "test-bucket"
 
         # Mock the get_db_session context manager
         mock_db_context = AsyncMock()
@@ -575,11 +575,11 @@ class TestGoogleCloudSharedEventServiceInjector:
         mock_storage_client.bucket.return_value = mock_bucket
 
         with patch(
-            'server.sharing.google_cloud_shared_event_service._get_shared_storage_client',
+            "server.sharing.google_cloud_shared_event_service._get_shared_storage_client",
             return_value=mock_storage_client,
         ):
             with patch(
-                'openhands.app_server.config.get_db_session',
+                "openhands.app_server.config.get_db_session",
                 return_value=mock_db_context,
             ):
                 # Call the inject method with request=None

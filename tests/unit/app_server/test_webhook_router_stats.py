@@ -35,9 +35,9 @@ from openhands.sdk.llm import Metrics, TokenUsage
 async def async_engine():
     """Create an async SQLite engine for testing."""
     engine = create_async_engine(
-        'sqlite+aiosqlite:///:memory:',
+        "sqlite+aiosqlite:///:memory:",
         poolclass=StaticPool,
-        connect_args={'check_same_thread': False},
+        connect_args={"check_same_thread": False},
         echo=False,
     )
 
@@ -75,9 +75,9 @@ async def v1_conversation_metadata(async_session, service):
     conversation_id = uuid4()
     stored = StoredConversationMetadata(
         conversation_id=str(conversation_id),
-        sandbox_id='sandbox_123',
-        conversation_version='V1',
-        title='Test Conversation',
+        sandbox_id="sandbox_123",
+        conversation_version="V1",
+        title="Test Conversation",
         accumulated_cost=0.0,
         prompt_tokens=0,
         completion_tokens=0,
@@ -98,30 +98,30 @@ async def v1_conversation_metadata(async_session, service):
 def stats_event_with_dict_value():
     """Create a ConversationStateUpdateEvent with dict value."""
     event_value = {
-        'usage_to_metrics': {
-            'agent': {
-                'accumulated_cost': 0.03411525,
-                'max_budget_per_task': None,
-                'accumulated_token_usage': {
-                    'prompt_tokens': 8770,
-                    'completion_tokens': 82,
-                    'cache_read_tokens': 0,
-                    'cache_write_tokens': 8767,
-                    'reasoning_tokens': 0,
-                    'context_window': 0,
-                    'per_turn_token': 8852,
+        "usage_to_metrics": {
+            "agent": {
+                "accumulated_cost": 0.03411525,
+                "max_budget_per_task": None,
+                "accumulated_token_usage": {
+                    "prompt_tokens": 8770,
+                    "completion_tokens": 82,
+                    "cache_read_tokens": 0,
+                    "cache_write_tokens": 8767,
+                    "reasoning_tokens": 0,
+                    "context_window": 0,
+                    "per_turn_token": 8852,
                 },
             },
-            'condenser': {
-                'accumulated_cost': 0.0,
-                'accumulated_token_usage': {
-                    'prompt_tokens': 0,
-                    'completion_tokens': 0,
+            "condenser": {
+                "accumulated_cost": 0.0,
+                "accumulated_token_usage": {
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
                 },
             },
         }
     }
-    return ConversationStateUpdateEvent(key='stats', value=event_value)
+    return ConversationStateUpdateEvent(key="stats", value=event_value)
 
 
 @pytest.fixture
@@ -129,22 +129,22 @@ def stats_event_with_object_value():
     """Create a ConversationStateUpdateEvent with object value."""
     event_value = MagicMock()
     event_value.usage_to_metrics = {
-        'agent': {
-            'accumulated_cost': 0.05,
-            'accumulated_token_usage': {
-                'prompt_tokens': 1000,
-                'completion_tokens': 100,
+        "agent": {
+            "accumulated_cost": 0.05,
+            "accumulated_token_usage": {
+                "prompt_tokens": 1000,
+                "completion_tokens": 100,
             },
         }
     }
-    return ConversationStateUpdateEvent(key='stats', value=event_value)
+    return ConversationStateUpdateEvent(key="stats", value=event_value)
 
 
 @pytest.fixture
 def stats_event_no_usage_to_metrics():
     """Create a ConversationStateUpdateEvent without usage_to_metrics."""
-    event_value = {'some_other_key': 'value'}
-    return ConversationStateUpdateEvent(key='stats', value=event_value)
+    event_value = {"some_other_key": "value"}
+    return ConversationStateUpdateEvent(key="stats", value=event_value)
 
 
 # ---------------------------------------------------------------------------
@@ -163,11 +163,11 @@ class TestUpdateConversationStatistics:
         conversation_id, stored = v1_conversation_metadata
 
         agent_metrics = Metrics(
-            model_name='test-model',
+            model_name="test-model",
             accumulated_cost=0.03411525,
             max_budget_per_task=10.0,
             accumulated_token_usage=TokenUsage(
-                model='test-model',
+                model="test-model",
                 prompt_tokens=8770,
                 completion_tokens=82,
                 cache_read_tokens=0,
@@ -177,7 +177,7 @@ class TestUpdateConversationStatistics:
                 per_turn_token=8852,
             ),
         )
-        stats = ConversationStats(usage_to_metrics={'agent': agent_metrics})
+        stats = ConversationStats(usage_to_metrics={"agent": agent_metrics})
 
         await service.update_conversation_statistics(conversation_id, stats)
 
@@ -207,15 +207,15 @@ class TestUpdateConversationStatistics:
         await async_session.commit()
 
         agent_metrics = Metrics(
-            model_name='test-model',
+            model_name="test-model",
             accumulated_cost=0.05,
             accumulated_token_usage=TokenUsage(
-                model='test-model',
+                model="test-model",
                 prompt_tokens=200,
                 completion_tokens=0,  # Default value
             ),
         )
-        stats = ConversationStats(usage_to_metrics={'agent': agent_metrics})
+        stats = ConversationStats(usage_to_metrics={"agent": agent_metrics})
 
         await service.update_conversation_statistics(conversation_id, stats)
 
@@ -235,10 +235,10 @@ class TestUpdateConversationStatistics:
         original_cost = stored.accumulated_cost
 
         condenser_metrics = Metrics(
-            model_name='test-model',
+            model_name="test-model",
             accumulated_cost=0.1,
         )
-        stats = ConversationStats(usage_to_metrics={'condenser': condenser_metrics})
+        stats = ConversationStats(usage_to_metrics={"condenser": condenser_metrics})
 
         await service.update_conversation_statistics(conversation_id, stats)
 
@@ -250,10 +250,10 @@ class TestUpdateConversationStatistics:
         """Test that update is skipped when conversation doesn't exist."""
         nonexistent_id = uuid4()
         agent_metrics = Metrics(
-            model_name='test-model',
+            model_name="test-model",
             accumulated_cost=0.1,
         )
-        stats = ConversationStats(usage_to_metrics={'agent': agent_metrics})
+        stats = ConversationStats(usage_to_metrics={"agent": agent_metrics})
 
         # Should not raise an exception
         await service.update_conversation_statistics(nonexistent_id, stats)
@@ -266,9 +266,9 @@ class TestUpdateConversationStatistics:
         conversation_id = uuid4()
         stored = StoredConversationMetadata(
             conversation_id=str(conversation_id),
-            sandbox_id='sandbox_123',
-            conversation_version='V0',  # V0 conversation
-            title='V0 Conversation',
+            sandbox_id="sandbox_123",
+            conversation_version="V0",  # V0 conversation
+            title="V0 Conversation",
             accumulated_cost=0.0,
             created_at=datetime.now(timezone.utc),
             last_updated_at=datetime.now(timezone.utc),
@@ -279,10 +279,10 @@ class TestUpdateConversationStatistics:
         original_cost = stored.accumulated_cost
 
         agent_metrics = Metrics(
-            model_name='test-model',
+            model_name="test-model",
             accumulated_cost=0.1,
         )
-        stats = ConversationStats(usage_to_metrics={'agent': agent_metrics})
+        stats = ConversationStats(usage_to_metrics={"agent": agent_metrics})
 
         await service.update_conversation_statistics(conversation_id, stats)
 
@@ -304,16 +304,16 @@ class TestUpdateConversationStatistics:
         await async_session.commit()
 
         agent_metrics = Metrics(
-            model_name='test-model',
+            model_name="test-model",
             accumulated_cost=0.05,
             max_budget_per_task=None,  # None value
             accumulated_token_usage=TokenUsage(
-                model='test-model',
+                model="test-model",
                 prompt_tokens=200,
                 completion_tokens=0,  # Default value (None is not valid for int)
             ),
         )
-        stats = ConversationStats(usage_to_metrics={'agent': agent_metrics})
+        stats = ConversationStats(usage_to_metrics={"agent": agent_metrics})
 
         await service.update_conversation_statistics(conversation_id, stats)
 
@@ -406,11 +406,11 @@ class TestProcessStatsEvent:
         with (
             patch.object(
                 service,
-                'update_conversation_statistics',
-                side_effect=Exception('Database error'),
+                "update_conversation_statistics",
+                side_effect=Exception("Database error"),
             ),
             patch(
-                'openhands.app_server.app_conversation.sql_app_conversation_info_service.logger'
+                "openhands.app_server.app_conversation.sql_app_conversation_info_service.logger"
             ) as mock_logger,
         ):
             await service.process_stats_event(
@@ -430,7 +430,7 @@ class TestProcessStatsEvent:
 
         # Create event with empty usage_to_metrics
         event = ConversationStateUpdateEvent(
-            key='stats', value={'usage_to_metrics': {}}
+            key="stats", value={"usage_to_metrics": {}}
         )
 
         await service.process_stats_event(event, conversation_id)
@@ -456,17 +456,17 @@ class TestOnEventStatsProcessing:
         from openhands.app_server.event_callback.webhook_router import on_event
 
         conversation_id = uuid4()
-        sandbox_id = 'sandbox_123'
+        sandbox_id = "sandbox_123"
 
         # Create stats event
         stats_event = ConversationStateUpdateEvent(
-            key='stats',
+            key="stats",
             value={
-                'usage_to_metrics': {
-                    'agent': {
-                        'accumulated_cost': 0.1,
-                        'accumulated_token_usage': {
-                            'prompt_tokens': 1000,
+                "usage_to_metrics": {
+                    "agent": {
+                        "accumulated_cost": 0.1,
+                        "accumulated_token_usage": {
+                            "prompt_tokens": 1000,
                         },
                     }
                 }
@@ -475,7 +475,7 @@ class TestOnEventStatsProcessing:
 
         # Create non-stats event
         other_event = ConversationStateUpdateEvent(
-            key='execution_status', value='running'
+            key="execution_status", value="running"
         )
 
         events = [stats_event, other_event]
@@ -483,7 +483,7 @@ class TestOnEventStatsProcessing:
         mock_app_conversation_info = AppConversationInfo(
             id=conversation_id,
             sandbox_id=sandbox_id,
-            created_by_user_id='user_123',
+            created_by_user_id="user_123",
         )
 
         mock_event_service = AsyncMock()
@@ -506,7 +506,7 @@ class TestOnEventStatsProcessing:
         )
 
         with patch(
-            'openhands.app_server.event_callback.webhook_router._run_callbacks_in_bg_and_close'
+            "openhands.app_server.event_callback.webhook_router._run_callbacks_in_bg_and_close"
         ) as mock_callbacks:
             # Call on_event directly with dependencies
             await on_event(
@@ -534,27 +534,27 @@ class TestOnEventStatsProcessing:
         from openhands.app_server.event_callback.webhook_router import on_event
 
         conversation_id = uuid4()
-        sandbox_id = 'sandbox_123'
+        sandbox_id = "sandbox_123"
 
         # Create non-stats events (use MagicMock for non-ConversationStateUpdateEvent)
         mock_other_event = MagicMock()
         mock_other_event.id = uuid4()
         events = [
-            ConversationStateUpdateEvent(key='execution_status', value='running'),
+            ConversationStateUpdateEvent(key="execution_status", value="running"),
             mock_other_event,
         ]
 
         mock_app_conversation_info = AppConversationInfo(
             id=conversation_id,
             sandbox_id=sandbox_id,
-            created_by_user_id='user_123',
+            created_by_user_id="user_123",
         )
 
         mock_event_service = AsyncMock()
         mock_app_conversation_info_service = AsyncMock()
 
         with patch(
-            'openhands.app_server.event_callback.webhook_router._run_callbacks_in_bg_and_close'
+            "openhands.app_server.event_callback.webhook_router._run_callbacks_in_bg_and_close"
         ):
             # Call on_event directly with dependencies
             await on_event(

@@ -47,8 +47,8 @@ class SaasSecretsStore(SecretsStore):
             kwargs = {}
             for secret in settings:
                 kwargs[secret.secret_name] = {
-                    'secret': secret.secret_value,
-                    'description': secret.description,
+                    "secret": secret.secret_value,
+                    "description": secret.description,
                 }
 
             self._decrypt_kwargs(kwargs)
@@ -58,7 +58,7 @@ class SaasSecretsStore(SecretsStore):
     async def store(self, item: Secrets):
         user = await UserStore.get_user_by_id(self.user_id)
         if user is None:
-            raise ValueError(f'User not found: {self.user_id}')
+            raise ValueError(f"User not found: {self.user_id}")
         org_id = self.effective_org_id or user.current_org_id
 
         async with a_session_maker() as session:
@@ -73,19 +73,19 @@ class SaasSecretsStore(SecretsStore):
             await session.execute(delete_query)
 
             # Prepare the new secrets data
-            kwargs = item.model_dump(context={'expose_secrets': True})
+            kwargs = item.model_dump(context={"expose_secrets": True})
             del kwargs[
-                'provider_tokens'
+                "provider_tokens"
             ]  # Assuming provider_tokens is not part of custom_secrets
             self._encrypt_kwargs(kwargs)
 
-            secrets_json = kwargs.get('custom_secrets', {})
+            secrets_json = kwargs.get("custom_secrets", {})
 
             # Extract the secrets into tuples for insertion or updating
             secret_tuples = []
             for secret_name, secret_info in secrets_json.items():
-                secret_value = secret_info.get('secret')
-                description = secret_info.get('description')
+                secret_value = secret_info.get("secret")
+                description = secret_info.get("description")
 
                 secret_tuples.append((secret_name, secret_value, description))
 
@@ -142,7 +142,7 @@ class SaasSecretsStore(SecretsStore):
 
         TODO: This method should be replaced with dependency injection.
         """
-        logger.debug(f'saas_secrets_store.get_instance::{user_id}')
+        logger.debug(f"saas_secrets_store.get_instance::{user_id}")
         from storage.encrypt_utils import get_jwt_service
 
         return SaasSecretsStore(

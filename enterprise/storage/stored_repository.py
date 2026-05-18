@@ -8,7 +8,7 @@ class StoredRepository(Base):
     Represents a repositories fetched from git providers.
     """
 
-    __tablename__ = 'repos'
+    __tablename__ = "repos"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     repo_name: Mapped[str] = mapped_column(String, nullable=False)

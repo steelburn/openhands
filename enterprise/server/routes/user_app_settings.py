@@ -18,14 +18,14 @@ from server.services.user_app_settings_service import (
 
 from openhands.app_server.utils.logger import openhands_logger as logger
 
-user_app_settings_router = APIRouter(prefix='/api/users')
+user_app_settings_router = APIRouter(prefix="/api/users")
 
 # Create injector instance and dependency at module level
 _injector = UserAppSettingsServiceInjector()
 user_app_settings_service_dependency = Depends(_injector.depends)
 
 
-@user_app_settings_router.get('/app', response_model=UserAppSettingsResponse)
+@user_app_settings_router.get("/app", response_model=UserAppSettingsResponse)
 async def get_user_app_settings(
     service: UserAppSettingsService = user_app_settings_service_dependency,
 ) -> UserAppSettingsResponse:
@@ -60,16 +60,16 @@ async def get_user_app_settings(
         )
     except Exception as e:
         logger.exception(
-            'Unexpected error retrieving user app settings',
-            extra={'error': str(e)},
+            "Unexpected error retrieving user app settings",
+            extra={"error": str(e)},
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail='Failed to retrieve user app settings',
+            detail="Failed to retrieve user app settings",
         )
 
 
-@user_app_settings_router.post('/app', response_model=UserAppSettingsResponse)
+@user_app_settings_router.post("/app", response_model=UserAppSettingsResponse)
 async def update_user_app_settings(
     update_data: UserAppSettingsUpdate,
     service: UserAppSettingsService = user_app_settings_service_dependency,
@@ -106,10 +106,10 @@ async def update_user_app_settings(
         )
     except Exception as e:
         logger.exception(
-            'Failed to update user app settings',
-            extra={'error': str(e)},
+            "Failed to update user app settings",
+            extra={"error": str(e)},
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail='Failed to update user app settings',
+            detail="Failed to update user app settings",
         )

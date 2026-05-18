@@ -59,13 +59,13 @@ class TestJiraIntegrationStoreAsyncMethods:
         # Arrange
         mock_workspace = Mock(spec=JiraWorkspace)
         mock_workspace.id = 1
-        mock_workspace.name = 'test-workspace'
+        mock_workspace.name = "test-workspace"
 
         mock_context_manager, mock_session = create_mock_async_session(mock_workspace)
 
         # Act
         with patch(
-            'storage.jira_integration_store.a_session_maker', mock_context_manager
+            "storage.jira_integration_store.a_session_maker", mock_context_manager
         ):
             result = await store.get_workspace_by_id(1)
 
@@ -83,7 +83,7 @@ class TestJiraIntegrationStoreAsyncMethods:
 
         # Act
         with patch(
-            'storage.jira_integration_store.a_session_maker', mock_context_manager
+            "storage.jira_integration_store.a_session_maker", mock_context_manager
         ):
             result = await store.get_workspace_by_id(999)
 
@@ -97,15 +97,15 @@ class TestJiraIntegrationStoreAsyncMethods:
         """Test get_workspace_by_name converts name to lowercase for query."""
         # Arrange
         mock_workspace = Mock(spec=JiraWorkspace)
-        mock_workspace.name = 'test-workspace'
+        mock_workspace.name = "test-workspace"
 
         mock_context_manager, mock_session = create_mock_async_session(mock_workspace)
 
         # Act
         with patch(
-            'storage.jira_integration_store.a_session_maker', mock_context_manager
+            "storage.jira_integration_store.a_session_maker", mock_context_manager
         ):
-            result = await store.get_workspace_by_name('TEST-WORKSPACE')
+            result = await store.get_workspace_by_name("TEST-WORKSPACE")
 
         # Assert
         assert result == mock_workspace
@@ -119,17 +119,17 @@ class TestJiraIntegrationStoreAsyncMethods:
         """Test get_active_user only returns users with active status."""
         # Arrange
         mock_user = Mock(spec=JiraUser)
-        mock_user.jira_user_id = 'jira-123'
+        mock_user.jira_user_id = "jira-123"
         mock_user.jira_workspace_id = 1
-        mock_user.status = 'active'
+        mock_user.status = "active"
 
         mock_context_manager, mock_session = create_mock_async_session(mock_user)
 
         # Act
         with patch(
-            'storage.jira_integration_store.a_session_maker', mock_context_manager
+            "storage.jira_integration_store.a_session_maker", mock_context_manager
         ):
-            result = await store.get_active_user('jira-123', 1)
+            result = await store.get_active_user("jira-123", 1)
 
         # Assert
         assert result == mock_user
@@ -145,16 +145,16 @@ class TestJiraIntegrationStoreAsyncMethods:
 
         # Act
         with patch(
-            'storage.jira_integration_store.a_session_maker', mock_context_manager
+            "storage.jira_integration_store.a_session_maker", mock_context_manager
         ):
             await store.create_workspace(
-                name='TEST-WORKSPACE',
-                jira_cloud_id='cloud-123',
-                admin_user_id='admin-user',
-                encrypted_webhook_secret='encrypted-secret',
-                svc_acc_email='svc@test.com',
-                encrypted_svc_acc_api_key='encrypted-key',
-                status='active',
+                name="TEST-WORKSPACE",
+                jira_cloud_id="cloud-123",
+                admin_user_id="admin-user",
+                encrypted_webhook_secret="encrypted-secret",
+                svc_acc_email="svc@test.com",
+                encrypted_svc_acc_api_key="encrypted-key",
+                status="active",
             )
 
         # Assert
@@ -164,7 +164,7 @@ class TestJiraIntegrationStoreAsyncMethods:
 
         # Verify workspace was created with lowercase name
         added_workspace = mock_session.add.call_args[0][0]
-        assert added_workspace.name == 'test-workspace'
+        assert added_workspace.name == "test-workspace"
 
     @pytest.mark.asyncio
     async def test_update_user_integration_status_raises_if_not_found(
@@ -176,12 +176,12 @@ class TestJiraIntegrationStoreAsyncMethods:
 
         # Act & Assert
         with patch(
-            'storage.jira_integration_store.a_session_maker', mock_context_manager
+            "storage.jira_integration_store.a_session_maker", mock_context_manager
         ):
             with pytest.raises(ValueError) as exc_info:
-                await store.update_user_integration_status('unknown-user', 'inactive')
+                await store.update_user_integration_status("unknown-user", "inactive")
 
-            assert 'Jira user not found' in str(exc_info.value)
+            assert "Jira user not found" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_deactivate_workspace_deactivates_all_users(
@@ -190,12 +190,12 @@ class TestJiraIntegrationStoreAsyncMethods:
         """Test deactivate_workspace sets all users and workspace to inactive."""
         # Arrange
         mock_user1 = Mock(spec=JiraUser)
-        mock_user1.status = 'active'
+        mock_user1.status = "active"
         mock_user2 = Mock(spec=JiraUser)
-        mock_user2.status = 'active'
+        mock_user2.status = "active"
 
         mock_workspace = Mock(spec=JiraWorkspace)
-        mock_workspace.status = 'active'
+        mock_workspace.status = "active"
 
         mock_session = Mock()
 
@@ -221,12 +221,12 @@ class TestJiraIntegrationStoreAsyncMethods:
 
         # Act
         with patch(
-            'storage.jira_integration_store.a_session_maker', mock_context_manager
+            "storage.jira_integration_store.a_session_maker", mock_context_manager
         ):
             await store.deactivate_workspace(1)
 
         # Assert
-        assert mock_user1.status == 'inactive'
-        assert mock_user2.status == 'inactive'
-        assert mock_workspace.status == 'inactive'
+        assert mock_user1.status == "inactive"
+        assert mock_user2.status == "inactive"
+        assert mock_workspace.status == "inactive"
         mock_session.commit.assert_called_once()

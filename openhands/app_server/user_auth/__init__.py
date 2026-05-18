@@ -25,7 +25,7 @@ async def get_access_token(request: Request) -> SecretStr | None:
 async def get_user_id(
     request: Request,
     api_key_header: str | None = Depends(
-        APIKeyHeader(name='X-Access-Token', auto_error=False)
+        APIKeyHeader(name="X-Access-Token", auto_error=False)
     ),
 ) -> str | None:
     """Get the current user_id. Used for dependency injection - the

@@ -14,8 +14,8 @@ from openhands.app_server.utils.logger import openhands_logger as logger
 class JiraEventType(Enum):
     """Types of Jira events we handle."""
 
-    LABELED_TICKET = 'labeled_ticket'
-    COMMENT_MENTION = 'comment_mention'
+    LABELED_TICKET = "labeled_ticket"
+    COMMENT_MENTION = "comment_mention"
 
 
 @dataclass(frozen=True)
@@ -44,7 +44,7 @@ class JiraWebhookPayload:
     base_api_url: str
 
     # Event-specific data
-    comment_body: str = ''  # For comment events
+    comment_body: str = ""  # For comment events
 
     @property
     def user_msg(self) -> str:
@@ -115,31 +115,31 @@ class JiraPayloadParser:
             - JiraPayloadSkipped: Event we intentionally don't process
             - JiraPayloadError: Malformed payload we expected to process
         """
-        webhook_event = raw_payload.get('webhookEvent', '')
+        webhook_event = raw_payload.get("webhookEvent", "")
 
         logger.debug(
-            '[Jira] Parsing webhook payload', extra={'webhook_event': webhook_event}
+            "[Jira] Parsing webhook payload", extra={"webhook_event": webhook_event}
         )
 
-        if webhook_event == 'jira:issue_updated':
+        if webhook_event == "jira:issue_updated":
             return self._parse_label_event(raw_payload, webhook_event)
-        elif webhook_event == 'comment_created':
+        elif webhook_event == "comment_created":
             return self._parse_comment_event(raw_payload, webhook_event)
         else:
-            return JiraPayloadSkipped(f'Unhandled webhook event type: {webhook_event}')
+            return JiraPayloadSkipped(f"Unhandled webhook event type: {webhook_event}")
 
     def _parse_label_event(
         self, payload: dict, webhook_event: str
     ) -> JiraPayloadParseResult:
         """Parse an issue_updated event for label changes."""
-        changelog = payload.get('changelog', {})
-        items = changelog.get('items', [])
+        changelog = payload.get("changelog", {})
+        items = changelog.get("items", [])
 
         # Extract labels that were added
         labels = set()
         for item in items:
-            if item.get('field') == 'labels' and item.get('toString'):
-                labels.update(item['toString'].split())
+            if item.get("field") == "labels" and item.get("toString"):
+                labels.update(item["toString"].split())
 
         if self.oh_label not in labels:
             return JiraPayloadSkipped(
@@ -147,21 +147,21 @@ class JiraPayloadParser:
             )
 
         # For label events, user data comes from 'user' field
-        user_data = payload.get('user', {})
+        user_data = payload.get("user", {})
         return self._extract_and_validate(
             payload=payload,
             user_data=user_data,
             event_type=JiraEventType.LABELED_TICKET,
             webhook_event=webhook_event,
-            comment_body='',
+            comment_body="",
         )
 
     def _parse_comment_event(
         self, payload: dict, webhook_event: str
     ) -> JiraPayloadParseResult:
         """Parse a comment_created event."""
-        comment_data = payload.get('comment', {})
-        comment_body = comment_data.get('body', '')
+        comment_data = payload.get("comment", {})
+        comment_body = comment_data.get("body", "")
 
         if not self._has_mention(comment_body):
             return JiraPayloadSkipped(
@@ -169,7 +169,7 @@ class JiraPayloadParser:
             )
 
         # For comment events, user data comes from 'comment.author'
-        user_data = comment_data.get('author', {})
+        user_data = comment_data.get("author", {})
         return self._extract_and_validate(
             payload=payload,
             user_data=user_data,
@@ -193,32 +193,32 @@ class JiraPayloadParser:
         comment_body: str,
     ) -> JiraPayloadParseResult:
         """Extract common fields and validate required data is present."""
-        issue_data = payload.get('issue', {})
+        issue_data = payload.get("issue", {})
 
         # Extract all fields with empty string defaults (makes them str type)
-        issue_id = issue_data.get('id', '')
-        issue_key = issue_data.get('key', '')
-        user_email = user_data.get('emailAddress', '')
-        display_name = user_data.get('displayName', '')
-        account_id = user_data.get('accountId', '')
+        issue_id = issue_data.get("id", "")
+        issue_key = issue_data.get("key", "")
+        user_email = user_data.get("emailAddress", "")
+        display_name = user_data.get("displayName", "")
+        account_id = user_data.get("accountId", "")
         base_api_url, workspace_name = self._extract_workspace_from_url(
-            issue_data.get('self', '')
+            issue_data.get("self", "")
         )
 
         # Validate required fields
         missing: list[str] = []
         if not issue_id:
-            missing.append('issue.id')
+            missing.append("issue.id")
         if not issue_key:
-            missing.append('issue.key')
+            missing.append("issue.key")
         if not display_name:
-            missing.append('user.displayName')
+            missing.append("user.displayName")
         if not account_id:
-            missing.append('user.accountId')
+            missing.append("user.accountId")
         if not workspace_name:
-            missing.append('workspace_name (derived from issue.self)')
+            missing.append("workspace_name (derived from issue.self)")
         if not base_api_url:
-            missing.append('base_api_url (derived from issue.self)')
+            missing.append("base_api_url (derived from issue.self)")
 
         if missing:
             return JiraPayloadError(f"Missing required fields: {', '.join(missing)}")
@@ -248,17 +248,17 @@ class JiraPayloadParser:
             Tuple of (base_api_url, workspace_name)
         """
         if not self_url:
-            return '', ''
+            return "", ""
 
         # Extract base URL (everything before /rest/)
-        if '/rest/' in self_url:
-            base_api_url = self_url.split('/rest/')[0]
+        if "/rest/" in self_url:
+            base_api_url = self_url.split("/rest/")[0]
         else:
             parsed = urlparse(self_url)
-            base_api_url = f'{parsed.scheme}://{parsed.netloc}'
+            base_api_url = f"{parsed.scheme}://{parsed.netloc}"
 
         # Extract workspace name (hostname)
         parsed = urlparse(base_api_url)
-        workspace_name = parsed.hostname or ''
+        workspace_name = parsed.hostname or ""
 
         return base_api_url, workspace_name

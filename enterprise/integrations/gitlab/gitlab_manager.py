@@ -41,12 +41,12 @@ class GitlabManager(Manager[GitlabViewType]):
         self.token_manager = token_manager
 
         self.jinja_env = Environment(
-            loader=FileSystemLoader(OPENHANDS_RESOLVER_TEMPLATES_DIR + 'gitlab')
+            loader=FileSystemLoader(OPENHANDS_RESOLVER_TEMPLATES_DIR + "gitlab")
         )
 
     def _confirm_incoming_source_type(self, message: Message):
         if message.source != SourceType.GITLAB:
-            raise ValueError(f'Unexpected message source {message.source}')
+            raise ValueError(f"Unexpected message source {message.source}")
 
     async def _user_has_write_access_to_repo(
         self, project_id: str, user_id: str
@@ -67,7 +67,7 @@ class GitlabManager(Manager[GitlabViewType]):
             user_id, ProviderType.GITLAB
         )
         if keycloak_user_id is None:
-            logger.warning(f'Got invalid keyloak user id for GitLab User {user_id}')
+            logger.warning(f"Got invalid keyloak user id for GitLab User {user_id}")
             return False
 
         # GitLabServiceImpl returns SaaSGitLabService in enterprise context
@@ -86,7 +86,7 @@ class GitlabManager(Manager[GitlabViewType]):
                 message, self.token_manager
             )
             logger.info(
-                f'[GitLab] Creating job for {gitlab_view.user_info.username} in {gitlab_view.full_repo_name}#{gitlab_view.issue_number}'
+                f"[GitLab] Creating job for {gitlab_view.user_info.username} in {gitlab_view.full_repo_name}#{gitlab_view.issue_number}"
             )
 
             await self.start_job(gitlab_view)
@@ -101,17 +101,17 @@ class GitlabManager(Manager[GitlabViewType]):
         ):
             return False
 
-        payload = message.message['payload']
+        payload = message.message["payload"]
 
-        repo_obj = payload['project']
-        project_id = repo_obj['id']
-        selected_project = repo_obj['path_with_namespace']
-        user = payload['user']
-        user_id = user['id']
-        username = user['username']
+        repo_obj = payload["project"]
+        project_id = repo_obj["id"]
+        selected_project = repo_obj["path_with_namespace"]
+        user = payload["user"]
+        user_id = user["id"]
+        username = user["username"]
 
         logger.info(
-            f'[GitLab] Checking permissions for {username} in {selected_project}'
+            f"[GitLab] Checking permissions for {username} in {selected_project}"
         )
 
         has_write_access = await self._user_has_write_access_to_repo(
@@ -119,7 +119,7 @@ class GitlabManager(Manager[GitlabViewType]):
         )
 
         logger.info(
-            f'[GitLab]: {username} access in {selected_project}: {has_write_access}'
+            f"[GitLab]: {username} access in {selected_project}: {has_write_access}"
         )
         # Check if the user has write access to the repository
         return has_write_access
@@ -166,7 +166,7 @@ class GitlabManager(Manager[GitlabViewType]):
             )
         else:
             logger.warning(
-                f'[GitLab] Unsupported view type: {type(gitlab_view).__name__}'
+                f"[GitLab] Unsupported view type: {type(gitlab_view).__name__}"
             )
 
     async def start_job(self, gitlab_view: GitlabViewType) -> None:
@@ -180,7 +180,7 @@ class GitlabManager(Manager[GitlabViewType]):
                 user_info = gitlab_view.user_info
 
                 logger.info(
-                    f'[GitLab] Starting job for {user_info.username} in {gitlab_view.full_repo_name}#{gitlab_view.issue_number}'
+                    f"[GitLab] Starting job for {user_info.username} in {gitlab_view.full_repo_name}#{gitlab_view.issue_number}"
                 )
 
                 user_token = await self.token_manager.get_idp_token_from_idp_user_id(
@@ -189,12 +189,12 @@ class GitlabManager(Manager[GitlabViewType]):
 
                 if not user_token:
                     logger.warning(
-                        f'[GitLab] No token found for user {user_info.username} (id={user_info.user_id})'
+                        f"[GitLab] No token found for user {user_info.username} (id={user_info.user_id})"
                     )
-                    raise MissingSettingsError('Missing settings')
+                    raise MissingSettingsError("Missing settings")
 
                 logger.info(
-                    f'[GitLab] Creating new conversation for user {user_info.username}'
+                    f"[GitLab] Creating new conversation for user {user_info.username}"
                 )
 
                 secret_store = Secrets(
@@ -225,7 +225,7 @@ class GitlabManager(Manager[GitlabViewType]):
                 conversation_id_hex = gitlab_view.conversation_id
 
                 logger.info(
-                    f'[GitLab] Created conversation {conversation_id_hex} for user {user_info.username}'
+                    f"[GitLab] Created conversation {conversation_id_hex} for user {user_info.username}"
                 )
 
                 # V1 callback processors are registered by the view during conversation creation
@@ -235,21 +235,21 @@ class GitlabManager(Manager[GitlabViewType]):
 
             except MissingSettingsError as e:
                 logger.warning(
-                    f'[GitLab] Missing settings error for user {user_info.username}: {str(e)}'
+                    f"[GitLab] Missing settings error for user {user_info.username}: {str(e)}"
                 )
 
-                msg_info = f'@{user_info.username} please re-login into [OpenHands Cloud]({HOST_URL}) before starting a job.'
+                msg_info = f"@{user_info.username} please re-login into [OpenHands Cloud]({HOST_URL}) before starting a job."
 
             except LLMAuthenticationError as e:
                 logger.warning(
-                    f'[GitLab] LLM authentication error for user {user_info.username}: {str(e)}'
+                    f"[GitLab] LLM authentication error for user {user_info.username}: {str(e)}"
                 )
 
-                msg_info = f'@{user_info.username} please set a valid LLM API key in [OpenHands Cloud]({HOST_URL}) before starting a job.'
+                msg_info = f"@{user_info.username} please set a valid LLM API key in [OpenHands Cloud]({HOST_URL}) before starting a job."
 
             except SessionExpiredError as e:
                 logger.warning(
-                    f'[GitLab] Session expired for user {user_info.username}: {str(e)}'
+                    f"[GitLab] Session expired for user {user_info.username}: {str(e)}"
                 )
 
                 msg_info = get_session_expired_message(user_info.username)
@@ -258,7 +258,7 @@ class GitlabManager(Manager[GitlabViewType]):
             await self.send_message(msg_info, gitlab_view)
 
         except Exception as e:
-            logger.exception(f'[GitLab] Error starting job: {str(e)}')
+            logger.exception(f"[GitLab] Error starting job: {str(e)}")
             await self.send_message(
-                'Uh oh! There was an unexpected error starting the job :(', gitlab_view
+                "Uh oh! There was an unexpected error starting the job :(", gitlab_view
             )

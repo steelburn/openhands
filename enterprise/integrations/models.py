@@ -5,15 +5,15 @@ from pydantic import BaseModel
 
 
 class SourceType(str, Enum):
-    GITHUB = 'github'
-    GITLAB = 'gitlab'
-    BITBUCKET = 'bitbucket'
-    BITBUCKET_DATA_CENTER = 'bitbucket_data_center'
-    OPENHANDS = 'openhands'
-    SLACK = 'slack'
-    JIRA = 'jira'
-    JIRA_DC = 'jira_dc'
-    LINEAR = 'linear'
+    GITHUB = "github"
+    GITLAB = "gitlab"
+    BITBUCKET = "bitbucket"
+    BITBUCKET_DATA_CENTER = "bitbucket_data_center"
+    OPENHANDS = "openhands"
+    SLACK = "slack"
+    JIRA = "jira"
+    JIRA_DC = "jira_dc"
+    LINEAR = "linear"
 
 
 class Message(BaseModel):
@@ -36,8 +36,8 @@ class JobContext(BaseModel):
     user_msg: str
     user_email: str
     display_name: str
-    platform_user_id: str = ''
+    platform_user_id: str = ""
     workspace_name: str
-    base_api_url: str = ''
-    issue_title: str = ''
-    issue_description: str = ''
+    base_api_url: str = ""
+    issue_title: str = ""
+    issue_description: str = ""

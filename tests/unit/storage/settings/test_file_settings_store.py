@@ -14,7 +14,7 @@ from openhands.sdk.settings import ConversationSettings, OpenHandsAgentSettings
 
 @pytest.fixture(autouse=True)
 def allow_short_context_windows():
-    with patch.dict(os.environ, {'ALLOW_SHORT_CONTEXT_WINDOWS': 'true'}, clear=False):
+    with patch.dict(os.environ, {"ALLOW_SHORT_CONTEXT_WINDOWS": "true"}, clear=False):
         yield
 
 
@@ -38,18 +38,18 @@ async def test_load_nonexistent_data(file_settings_store):
 async def test_store_and_load_data(file_settings_store):
     # Test data
     init_data = Settings(
-        language='python',
+        language="python",
         agent_settings=OpenHandsAgentSettings(
-            agent='test-agent',
+            agent="test-agent",
             llm=LLM(
-                model='test-model',
-                api_key=SecretStr('test-key'),
-                base_url='https://test.com',
+                model="test-model",
+                api_key=SecretStr("test-key"),
+                base_url="https://test.com",
             ),
         ),
         conversation_settings=ConversationSettings(
             max_iterations=100,
-            security_analyzer='llm',
+            security_analyzer="llm",
             confirmation_mode=True,
         ),
     )
@@ -59,10 +59,10 @@ async def test_store_and_load_data(file_settings_store):
 
     # Verify store called with correct JSON
     expected_json = init_data.model_dump_json(
-        context={'expose_secrets': True, 'persist_settings': True}
+        context={"expose_secrets": True, "persist_settings": True}
     )
     file_settings_store.file_store.write.assert_called_once_with(
-        'settings.json', expected_json
+        "settings.json", expected_json
     )
 
     # Setup mock for load
@@ -100,11 +100,11 @@ async def test_store_and_load_data(file_settings_store):
 @pytest.mark.asyncio
 async def test_load_seeds_default_profile_from_legacy_llm(file_settings_store):
     legacy_payload = {
-        'agent_settings': {
-            'llm': {
-                'model': 'openai/gpt-4o',
-                'api_key': 'legacy-key',
-                'base_url': 'https://example.com',
+        "agent_settings": {
+            "llm": {
+                "model": "openai/gpt-4o",
+                "api_key": "legacy-key",
+                "base_url": "https://example.com",
             },
         },
     }
@@ -113,22 +113,22 @@ async def test_load_seeds_default_profile_from_legacy_llm(file_settings_store):
     loaded = await file_settings_store.load()
 
     assert loaded is not None
-    assert loaded.llm_profiles.active == 'Default'
-    default_profile = loaded.llm_profiles.require('Default')
-    assert default_profile.model == 'openai/gpt-4o'
-    assert default_profile.base_url == 'https://example.com'
-    assert default_profile.api_key.get_secret_value() == 'legacy-key'
+    assert loaded.llm_profiles.active == "Default"
+    default_profile = loaded.llm_profiles.require("Default")
+    assert default_profile.model == "openai/gpt-4o"
+    assert default_profile.base_url == "https://example.com"
+    assert default_profile.api_key.get_secret_value() == "legacy-key"
 
 
 @pytest.mark.asyncio
 async def test_load_does_not_overwrite_existing_profiles(file_settings_store):
     payload = {
-        'agent_settings': {
-            'llm': {'model': 'openai/gpt-4o', 'api_key': 'legacy-key'},
+        "agent_settings": {
+            "llm": {"model": "openai/gpt-4o", "api_key": "legacy-key"},
         },
-        'llm_profiles': {
-            'profiles': {'Saved': {'model': 'anthropic/claude-opus-4'}},
-            'active': 'Saved',
+        "llm_profiles": {
+            "profiles": {"Saved": {"model": "anthropic/claude-opus-4"}},
+            "active": "Saved",
         },
     }
     file_settings_store.file_store.read.return_value = json.dumps(payload)
@@ -136,8 +136,8 @@ async def test_load_does_not_overwrite_existing_profiles(file_settings_store):
     loaded = await file_settings_store.load()
 
     assert loaded is not None
-    assert set(loaded.llm_profiles.profiles) == {'Saved'}
-    assert loaded.llm_profiles.active == 'Saved'
+    assert set(loaded.llm_profiles.profiles) == {"Saved"}
+    assert loaded.llm_profiles.active == "Saved"
 
 
 @pytest.mark.asyncio
@@ -155,7 +155,7 @@ async def test_load_skips_seeding_when_no_legacy_model(file_settings_store):
 async def test_get_instance():
     mock_store = MagicMock(spec=FileStore)
 
-    with patch('openhands.app_server.config.get_global_config') as mock_get_config:
+    with patch("openhands.app_server.config.get_global_config") as mock_get_config:
         mock_config = MagicMock()
         mock_config.file_store = mock_store
         mock_get_config.return_value = mock_config

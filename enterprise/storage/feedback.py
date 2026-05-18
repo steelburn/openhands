@@ -7,22 +7,22 @@ from storage.base import Base
 
 
 class Feedback(Base):
-    __tablename__ = 'feedback'
+    __tablename__ = "feedback"
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     version: Mapped[str] = mapped_column(String, nullable=False)
     email: Mapped[str] = mapped_column(String, nullable=False)
     polarity: Mapped[str] = mapped_column(
-        Enum('positive', 'negative', name='polarity_enum'), nullable=False
+        Enum("positive", "negative", name="polarity_enum"), nullable=False
     )
     permissions: Mapped[str] = mapped_column(
-        Enum('public', 'private', name='permissions_enum'), nullable=False
+        Enum("public", "private", name="permissions_enum"), nullable=False
     )
     trajectory: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
 
 
 class ConversationFeedback(Base):
-    __tablename__ = 'conversation_feedback'
+    __tablename__ = "conversation_feedback"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     conversation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)

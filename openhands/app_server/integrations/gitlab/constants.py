@@ -8,10 +8,10 @@ slashes are stripped, so 'https://gitlab.example.com/' is accepted.
 import os
 
 GITLAB_HOST = (
-    os.environ.get('GITLAB_HOST', 'gitlab.com')
+    os.environ.get("GITLAB_HOST", "gitlab.com")
     .strip()
-    .removeprefix('https://')
-    .removeprefix('http://')
-    .rstrip('/')
-    or 'gitlab.com'
+    .removeprefix("https://")
+    .removeprefix("http://")
+    .rstrip("/")
+    or "gitlab.com"
 )

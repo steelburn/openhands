@@ -12,8 +12,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '086'
-down_revision: Union[str, None] = '085'
+revision: str = "086"
+down_revision: Union[str, None] = "085"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -21,10 +21,10 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # Add v1 column
     op.add_column(
-        'slack_conversation', sa.Column('v1_enabled', sa.Boolean(), nullable=True)
+        "slack_conversation", sa.Column("v1_enabled", sa.Boolean(), nullable=True)
     )
 
 
 def downgrade() -> None:
     # Drop v1 column
-    op.drop_column('slack_conversation', 'v1_enabled')
+    op.drop_column("slack_conversation", "v1_enabled")

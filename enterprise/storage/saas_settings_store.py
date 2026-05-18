@@ -94,12 +94,12 @@ class SaasSettingsStore(SettingsStore):
 
     @staticmethod
     def _get_persisted_agent_settings(item: Settings) -> dict[str, Any]:
-        return item.agent_settings.model_dump(mode='json')
+        return item.agent_settings.model_dump(mode="json")
 
     async def load(self) -> Settings | None:
         user = await UserStore.get_user_by_id(self.user_id)
         if not user:
-            logger.error(f'User not found for ID {self.user_id}')
+            logger.error(f"User not found for ID {self.user_id}")
             return None
 
         org_id = self._resolve_org_id(user)
@@ -113,7 +113,7 @@ class SaasSettingsStore(SettingsStore):
         org = await OrgStore.get_org_by_id_async(org_id)
         if not org:
             logger.error(
-                f'Org not found for ID {org_id} as the current org for user {self.user_id}'
+                f"Org not found for ID {org_id} as the current org for user {self.user_id}"
             )
             return None
         org_agent_settings = OrgStore.get_agent_settings_from_org(org)
@@ -124,50 +124,50 @@ class SaasSettingsStore(SettingsStore):
                 normalized: getattr(org, c.name)
                 for c in Org.__table__.columns
                 if (
-                    normalized := c.name.removeprefix('_default_')
-                    .removeprefix('default_')
-                    .lstrip('_')
+                    normalized := c.name.removeprefix("_default_")
+                    .removeprefix("default_")
+                    .lstrip("_")
                 )
                 in Settings.model_fields
             },
             **{
                 normalized: getattr(user, c.name)
                 for c in User.__table__.columns
-                if (normalized := c.name.lstrip('_')) in Settings.model_fields
+                if (normalized := c.name.lstrip("_")) in Settings.model_fields
             },
         }
         merged_agent_settings = deep_merge(
-            org_agent_settings.model_dump(mode='json'),
+            org_agent_settings.model_dump(mode="json"),
             member_agent_settings_diff,
         )
         effective_llm_api_key = self._get_effective_llm_api_key(org, org_member)
         if effective_llm_api_key is not None:
-            merged_agent_settings.setdefault('llm', {})['api_key'] = (
+            merged_agent_settings.setdefault("llm", {})["api_key"] = (
                 effective_llm_api_key.get_secret_value()
                 if isinstance(effective_llm_api_key, SecretStr)
                 else effective_llm_api_key
             )
         else:
             logger.warning(
-                f'No effective LLM API key found for user {self.user_id} '
-                f'in org {org_id} (org key and member key are both unset)'
+                f"No effective LLM API key found for user {self.user_id} "
+                f"in org {org_id} (org key and member key are both unset)"
             )
-        kwargs['agent_settings'] = merged_agent_settings
+        kwargs["agent_settings"] = merged_agent_settings
         org_conversation = OrgStore.get_conversation_settings_from_org(org)
         member_conversation_diff = dict(org_member.conversation_settings_diff)
-        kwargs['conversation_settings'] = deep_merge(
-            org_conversation.model_dump(mode='json'),
+        kwargs["conversation_settings"] = deep_merge(
+            org_conversation.model_dump(mode="json"),
             member_conversation_diff,
         )
         if org.v1_enabled is None:
-            kwargs['v1_enabled'] = True
+            kwargs["v1_enabled"] = True
         # Apply default if sandbox_grouping_strategy is None in the database
-        if kwargs.get('sandbox_grouping_strategy') is None:
-            kwargs.pop('sandbox_grouping_strategy', None)
+        if kwargs.get("sandbox_grouping_strategy") is None:
+            kwargs.pop("sandbox_grouping_strategy", None)
         # Pre-migration rows read back as None; Settings.llm_profiles is
         # non-nullable, so let the default_factory take over.
-        if kwargs.get('llm_profiles') is None:
-            kwargs.pop('llm_profiles', None)
+        if kwargs.get("llm_profiles") is None:
+            kwargs.pop("llm_profiles", None)
 
         return Settings(**kwargs)
 
@@ -195,16 +195,16 @@ class SaasSettingsStore(SettingsStore):
                         self.user_id
                     )
                     if not user_info:
-                        logger.error(f'User info not found for ID {self.user_id}')
+                        logger.error(f"User info not found for ID {self.user_id}")
                         return None
                     user = await UserStore.migrate_user(
                         self.user_id, user_settings, user_info
                     )
                     if not user:
-                        logger.error(f'Failed to migrate user {self.user_id}')
+                        logger.error(f"Failed to migrate user {self.user_id}")
                         return None
                 else:
-                    logger.error(f'User not found for ID {self.user_id}')
+                    logger.error(f"User not found for ID {self.user_id}")
                     return None
 
             org_id = self._resolve_org_id(user)
@@ -221,14 +221,14 @@ class SaasSettingsStore(SettingsStore):
             org = result.scalars().first()
             if not org:
                 logger.error(
-                    f'Org not found for ID {org_id} as the current org for user {self.user_id}'
+                    f"Org not found for ID {org_id} as the current org for user {self.user_id}"
                 )
                 return None
 
             llm_model = item.agent_settings.llm.model
             llm_base_url = item.agent_settings.llm.base_url
-            normalized_llm_base_url = llm_base_url.rstrip('/') if llm_base_url else None
-            normalized_managed_base_url = LITE_LLM_API_URL.rstrip('/')
+            normalized_llm_base_url = llm_base_url.rstrip("/") if llm_base_url else None
+            normalized_managed_base_url = LITE_LLM_API_URL.rstrip("/")
             uses_managed_llm_key = (
                 normalized_llm_base_url == normalized_managed_base_url
                 or (normalized_llm_base_url is None and is_openhands_model(llm_model))
@@ -241,31 +241,31 @@ class SaasSettingsStore(SettingsStore):
 
             effective_agent_settings_diff = self._get_persisted_agent_settings(item)
             org.agent_settings = deep_merge(
-                OrgStore.get_agent_settings_from_org(org).model_dump(mode='json'),
+                OrgStore.get_agent_settings_from_org(org).model_dump(mode="json"),
                 effective_agent_settings_diff,
             )
 
             effective_conversation_diff = item.conversation_settings.model_dump(
-                mode='json'
+                mode="json"
             )
             org.conversation_settings = deep_merge(
                 OrgStore.get_conversation_settings_from_org(org).model_dump(
-                    mode='json'
+                    mode="json"
                 ),
                 effective_conversation_diff,
             )
 
-            kwargs = item.model_dump(context={'expose_secrets': True})
-            kwargs.pop('agent_settings', None)
-            kwargs.pop('conversation_settings', None)
+            kwargs = item.model_dump(context={"expose_secrets": True})
+            kwargs.pop("agent_settings", None)
+            kwargs.pop("conversation_settings", None)
 
             for key, value in kwargs.items():
                 if hasattr(user, key):
                     setattr(user, key, value)
                 if hasattr(org, key) and key not in {
-                    'llm_api_key',
-                    'agent_settings',
-                    'conversation_settings',
+                    "llm_api_key",
+                    "agent_settings",
+                    "conversation_settings",
                 }:
                     setattr(org, key, value)
 
@@ -327,7 +327,7 @@ class SaasSettingsStore(SettingsStore):
 
         TODO: This method should be replaced with dependency injection.
         """
-        logger.debug(f'saas_settings_store.get_instance::{user_id}')
+        logger.debug(f"saas_settings_store.get_instance::{user_id}")
         return SaasSettingsStore(user_id, effective_org_id=effective_org_id)
 
     async def _ensure_api_key(
@@ -353,7 +353,7 @@ class SaasSettingsStore(SettingsStore):
                     self.user_id,
                     org_id,
                     None,
-                    {'type': 'openhands'},
+                    {"type": "openhands"},
                 )
             else:
                 # Must delete any existing key with the same alias first
@@ -368,6 +368,6 @@ class SaasSettingsStore(SettingsStore):
 
             item.agent_settings.llm.api_key = SecretStr(generated_key)
             logger.info(
-                'saas_settings_store:store:generated_openhands_key',
-                extra={'user_id': self.user_id},
+                "saas_settings_store:store:generated_openhands_key",
+                extra={"user_id": self.user_id},
             )

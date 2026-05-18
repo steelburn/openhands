@@ -12,8 +12,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '091'
-down_revision: Union[str, None] = '090'
+revision: str = "091"
+down_revision: Union[str, None] = "090"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -21,12 +21,12 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # Add byor_export_enabled column to org table with default false
     op.add_column(
-        'org',
+        "org",
         sa.Column(
-            'byor_export_enabled',
+            "byor_export_enabled",
             sa.Boolean,
             nullable=False,
-            server_default=sa.text('false'),
+            server_default=sa.text("false"),
         ),
     )
 
@@ -43,4 +43,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_column('org', 'byor_export_enabled')
+    op.drop_column("org", "byor_export_enabled")

@@ -11,7 +11,7 @@ class FileStore(DiscriminatedUnionMixin, ABC):
     Uses DiscriminatedUnionMixin for automatic `kind` field based on class name.
     """
 
-    model_config = ConfigDict(extra='forbid', arbitrary_types_allowed=True)
+    model_config = ConfigDict(extra="forbid", arbitrary_types_allowed=True)
 
     @abstractmethod
     def write(self, path: str, contents: str | bytes) -> None:

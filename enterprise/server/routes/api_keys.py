@@ -62,23 +62,23 @@ async def generate_byor_key(user_id: str, org_id: UUID) -> str | None:
         key = await LiteLlmManager.generate_key(
             user_id,
             org_id_str,
-            f'BYOR Key - user {user_id}, org {org_id_str}',
-            {'type': 'byor'},
+            f"BYOR Key - user {user_id}, org {org_id_str}",
+            {"type": "byor"},
         )
 
         logger.info(
-            'Successfully generated new BYOR key',
+            "Successfully generated new BYOR key",
             extra={
-                'user_id': user_id,
-                'key_length': len(key),
-                'key_prefix': key[:10] + '...' if len(key) > 10 else key,
+                "user_id": user_id,
+                "key_length": len(key),
+                "key_prefix": key[:10] + "..." if len(key) > 10 else key,
             },
         )
         return key
     except Exception as e:
         logger.exception(
-            'Error generating BYOR key',
-            extra={'user_id': user_id, 'error': str(e)},
+            "Error generating BYOR key",
+            extra={"user_id": user_id, "error": str(e)},
         )
         return None
 
@@ -92,23 +92,23 @@ async def delete_byor_key_from_litellm(
     to clean up orphaned aliases that could block key regeneration.
     """
     try:
-        key_alias = f'BYOR Key - user {user_id}, org {org_id}'
+        key_alias = f"BYOR Key - user {user_id}, org {org_id}"
         await LiteLlmManager.delete_key(byor_key, key_alias=key_alias)
         logger.info(
-            'Successfully deleted BYOR key from LiteLLM',
-            extra={'user_id': user_id},
+            "Successfully deleted BYOR key from LiteLLM",
+            extra={"user_id": user_id},
         )
         return True
     except Exception as e:
         logger.exception(
-            'Error deleting BYOR key from LiteLLM',
-            extra={'user_id': user_id, 'error': str(e)},
+            "Error deleting BYOR key from LiteLLM",
+            extra={"user_id": user_id, "error": str(e)},
         )
         return False
 
 
 # Initialize API router and key store
-api_router = APIRouter(prefix='/api/keys')
+api_router = APIRouter(prefix="/api/keys")
 api_key_store = ApiKeyStore.get_instance()
 
 
@@ -116,10 +116,10 @@ class ApiKeyCreate(BaseModel):
     name: str | None = None
     expires_at: datetime | None = None
 
-    @field_validator('expires_at')
+    @field_validator("expires_at")
     def validate_expiration(cls, v):
         if v and v < datetime.now(UTC):
-            raise ValueError('Expiration date cannot be in the past')
+            raise ValueError("Expiration date cannot be in the past")
         return v
 
 
@@ -168,7 +168,7 @@ def api_key_to_response(key: ApiKey) -> ApiKeyResponse:
     )
 
 
-@api_router.get('/llm/byor/permitted', tags=['Keys'])
+@api_router.get("/llm/byor/permitted", tags=["Keys"])
 async def check_byor_permitted(
     user_id: str = Depends(get_user_id),
     effective_org_id: UUID = EFFECTIVE_ORG_ID,
@@ -181,15 +181,15 @@ async def check_byor_permitted(
         return ByorPermittedResponse(permitted=permitted)
     except Exception as e:
         logger.exception(
-            'Error checking BYOR export permission', extra={'error': str(e)}
+            "Error checking BYOR export permission", extra={"error": str(e)}
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail='Failed to check BYOR export permission',
+            detail="Failed to check BYOR export permission",
         )
 
 
-@api_router.post('', tags=['Keys'])
+@api_router.post("", tags=["Keys"])
 async def create_api_key(
     key_data: ApiKeyCreate,
     user_id: str = Depends(get_user_id),
@@ -216,14 +216,14 @@ async def create_api_key(
                     expires_at=key.expires_at,
                 )
     except Exception:
-        logger.exception('Error creating API key')
+        logger.exception("Error creating API key")
     raise HTTPException(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        detail='Failed to create API key',
+        detail="Failed to create API key",
     )
 
 
-@api_router.get('', tags=['Keys'])
+@api_router.get("", tags=["Keys"])
 async def list_api_keys(
     user_id: str = Depends(get_user_id),
     effective_org_id: UUID = EFFECTIVE_ORG_ID,
@@ -233,14 +233,14 @@ async def list_api_keys(
         keys = await api_key_store.list_api_keys(user_id, org_id=effective_org_id)
         return [api_key_to_response(key) for key in keys]
     except Exception:
-        logger.exception('Error listing API keys')
+        logger.exception("Error listing API keys")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail='Failed to list API keys',
+            detail="Failed to list API keys",
         )
 
 
-@api_router.delete('/{key_id}', tags=['Keys'])
+@api_router.delete("/{key_id}", tags=["Keys"])
 async def delete_api_key(
     key_id: int,
     user_id: str = Depends(get_user_id),
@@ -260,7 +260,7 @@ async def delete_api_key(
         if not key_to_delete:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail='API key not found',
+                detail="API key not found",
             )
 
         # Delete the key
@@ -269,20 +269,20 @@ async def delete_api_key(
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail='Failed to delete API key',
+                detail="Failed to delete API key",
             )
-        return MessageResponse(message='API key deleted successfully')
+        return MessageResponse(message="API key deleted successfully")
     except HTTPException:
         raise
     except Exception:
-        logger.exception('Error deleting API key')
+        logger.exception("Error deleting API key")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail='Failed to delete API key',
+            detail="Failed to delete API key",
         )
 
 
-@api_router.get('/current', tags=['Keys'])
+@api_router.get("/current", tags=["Keys"])
 async def get_current_api_key(
     request: Request,
     user_id: str = Depends(get_user_id),
@@ -301,7 +301,7 @@ async def get_current_api_key(
     if user_auth.get_auth_type() != AuthType.BEARER:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='This endpoint requires API key authentication. Not available for cookie-based auth.',
+            detail="This endpoint requires API key authentication. Not available for cookie-based auth.",
         )
 
     # In SaaS context, bearer auth always produces SaasUserAuth
@@ -310,7 +310,7 @@ async def get_current_api_key(
     if saas_user_auth.api_key_org_id is None:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail='This API key was created before organization support. Please regenerate your API key to use this endpoint.',
+            detail="This API key was created before organization support. Please regenerate your API key to use this endpoint.",
         )
 
     return CurrentApiKeyResponse(
@@ -322,7 +322,7 @@ async def get_current_api_key(
     )
 
 
-@api_router.get('/llm/byor', tags=['Keys'])
+@api_router.get("/llm/byor", tags=["Keys"])
 async def get_llm_api_key_for_byor(
     user_id: str = Depends(get_user_id),
     effective_org_id: UUID = EFFECTIVE_ORG_ID,
@@ -342,7 +342,7 @@ async def get_llm_api_key_for_byor(
         ):
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail='BYOR key export is not enabled. Purchase credits to enable this feature.',
+                detail="BYOR key export is not enabled. Purchase credits to enable this feature.",
             )
 
         # Check if the BYOR key exists in the database
@@ -355,10 +355,10 @@ async def get_llm_api_key_for_byor(
             else:
                 # Key exists in DB but is invalid in LiteLLM - regenerate it
                 logger.warning(
-                    'BYOR key found in database but invalid in LiteLLM - regenerating',
+                    "BYOR key found in database but invalid in LiteLLM - regenerating",
                     extra={
-                        'user_id': user_id,
-                        'key_prefix': byor_key[:10] + '...'
+                        "user_id": user_id,
+                        "key_prefix": byor_key[:10] + "..."
                         if len(byor_key) > 10
                         else byor_key,
                     },
@@ -373,32 +373,32 @@ async def get_llm_api_key_for_byor(
             # Store the key in the database
             await store_byor_key_in_db(user_id, effective_org_id, key)
             logger.info(
-                'Successfully generated and stored new BYOR key',
-                extra={'user_id': user_id},
+                "Successfully generated and stored new BYOR key",
+                extra={"user_id": user_id},
             )
             return LlmApiKeyResponse(key=key)
         else:
             logger.error(
-                'Failed to generate new BYOR LLM API key',
-                extra={'user_id': user_id},
+                "Failed to generate new BYOR LLM API key",
+                extra={"user_id": user_id},
             )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail='Failed to generate new BYOR LLM API key',
+                detail="Failed to generate new BYOR LLM API key",
             )
 
     except HTTPException:
         # Re-raise HTTP exceptions as-is
         raise
     except Exception as e:
-        logger.exception('Error retrieving BYOR LLM API key', extra={'error': str(e)})
+        logger.exception("Error retrieving BYOR LLM API key", extra={"error": str(e)})
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail='Failed to retrieve BYOR LLM API key',
+            detail="Failed to retrieve BYOR LLM API key",
         )
 
 
-@api_router.post('/llm/byor/refresh', tags=['Keys'])
+@api_router.post("/llm/byor/refresh", tags=["Keys"])
 async def refresh_llm_api_key_for_byor(
     user_id: str = Depends(get_user_id),
     effective_org_id: UUID = EFFECTIVE_ORG_ID,
@@ -408,7 +408,7 @@ async def refresh_llm_api_key_for_byor(
     Returns 402 Payment Required if BYOR export is not enabled for the
     request's effective org.
     """
-    logger.info('Starting BYOR LLM API key refresh', extra={'user_id': user_id})
+    logger.info("Starting BYOR LLM API key refresh", extra={"user_id": user_id})
 
     try:
         if not await OrgService.check_byor_export_enabled(
@@ -416,7 +416,7 @@ async def refresh_llm_api_key_for_byor(
         ):
             raise HTTPException(
                 status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail='BYOR key export is not enabled. Purchase credits to enable this feature.',
+                detail="BYOR key export is not enabled. Purchase credits to enable this feature.",
             )
 
         # Get the existing BYOR key from the database
@@ -429,56 +429,56 @@ async def refresh_llm_api_key_for_byor(
             )
             if not delete_success:
                 logger.warning(
-                    'Failed to delete existing BYOR key from LiteLLM, continuing with key generation',
-                    extra={'user_id': user_id},
+                    "Failed to delete existing BYOR key from LiteLLM, continuing with key generation",
+                    extra={"user_id": user_id},
                 )
         else:
             logger.info(
-                'No existing BYOR key found in database, proceeding with key generation',
-                extra={'user_id': user_id},
+                "No existing BYOR key found in database, proceeding with key generation",
+                extra={"user_id": user_id},
             )
 
         # Generate a new key
         key = await generate_byor_key(user_id, effective_org_id)
         if not key:
             logger.error(
-                'Failed to generate new BYOR LLM API key',
-                extra={'user_id': user_id},
+                "Failed to generate new BYOR LLM API key",
+                extra={"user_id": user_id},
             )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail='Failed to generate new BYOR LLM API key',
+                detail="Failed to generate new BYOR LLM API key",
             )
 
         # Store the key in the database
         await store_byor_key_in_db(user_id, effective_org_id, key)
 
         logger.info(
-            'BYOR LLM API key refresh completed successfully',
-            extra={'user_id': user_id},
+            "BYOR LLM API key refresh completed successfully",
+            extra={"user_id": user_id},
         )
         return LlmApiKeyResponse(key=key)
     except HTTPException as he:
         logger.error(
-            'HTTP exception during BYOR LLM API key refresh',
+            "HTTP exception during BYOR LLM API key refresh",
             extra={
-                'user_id': user_id,
-                'status_code': he.status_code,
-                'detail': he.detail,
-                'exception_type': type(he).__name__,
+                "user_id": user_id,
+                "status_code": he.status_code,
+                "detail": he.detail,
+                "exception_type": type(he).__name__,
             },
         )
         raise
     except Exception as e:
         logger.exception(
-            'Unexpected error refreshing BYOR LLM API key',
+            "Unexpected error refreshing BYOR LLM API key",
             extra={
-                'user_id': user_id,
-                'error': str(e),
-                'exception_type': type(e).__name__,
+                "user_id": user_id,
+                "error": str(e),
+                "exception_type": type(e).__name__,
             },
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail='Failed to refresh BYOR LLM API key',
+            detail="Failed to refresh BYOR LLM API key",
         )

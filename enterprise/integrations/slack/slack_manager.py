@@ -47,12 +47,12 @@ from openhands.app_server.utils.logger import openhands_logger as logger
 
 authorize_url_generator = AuthorizeUrlGenerator(
     client_id=SLACK_CLIENT_ID,
-    scopes=['app_mentions:read', 'chat:write'],
-    user_scopes=['search:read'],
+    scopes=["app_mentions:read", "chat:write"],
+    user_scopes=["search:read"],
 )
 
 # Key prefix for storing user messages in Redis during repo selection flow
-SLACK_USER_MSG_KEY_PREFIX = 'slack_user_msg'
+SLACK_USER_MSG_KEY_PREFIX = "slack_user_msg"
 # Expiration time for stored user messages (5 minutes)
 # Arbitrary timeout based on typical user attention span; may be tuned based on feedback
 SLACK_USER_MSG_EXPIRATION = 300
@@ -62,16 +62,16 @@ class SlackManager(Manager[SlackViewInterface]):
     def __init__(self, token_manager):
         self.token_manager = token_manager
         self.login_link = (
-            'User has not yet authenticated: [Click here to Login to OpenHands]({}).'
+            "User has not yet authenticated: [Click here to Login to OpenHands]({})."
         )
 
         self.jinja_env = Environment(
-            loader=FileSystemLoader(OPENHANDS_RESOLVER_TEMPLATES_DIR + 'slack')
+            loader=FileSystemLoader(OPENHANDS_RESOLVER_TEMPLATES_DIR + "slack")
         )
 
     def _confirm_incoming_source_type(self, message: Message):
         if message.source != SourceType.SLACK:
-            raise ValueError(f'Unexpected message source {message.source}')
+            raise ValueError(f"Unexpected message source {message.source}")
 
     async def authenticate_user(
         self, slack_user_id: str
@@ -112,31 +112,31 @@ class SlackManager(Manager[SlackViewInterface]):
         Raises:
             SlackError: If storage fails (REDIS_STORE_FAILED)
         """
-        key = f'{SLACK_USER_MSG_KEY_PREFIX}:{message_ts}:{thread_ts}'
+        key = f"{SLACK_USER_MSG_KEY_PREFIX}:{message_ts}:{thread_ts}"
         try:
             redis = get_redis_client_async()
             await redis.set(key, user_msg, ex=SLACK_USER_MSG_EXPIRATION)
             logger.info(
-                'slack_stored_user_msg',
+                "slack_stored_user_msg",
                 extra={
-                    'message_ts': message_ts,
-                    'thread_ts': thread_ts,
-                    'key': key,
+                    "message_ts": message_ts,
+                    "thread_ts": thread_ts,
+                    "key": key,
                 },
             )
         except Exception as e:
             logger.error(
-                'slack_store_user_msg_failed',
+                "slack_store_user_msg_failed",
                 extra={
-                    'message_ts': message_ts,
-                    'thread_ts': thread_ts,
-                    'key': key,
-                    'error': str(e),
+                    "message_ts": message_ts,
+                    "thread_ts": thread_ts,
+                    "key": key,
+                    "error": str(e),
                 },
             )
             raise SlackError(
                 SlackErrorCode.REDIS_STORE_FAILED,
-                log_context={'message_ts': message_ts, 'thread_ts': thread_ts},
+                log_context={"message_ts": message_ts, "thread_ts": thread_ts},
             )
 
     async def _retrieve_user_msg_for_form(
@@ -155,55 +155,55 @@ class SlackManager(Manager[SlackViewInterface]):
             SlackError: If retrieval fails (REDIS_RETRIEVE_FAILED) or message
                         not found (SESSION_EXPIRED)
         """
-        key = f'{SLACK_USER_MSG_KEY_PREFIX}:{message_ts}:{thread_ts}'
+        key = f"{SLACK_USER_MSG_KEY_PREFIX}:{message_ts}:{thread_ts}"
         try:
             redis = get_redis_client_async()
             user_msg = await redis.get(key)
             if user_msg:
                 # Redis returns bytes, decode to string
                 if isinstance(user_msg, bytes):
-                    user_msg = user_msg.decode('utf-8')
+                    user_msg = user_msg.decode("utf-8")
                 logger.info(
-                    'slack_retrieved_user_msg',
+                    "slack_retrieved_user_msg",
                     extra={
-                        'message_ts': message_ts,
-                        'thread_ts': thread_ts,
-                        'key': key,
+                        "message_ts": message_ts,
+                        "thread_ts": thread_ts,
+                        "key": key,
                     },
                 )
                 return user_msg
             else:
                 logger.warning(
-                    'slack_user_msg_not_found',
+                    "slack_user_msg_not_found",
                     extra={
-                        'message_ts': message_ts,
-                        'thread_ts': thread_ts,
-                        'key': key,
+                        "message_ts": message_ts,
+                        "thread_ts": thread_ts,
+                        "key": key,
                     },
                 )
                 raise SlackError(
                     SlackErrorCode.SESSION_EXPIRED,
-                    log_context={'message_ts': message_ts, 'thread_ts': thread_ts},
+                    log_context={"message_ts": message_ts, "thread_ts": thread_ts},
                 )
         except SlackError:
             raise
         except Exception as e:
             logger.error(
-                'slack_retrieve_user_msg_failed',
+                "slack_retrieve_user_msg_failed",
                 extra={
-                    'message_ts': message_ts,
-                    'thread_ts': thread_ts,
-                    'key': key,
-                    'error': str(e),
+                    "message_ts": message_ts,
+                    "thread_ts": thread_ts,
+                    "key": key,
+                    "error": str(e),
                 },
             )
             raise SlackError(
                 SlackErrorCode.REDIS_RETRIEVE_FAILED,
-                log_context={'message_ts': message_ts, 'thread_ts': thread_ts},
+                log_context={"message_ts": message_ts, "thread_ts": thread_ts},
             )
 
     async def _search_repositories(
-        self, user_auth: UserAuth, query: str = '', per_page: int = 100
+        self, user_auth: UserAuth, query: str = "", per_page: int = 100
     ) -> list[Repository]:
         """Search repositories for a user with optional query filtering.
 
@@ -229,8 +229,8 @@ class SlackManager(Manager[SlackViewInterface]):
             selected_provider=None,
             query=query,
             per_page=per_page,
-            sort='pushed',
-            order='desc',
+            sort="pushed",
+            order="desc",
             app_mode=server_config.app_mode,
         )
         return repos
@@ -256,41 +256,41 @@ class SlackManager(Manager[SlackViewInterface]):
         """
         return [
             {
-                'type': 'header',
-                'text': {
-                    'type': 'plain_text',
-                    'text': 'Choose a repository',
-                    'emoji': True,
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": "Choose a repository",
+                    "emoji": True,
                 },
             },
             {
-                'type': 'section',
-                'text': {
-                    'type': 'mrkdwn',
-                    'text': 'Select a repository or continue without one:',
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "Select a repository or continue without one:",
                 },
             },
             {
-                'type': 'actions',
-                'elements': [
+                "type": "actions",
+                "elements": [
                     {
-                        'type': 'button',
-                        'action_id': f'no_repository:{message_ts}:{thread_ts}',
-                        'text': {
-                            'type': 'plain_text',
-                            'text': 'No Repository',
-                            'emoji': True,
+                        "type": "button",
+                        "action_id": f"no_repository:{message_ts}:{thread_ts}",
+                        "text": {
+                            "type": "plain_text",
+                            "text": "No Repository",
+                            "emoji": True,
                         },
-                        'value': '-',
+                        "value": "-",
                     },
                     {
-                        'type': 'external_select',
-                        'action_id': f'repository_select:{message_ts}:{thread_ts}',
-                        'placeholder': {
-                            'type': 'plain_text',
-                            'text': 'Search repositories...',
+                        "type": "external_select",
+                        "action_id": f"repository_select:{message_ts}:{thread_ts}",
+                        "placeholder": {
+                            "type": "plain_text",
+                            "text": "Search repositories...",
                         },
-                        'min_query_length': 0,
+                        "min_query_length": 0,
                     },
                 ],
             },
@@ -313,11 +313,11 @@ class SlackManager(Manager[SlackViewInterface]):
         """
         return [
             {
-                'text': {
-                    'type': 'plain_text',
-                    'text': repo.full_name[:75],  # Slack has 75 char limit for text
+                "text": {
+                    "type": "plain_text",
+                    "text": repo.full_name[:75],  # Slack has 75 char limit for text
                 },
-                'value': repo.full_name,
+                "value": repo.full_name,
             }
             for repo in repos[:100]
         ]
@@ -362,8 +362,8 @@ class SlackManager(Manager[SlackViewInterface]):
 
         except Exception as e:
             logger.exception(
-                'slack_unexpected_error',
-                extra={'error': str(e), **message.message},
+                "slack_unexpected_error",
+                extra={"error": str(e), **message.message},
             )
             await self.handle_slack_error(
                 message.message,
@@ -383,21 +383,21 @@ class SlackManager(Manager[SlackViewInterface]):
             Tuple of (message_ts, thread_ts, selected_value) if action is recognized,
             None if the action_id is unknown.
         """
-        action_id = action['action_id']
+        action_id = action["action_id"]
 
-        if action_id.startswith('no_repository:'):
+        if action_id.startswith("no_repository:"):
             # Button click - value is in 'value' field
-            attribs = action_id.split('no_repository:')[-1]
-            selected_value = action.get('value', '-')
-        elif action_id.startswith('repository_select:'):
+            attribs = action_id.split("no_repository:")[-1]
+            selected_value = action.get("value", "-")
+        elif action_id.startswith("repository_select:"):
             # Dropdown selection - value is in 'selected_option'
-            attribs = action_id.split('repository_select:')[-1]
-            selected_value = action['selected_option']['value']
+            attribs = action_id.split("repository_select:")[-1]
+            selected_value = action["selected_option"]["value"]
         else:
             return None
 
-        message_ts, thread_ts = attribs.split(':')
-        thread_ts = None if thread_ts == 'None' else thread_ts
+        message_ts, thread_ts = attribs.split(":")
+        thread_ts = None if thread_ts == "None" else thread_ts
 
         return message_ts, thread_ts, selected_value
 
@@ -413,19 +413,19 @@ class SlackManager(Manager[SlackViewInterface]):
             slack_payload: The raw Slack interaction payload
         """
         # Extract fields from the Slack interaction payload
-        action = slack_payload['actions'][0]
-        slack_user_id = slack_payload['user']['id']
-        channel_id = slack_payload['container']['channel_id']
-        team_id = slack_payload['team']['id']
+        action = slack_payload["actions"][0]
+        slack_user_id = slack_payload["user"]["id"]
+        channel_id = slack_payload["container"]["channel_id"]
+        team_id = slack_payload["team"]["id"]
 
         # Parse the action to extract message_ts, thread_ts, and selected value
         parsed = self._parse_form_action(action)
         if parsed is None:
             logger.warning(
-                'slack_unknown_action_id',
+                "slack_unknown_action_id",
                 extra={
-                    'action_id': action['action_id'],
-                    'slack_user_id': slack_user_id,
+                    "action_id": action["action_id"],
+                    "slack_user_id": slack_user_id,
                 },
             )
             return
@@ -434,15 +434,15 @@ class SlackManager(Manager[SlackViewInterface]):
 
         # Build partial payload for error handling
         payload = {
-            'team_id': team_id,
-            'channel_id': channel_id,
-            'slack_user_id': slack_user_id,
-            'message_ts': message_ts,
-            'thread_ts': thread_ts,
+            "team_id": team_id,
+            "channel_id": channel_id,
+            "slack_user_id": slack_user_id,
+            "message_ts": message_ts,
+            "thread_ts": thread_ts,
         }
 
         # Convert "-" (No Repository) to None
-        selected_repository = None if selected_value == '-' else selected_value
+        selected_repository = None if selected_value == "-" else selected_value
 
         # Retrieve the original user message from Redis
         try:
@@ -452,8 +452,8 @@ class SlackManager(Manager[SlackViewInterface]):
             return
         except Exception as e:
             logger.exception(
-                'slack_unexpected_error',
-                extra={'error': str(e), **payload},
+                "slack_unexpected_error",
+                extra={"error": str(e), **payload},
             )
             await self.handle_slack_error(
                 payload, SlackError(SlackErrorCode.UNEXPECTED_ERROR)
@@ -461,8 +461,8 @@ class SlackManager(Manager[SlackViewInterface]):
             return
 
         # Complete the payload and delegate to receive_message
-        payload['selected_repo'] = selected_repository
-        payload['user_msg'] = user_msg
+        payload["selected_repo"] = selected_repository
+        payload["user_msg"] = user_msg
 
         message = Message(source=SourceType.SLACK, message=payload)
         await self.receive_message(message)
@@ -478,7 +478,7 @@ class SlackManager(Manager[SlackViewInterface]):
             SlackError: If user is not authenticated or other recoverable error.
         """
         slack_user, saas_user_auth = await self.authenticate_user(
-            slack_user_id=message.message['slack_user_id']
+            slack_user_id=message.message["slack_user_id"]
         )
 
         slack_view = await SlackFactory.create_slack_view_from_payload(
@@ -490,7 +490,7 @@ class SlackManager(Manager[SlackViewInterface]):
             login_link = self._generate_login_link_with_state(message)
             raise SlackError(
                 SlackErrorCode.USER_NOT_AUTHENTICATED,
-                message_kwargs={'login_link': login_link},
+                message_kwargs={"login_link": login_link},
                 log_context=slack_view.to_log_context(),
             )
 
@@ -520,9 +520,9 @@ class SlackManager(Manager[SlackViewInterface]):
 
         if not view:
             logger.error(
-                'slack_error_no_view',
+                "slack_error_no_view",
                 extra={
-                    'error_code': error.code.value,
+                    "error_code": error.code.value,
                     **error.log_context,
                 },
             )
@@ -530,15 +530,15 @@ class SlackManager(Manager[SlackViewInterface]):
 
         # Log the error
         log_level = (
-            'exception' if error.code == SlackErrorCode.UNEXPECTED_ERROR else 'warning'
+            "exception" if error.code == SlackErrorCode.UNEXPECTED_ERROR else "warning"
         )
         log_data = {
-            'error_code': error.code.value,
+            "error_code": error.code.value,
             **view.to_log_context(),
             **error.log_context,
         }
         getattr(logger, log_level)(
-            f'slack_error_{error.code.name.lower()}', extra=log_data
+            f"slack_error_{error.code.name.lower()}", extra=log_data
         )
 
         # Send user-facing message
@@ -579,8 +579,8 @@ class SlackManager(Manager[SlackViewInterface]):
                 channel=slack_view.channel_id,
                 user=slack_view.slack_user_id,
                 thread_ts=slack_view.thread_ts,
-                text=message['text'],
-                blocks=message['blocks'],
+                text=message["text"],
+                blocks=message["blocks"],
             )
         else:
             await client.chat_postMessage(
@@ -606,7 +606,7 @@ class SlackManager(Manager[SlackViewInterface]):
         inferred_repo = inferred_repos[0]
         logger.info(
             f'[Slack] Verifying inferred repo "{inferred_repo}" '
-            f'for user {user.slack_display_name} (id={slack_view.saas_user_auth.get_user_id()})'
+            f"for user {user.slack_display_name} (id={slack_view.saas_user_auth.get_user_id()})"
         )
 
         try:
@@ -627,7 +627,7 @@ class SlackManager(Manager[SlackViewInterface]):
         except (AuthenticationError, ProviderTimeoutError) as e:
             logger.info(
                 f'[Slack] Could not verify repo "{inferred_repo}": {e}. '
-                f'Showing repository selector.'
+                f"Showing repository selector."
             )
             return False
 
@@ -641,12 +641,12 @@ class SlackManager(Manager[SlackViewInterface]):
         """
         user = slack_view.slack_to_openhands_user
         logger.info(
-            'render_repository_selector',
+            "render_repository_selector",
             extra={
-                'slack_user_id': user.slack_user_id,
-                'keycloak_user_id': user.keycloak_user_id,
-                'message_ts': slack_view.message_ts,
-                'thread_ts': slack_view.thread_ts,
+                "slack_user_id": user.slack_user_id,
+                "keycloak_user_id": user.keycloak_user_id,
+                "message_ts": slack_view.message_ts,
+                "thread_ts": slack_view.thread_ts,
             },
         )
 
@@ -656,8 +656,8 @@ class SlackManager(Manager[SlackViewInterface]):
         )
 
         repo_selection_msg = {
-            'text': 'Choose a Repository:',
-            'blocks': self._generate_repo_selection_form(
+            "text": "Choose a Repository:",
+            "blocks": self._generate_repo_selection_form(
                 slack_view.message_ts, slack_view.thread_ts
             ),
         }
@@ -700,15 +700,15 @@ class SlackManager(Manager[SlackViewInterface]):
             user_info = slack_view.slack_to_openhands_user
             try:
                 logger.info(
-                    f'[Slack] Starting job for user {user_info.slack_display_name} (id={user_info.slack_user_id})',
-                    extra={'keyloak_user_id': user_info.keycloak_user_id},
+                    f"[Slack] Starting job for user {user_info.slack_display_name} (id={user_info.slack_user_id})",
+                    extra={"keyloak_user_id": user_info.keycloak_user_id},
                 )
                 conversation_id = await slack_view.create_or_update_conversation(
                     self.jinja_env
                 )
 
                 logger.info(
-                    f'[Slack] Created conversation {conversation_id} for user {user_info.slack_display_name}'
+                    f"[Slack] Created conversation {conversation_id} for user {user_info.slack_display_name}"
                 )
 
                 # V1 callback processors are registered by the view during conversation creation
@@ -717,21 +717,21 @@ class SlackManager(Manager[SlackViewInterface]):
 
             except MissingSettingsError as e:
                 logger.warning(
-                    f'[Slack] Missing settings error for user {user_info.slack_display_name}: {str(e)}'
+                    f"[Slack] Missing settings error for user {user_info.slack_display_name}: {str(e)}"
                 )
 
-                msg_info = f'{user_info.slack_display_name} please re-login into [OpenHands Cloud]({HOST_URL}) before starting a job.'
+                msg_info = f"{user_info.slack_display_name} please re-login into [OpenHands Cloud]({HOST_URL}) before starting a job."
 
             except LLMAuthenticationError as e:
                 logger.warning(
-                    f'[Slack] LLM authentication error for user {user_info.slack_display_name}: {str(e)}'
+                    f"[Slack] LLM authentication error for user {user_info.slack_display_name}: {str(e)}"
                 )
 
-                msg_info = f'@{user_info.slack_display_name} please set a valid LLM API key in [OpenHands Cloud]({HOST_URL}) before starting a job.'
+                msg_info = f"@{user_info.slack_display_name} please set a valid LLM API key in [OpenHands Cloud]({HOST_URL}) before starting a job."
 
             except SessionExpiredError as e:
                 logger.warning(
-                    f'[Slack] Session expired for user {user_info.slack_display_name}: {str(e)}'
+                    f"[Slack] Session expired for user {user_info.slack_display_name}: {str(e)}"
                 )
 
                 msg_info = get_session_expired_message(user_info.slack_display_name)
@@ -742,7 +742,7 @@ class SlackManager(Manager[SlackViewInterface]):
             await self.send_message(msg_info, slack_view)
 
         except Exception:
-            logger.exception('[Slack]: Error starting job')
+            logger.exception("[Slack]: Error starting job")
             await self.send_message(
-                'Uh oh! There was an unexpected error starting the job :(', slack_view
+                "Uh oh! There was an unexpected error starting the job :(", slack_view
             )

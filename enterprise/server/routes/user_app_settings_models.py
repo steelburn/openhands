@@ -36,7 +36,7 @@ class UserAppSettingsResponse(BaseModel):
     git_user_email: EmailStr | None = None
 
     @classmethod
-    def from_user(cls, user: User) -> 'UserAppSettingsResponse':
+    def from_user(cls, user: User) -> "UserAppSettingsResponse":
         """Create response from User entity."""
         return cls(
             language=user.language,

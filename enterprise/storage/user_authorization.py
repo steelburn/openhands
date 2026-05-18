@@ -11,8 +11,8 @@ from storage.base import Base
 class UserAuthorizationType(str, Enum):
     """Type of user authorization rule."""
 
-    WHITELIST = 'whitelist'
-    BLACKLIST = 'blacklist'
+    WHITELIST = "whitelist"
+    BLACKLIST = "blacklist"
 
 
 class UserAuthorization(Base):
@@ -27,7 +27,7 @@ class UserAuthorization(Base):
     When provider_type is NULL, the rule matches all providers.
     """
 
-    __tablename__ = 'user_authorizations'
+    __tablename__ = "user_authorizations"
 
     id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     email_pattern: Mapped[str | None] = mapped_column(String, nullable=True)

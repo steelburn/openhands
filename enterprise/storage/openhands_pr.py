@@ -11,7 +11,7 @@ class OpenhandsPR(Base):
     Represents a pull request created by OpenHands.
     """
 
-    __tablename__ = 'openhands_prs'
+    __tablename__ = "openhands_prs"
 
     id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     repo_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
@@ -41,13 +41,13 @@ class OpenhandsPR(Base):
 
     # Attributes to track progress on enrichment
     processed: Mapped[bool] = mapped_column(
-        nullable=False, server_default=text('FALSE')
+        nullable=False, server_default=text("FALSE")
     )
     process_attempts: Mapped[int] = mapped_column(
-        nullable=False, server_default=text('0')
+        nullable=False, server_default=text("0")
     )  # Max attempts in case we hit rate limits or information is no longer accessible
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, server_default=text('CURRENT_TIMESTAMP'), nullable=False
+        DateTime, server_default=text("CURRENT_TIMESTAMP"), nullable=False
     )  # To buffer between attempts
     closed_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False

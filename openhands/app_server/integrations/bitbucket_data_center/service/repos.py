@@ -29,35 +29,35 @@ class BitbucketDCReposMixin(BitbucketDCMixinBase):
             try:
                 parsed_url = urlparse(query)
                 path_segments = [
-                    segment for segment in parsed_url.path.split('/') if segment
+                    segment for segment in parsed_url.path.split("/") if segment
                 ]
 
-                if 'projects' in path_segments:
-                    idx = path_segments.index('projects')
+                if "projects" in path_segments:
+                    idx = path_segments.index("projects")
                     if (
                         len(path_segments) > idx + 2
                         and path_segments[idx + 1]
-                        and path_segments[idx + 2] == 'repos'
+                        and path_segments[idx + 2] == "repos"
                     ):
                         project_key = path_segments[idx + 1]
                         repo_name = (
                             path_segments[idx + 3]
                             if len(path_segments) > idx + 3
-                            else ''
+                            else ""
                         )
                     elif len(path_segments) > idx + 2:
                         project_key = path_segments[idx + 1]
                         repo_name = path_segments[idx + 2]
                     else:
-                        project_key = ''
-                        repo_name = ''
+                        project_key = ""
+                        repo_name = ""
                 else:
-                    project_key = path_segments[0] if len(path_segments) >= 1 else ''
-                    repo_name = path_segments[1] if len(path_segments) >= 2 else ''
+                    project_key = path_segments[0] if len(path_segments) >= 1 else ""
+                    repo_name = path_segments[1] if len(path_segments) >= 2 else ""
 
                 if project_key and repo_name:
                     repo = await self.get_repository_details_from_repo_name(
-                        f'{project_key}/{repo_name}'
+                        f"{project_key}/{repo_name}"
                     )
                     repositories.append(repo)
             except (ValueError, IndexError):
@@ -67,18 +67,18 @@ class BitbucketDCReposMixin(BitbucketDCMixinBase):
 
         MAX_REPOS = 1000
         # Search for repos once project prefix exists
-        if '/' in query:
-            project_slug, repo_query = query.split('/', 1)
-            project_repos_url = f'{self.BASE_URL}/projects/{project_slug}/repos'
+        if "/" in query:
+            project_slug, repo_query = query.split("/", 1)
+            project_repos_url = f"{self.BASE_URL}/projects/{project_slug}/repos"
             raw_repos = await self._fetch_paginated_data(
-                project_repos_url, {'limit': per_page}, MAX_REPOS
+                project_repos_url, {"limit": per_page}, MAX_REPOS
             )
             if repo_query:
                 raw_repos = [
                     r
                     for r in raw_repos
-                    if repo_query.lower() in r.get('slug', '').lower()
-                    or repo_query.lower() in r.get('name', '').lower()
+                    if repo_query.lower() in r.get("slug", "").lower()
+                    or repo_query.lower() in r.get("name", "").lower()
                 ]
             return [await self._parse_repository(repo) for repo in raw_repos]
 
@@ -96,23 +96,23 @@ class BitbucketDCReposMixin(BitbucketDCMixinBase):
 
     async def _get_user_projects(self) -> list[dict[str, Any]]:
         """Get all projects the user has access to"""
-        projects_url = f'{self.BASE_URL}/projects'
+        projects_url = f"{self.BASE_URL}/projects"
         projects = await self._fetch_paginated_data(projects_url, {}, 100)
         return projects
 
     async def get_installations(
         self, query: str | None = None, limit: int = 100
     ) -> list[str]:
-        projects_url = f'{self.BASE_URL}/projects'
-        params: dict[str, Any] = {'limit': limit}
+        projects_url = f"{self.BASE_URL}/projects"
+        params: dict[str, Any] = {"limit": limit}
         projects = await self._fetch_paginated_data(projects_url, params, limit)
         project_keys: list[str] = []
         for project in projects:
-            key = project.get('key')
-            name = project.get('name', '')
+            key = project.get("key")
+            name = project.get("name", "")
             if not key:
                 continue
-            if query and query.lower() not in f'{key}{name}'.lower():
+            if query and query.lower() not in f"{key}{name}".lower():
                 continue
             project_keys.append(key)
         return project_keys
@@ -142,21 +142,21 @@ class BitbucketDCReposMixin(BitbucketDCMixinBase):
         # Convert installation_id to string for use as project_slug
         project_slug = installation_id
 
-        project_repos_url = f'{self.BASE_URL}/projects/{project_slug}/repos'
+        project_repos_url = f"{self.BASE_URL}/projects/{project_slug}/repos"
         # Calculate start offset from page number (Bitbucket Server uses 0-based start index)
         start = (page - 1) * per_page
-        params: dict[str, Any] = {'limit': per_page, 'start': start}
+        params: dict[str, Any] = {"limit": per_page, "start": start}
         response, _ = await self._make_request(project_repos_url, params)
-        repos = response.get('values', [])
+        repos = response.get("values", [])
         if query:
             repos = [
                 repo
                 for repo in repos
-                if query.lower() in repo.get('slug', '').lower()
-                or query.lower() in repo.get('name', '').lower()
+                if query.lower() in repo.get("slug", "").lower()
+                or query.lower() in repo.get("name", "").lower()
             ]
-        formatted_link_header = ''
-        if not response.get('isLastPage', True):
+        formatted_link_header = ""
+        if not response.get("isLastPage", True):
             next_page = page + 1
             # Use 'page=' format for frontend compatibility with extractNextPageFromLink
             formatted_link_header = (
@@ -183,10 +183,10 @@ class BitbucketDCReposMixin(BitbucketDCMixinBase):
 
         projects = await self.get_installations(limit=MAX_REPOS)
         for project_key in projects:
-            project_repos_url = f'{self.BASE_URL}/projects/{project_key}/repos'
+            project_repos_url = f"{self.BASE_URL}/projects/{project_key}/repos"
             project_repos = await self._fetch_paginated_data(
                 project_repos_url,
-                {'limit': PER_PAGE},
+                {"limit": PER_PAGE},
                 MAX_REPOS - len(repositories),
             )
             for repo in project_repos:

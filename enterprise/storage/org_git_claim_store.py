@@ -47,13 +47,13 @@ class OrgGitClaimStore:
             await session.refresh(claim)
 
             logger.info(
-                'Created Git organization claim',
+                "Created Git organization claim",
                 extra={
-                    'claim_id': str(claim.id),
-                    'org_id': str(org_id),
-                    'provider': provider,
-                    'git_organization': git_organization,
-                    'claimed_by': str(claimed_by),
+                    "claim_id": str(claim.id),
+                    "org_id": str(org_id),
+                    "provider": provider,
+                    "git_organization": git_organization,
+                    "claimed_by": str(claimed_by),
                 },
             )
 
@@ -129,12 +129,12 @@ class OrgGitClaimStore:
             await session.commit()
 
             logger.info(
-                'Deleted Git organization claim',
+                "Deleted Git organization claim",
                 extra={
-                    'claim_id': str(claim_id),
-                    'org_id': str(org_id),
-                    'provider': claim.provider,
-                    'git_organization': claim.git_organization,
+                    "claim_id": str(claim_id),
+                    "org_id": str(org_id),
+                    "provider": claim.provider,
+                    "git_organization": claim.git_organization,
                 },
             )
 

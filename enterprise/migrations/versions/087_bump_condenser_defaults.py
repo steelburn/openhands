@@ -13,8 +13,8 @@ from alembic import op
 from sqlalchemy.sql import column, table
 
 # revision identifiers, used by Alembic.
-revision: str = '087'
-down_revision: Union[str, None] = '086'
+revision: str = "087"
+down_revision: Union[str, None] = "086"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -28,8 +28,8 @@ def upgrade() -> None:
     The SDK default for keep_first will be used automatically.
     """
     user_settings_table = table(
-        'user_settings',
-        column('condenser_max_size', sa.Integer),
+        "user_settings",
+        column("condenser_max_size", sa.Integer),
     )
     # Update users with explicit 120 value
     op.execute(
@@ -52,7 +52,7 @@ def downgrade() -> None:
     distinguish between users who had 120 vs NULL before the upgrade.
     """
     user_settings_table = table(
-        'user_settings', column('condenser_max_size', sa.Integer)
+        "user_settings", column("condenser_max_size", sa.Integer)
     )
     op.execute(
         user_settings_table.update()

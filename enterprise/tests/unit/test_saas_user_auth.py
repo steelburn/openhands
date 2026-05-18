@@ -34,38 +34,38 @@ def mock_request():
     return request
 
 
-def create_mock_jwt_tokens(user_id='test_user_id', exp_offset=3600):
+def create_mock_jwt_tokens(user_id="test_user_id", exp_offset=3600):
     """Helper to create valid JWT tokens for mocking."""
     payload = {
-        'sub': user_id,
-        'exp': int(time.time()) + exp_offset,
-        'email': 'test@example.com',
-        'email_verified': True,
+        "sub": user_id,
+        "exp": int(time.time()) + exp_offset,
+        "email": "test@example.com",
+        "email_verified": True,
     }
-    access_token = jwt.encode(payload, 'secret', algorithm='HS256')
+    access_token = jwt.encode(payload, "secret", algorithm="HS256")
     refresh_token = jwt.encode(
-        {'sub': user_id, 'exp': int(time.time()) + exp_offset},
-        'secret',
-        algorithm='HS256',
+        {"sub": user_id, "exp": int(time.time()) + exp_offset},
+        "secret",
+        algorithm="HS256",
     )
-    return {'access_token': access_token, 'refresh_token': refresh_token}
+    return {"access_token": access_token, "refresh_token": refresh_token}
 
 
 @pytest.fixture
 def mock_token_manager():
-    with patch('server.auth.saas_user_auth.token_manager') as mock_tm:
+    with patch("server.auth.saas_user_auth.token_manager") as mock_tm:
         mock_tm.refresh = AsyncMock(return_value=create_mock_jwt_tokens())
         mock_tm.get_user_info_from_user_id = AsyncMock(
             return_value={
-                'federatedIdentities': [
+                "federatedIdentities": [
                     {
-                        'identityProvider': 'github',
-                        'userId': 'github_user_id',
+                        "identityProvider": "github",
+                        "userId": "github_user_id",
                     }
                 ]
             }
         )
-        mock_tm.get_idp_token = AsyncMock(return_value='github_token')
+        mock_tm.get_idp_token = AsyncMock(return_value="github_token")
         yield mock_tm
 
 
@@ -75,9 +75,9 @@ def mock_config():
     from openhands.app_server.utils.encryption_key import EncryptionKey
 
     jwt_svc = JwtService(
-        keys=[EncryptionKey(kid='test', key=SecretStr('test_secret'), active=True)]
+        keys=[EncryptionKey(kid="test", key=SecretStr("test_secret"), active=True)]
     )
-    with patch('storage.encrypt_utils.get_jwt_service', return_value=jwt_svc):
+    with patch("storage.encrypt_utils.get_jwt_service", return_value=jwt_svc):
         yield
 
 
@@ -85,27 +85,27 @@ def mock_config():
 async def test_get_user_id():
     """Test that get_user_id returns the user_id."""
     user_auth = SaasUserAuth(
-        user_id='test_user_id',
-        refresh_token=SecretStr('refresh_token'),
+        user_id="test_user_id",
+        refresh_token=SecretStr("refresh_token"),
     )
 
     user_id = await user_auth.get_user_id()
 
-    assert user_id == 'test_user_id'
+    assert user_id == "test_user_id"
 
 
 @pytest.mark.asyncio
 async def test_get_user_email():
     """Test that get_user_email returns the email."""
     user_auth = SaasUserAuth(
-        user_id='test_user_id',
-        refresh_token=SecretStr('refresh_token'),
-        email='test@example.com',
+        user_id="test_user_id",
+        refresh_token=SecretStr("refresh_token"),
+        email="test@example.com",
     )
 
     email = await user_auth.get_user_email()
 
-    assert email == 'test@example.com'
+    assert email == "test@example.com"
 
 
 @pytest.mark.asyncio
@@ -113,15 +113,15 @@ async def test_refresh(mock_token_manager):
     """Test that refresh updates the tokens."""
     refresh_token = jwt.encode(
         {
-            'sub': 'test_user_id',
-            'exp': int(time.time()) + 3600,
+            "sub": "test_user_id",
+            "exp": int(time.time()) + 3600,
         },
-        'secret',
-        algorithm='HS256',
+        "secret",
+        algorithm="HS256",
     )
 
     user_auth = SaasUserAuth(
-        user_id='test_user_id',
+        user_id="test_user_id",
         refresh_token=SecretStr(refresh_token),
     )
 
@@ -130,9 +130,9 @@ async def test_refresh(mock_token_manager):
     mock_token_manager.refresh.assert_called_once_with(refresh_token)
     # Access token should be a valid JWT
     access_token = user_auth.access_token.get_secret_value()
-    decoded = jwt.decode(access_token, options={'verify_signature': False})
-    assert decoded['sub'] == 'test_user_id'
-    assert decoded['email'] == 'test@example.com'
+    decoded = jwt.decode(access_token, options={"verify_signature": False})
+    assert decoded["sub"] == "test_user_id"
+    assert decoded["email"] == "test@example.com"
     assert user_auth.refreshed is True
 
 
@@ -141,14 +141,14 @@ async def test_get_access_token_with_existing_valid_token(mock_token_manager):
     """Test that get_access_token returns the existing token if it's valid."""
     # Create a valid JWT token that expires in the future
     payload = {
-        'sub': 'test_user_id',
-        'exp': int(time.time()) + 3600,  # Expires in 1 hour
+        "sub": "test_user_id",
+        "exp": int(time.time()) + 3600,  # Expires in 1 hour
     }
-    access_token = jwt.encode(payload, 'secret', algorithm='HS256')
+    access_token = jwt.encode(payload, "secret", algorithm="HS256")
 
     user_auth = SaasUserAuth(
-        user_id='test_user_id',
-        refresh_token=SecretStr('refresh_token'),
+        user_id="test_user_id",
+        refresh_token=SecretStr("refresh_token"),
         access_token=SecretStr(access_token),
     )
 
@@ -165,17 +165,17 @@ async def test_get_access_token_with_expired_token(mock_token_manager):
     access_token, refresh_token = (
         jwt.encode(
             {
-                'sub': 'test_user_id',
-                'exp': int(time.time()) + exp,
+                "sub": "test_user_id",
+                "exp": int(time.time()) + exp,
             },
-            'secret',
-            algorithm='HS256',
+            "secret",
+            algorithm="HS256",
         )
         for exp in [-3600, 3600]
     )
 
     user_auth = SaasUserAuth(
-        user_id='test_user_id',
+        user_id="test_user_id",
         refresh_token=SecretStr(refresh_token),
         access_token=SecretStr(access_token),
     )
@@ -183,8 +183,8 @@ async def test_get_access_token_with_expired_token(mock_token_manager):
     result = await user_auth.get_access_token()
 
     # Verify the returned token is a valid JWT with correct user_id
-    decoded = jwt.decode(result.get_secret_value(), options={'verify_signature': False})
-    assert decoded['sub'] == 'test_user_id'
+    decoded = jwt.decode(result.get_secret_value(), options={"verify_signature": False})
+    assert decoded["sub"] == "test_user_id"
     mock_token_manager.refresh.assert_called_once_with(refresh_token)
 
 
@@ -193,23 +193,23 @@ async def test_get_access_token_with_no_token(mock_token_manager):
     """Test that get_access_token refreshes when no token exists."""
     refresh_token = jwt.encode(
         {
-            'sub': 'test_user_id',
-            'exp': int(time.time()) + 3600,
+            "sub": "test_user_id",
+            "exp": int(time.time()) + 3600,
         },
-        'secret',
-        algorithm='HS256',
+        "secret",
+        algorithm="HS256",
     )
 
     user_auth = SaasUserAuth(
-        user_id='test_user_id',
+        user_id="test_user_id",
         refresh_token=SecretStr(refresh_token),
     )
 
     result = await user_auth.get_access_token()
 
     # Verify the returned token is a valid JWT with correct user_id
-    decoded = jwt.decode(result.get_secret_value(), options={'verify_signature': False})
-    assert decoded['sub'] == 'test_user_id'
+    decoded = jwt.decode(result.get_secret_value(), options={"verify_signature": False})
+    assert decoded["sub"] == "test_user_id"
     mock_token_manager.refresh.assert_called_once_with(refresh_token)
 
 
@@ -250,8 +250,8 @@ class TestGetProviderTokensBitbucketDCHost:
 
     def _make_auth_token(self):
         mock_token = MagicMock()
-        mock_token.identity_provider = 'bitbucket_data_center'
-        mock_token.id = 'token-id-1'
+        mock_token.identity_provider = "bitbucket_data_center"
+        mock_token.id = "token-id-1"
         return mock_token
 
     def _make_user_auth(self, mock_session_maker):
@@ -263,12 +263,12 @@ class TestGetProviderTokensBitbucketDCHost:
         mock_session.execute = AsyncMock(return_value=mock_result)
         mock_session_maker.return_value = mock_session
 
-        access_payload = {'sub': 'test_user_id', 'exp': int(time.time()) + 3600}
-        access_token = jwt.encode(access_payload, 'secret', algorithm='HS256')
+        access_payload = {"sub": "test_user_id", "exp": int(time.time()) + 3600}
+        access_token = jwt.encode(access_payload, "secret", algorithm="HS256")
 
         user_auth = SaasUserAuth(
-            user_id='test_user_id',
-            refresh_token=SecretStr('refresh_token'),
+            user_id="test_user_id",
+            refresh_token=SecretStr("refresh_token"),
             access_token=SecretStr(access_token),
         )
         return user_auth, mock_session
@@ -277,14 +277,14 @@ class TestGetProviderTokensBitbucketDCHost:
     async def test_host_derived_from_token_url(self):
         """host is populated from BITBUCKET_DATA_CENTER_HOST when user secrets lack it."""
         with (
-            patch('server.auth.saas_user_auth.token_manager') as mock_tm,
-            patch('server.auth.saas_user_auth.a_session_maker') as mock_session_maker,
+            patch("server.auth.saas_user_auth.token_manager") as mock_tm,
+            patch("server.auth.saas_user_auth.a_session_maker") as mock_session_maker,
             patch(
-                'server.auth.saas_user_auth.BITBUCKET_DATA_CENTER_HOST',
-                'bitbucket.company.com',
+                "server.auth.saas_user_auth.BITBUCKET_DATA_CENTER_HOST",
+                "bitbucket.company.com",
             ),
         ):
-            mock_tm.get_idp_token = AsyncMock(return_value='bdc_access_token')
+            mock_tm.get_idp_token = AsyncMock(return_value="bdc_access_token")
             user_auth, mock_session = self._make_user_auth(mock_session_maker)
             user_auth.get_secrets = AsyncMock(return_value=None)
 
@@ -292,7 +292,7 @@ class TestGetProviderTokensBitbucketDCHost:
 
         assert ProviderType.BITBUCKET_DATA_CENTER in result
         assert (
-            result[ProviderType.BITBUCKET_DATA_CENTER].host == 'bitbucket.company.com'
+            result[ProviderType.BITBUCKET_DATA_CENTER].host == "bitbucket.company.com"
         )
         mock_session.execute.assert_called_once()
 
@@ -300,20 +300,20 @@ class TestGetProviderTokensBitbucketDCHost:
     async def test_host_from_user_secrets_takes_priority(self):
         """User-configured host in secrets takes priority over the HOST fallback."""
         with (
-            patch('server.auth.saas_user_auth.token_manager') as mock_tm,
-            patch('server.auth.saas_user_auth.a_session_maker') as mock_session_maker,
+            patch("server.auth.saas_user_auth.token_manager") as mock_tm,
+            patch("server.auth.saas_user_auth.a_session_maker") as mock_session_maker,
             patch(
-                'server.auth.saas_user_auth.BITBUCKET_DATA_CENTER_HOST',
-                'bitbucket.company.com',
+                "server.auth.saas_user_auth.BITBUCKET_DATA_CENTER_HOST",
+                "bitbucket.company.com",
             ),
         ):
-            mock_tm.get_idp_token = AsyncMock(return_value='bdc_access_token')
+            mock_tm.get_idp_token = AsyncMock(return_value="bdc_access_token")
             user_auth, mock_session = self._make_user_auth(mock_session_maker)
             user_secrets = Secrets(
                 provider_tokens={
                     ProviderType.BITBUCKET_DATA_CENTER: ProviderToken(
-                        token=SecretStr('existing_token'),
-                        host='custom.bitbucket.host',
+                        token=SecretStr("existing_token"),
+                        host="custom.bitbucket.host",
                     )
                 }
             )
@@ -323,7 +323,7 @@ class TestGetProviderTokensBitbucketDCHost:
 
         assert ProviderType.BITBUCKET_DATA_CENTER in result
         assert (
-            result[ProviderType.BITBUCKET_DATA_CENTER].host == 'custom.bitbucket.host'
+            result[ProviderType.BITBUCKET_DATA_CENTER].host == "custom.bitbucket.host"
         )
         mock_session.execute.assert_called_once()
 
@@ -331,11 +331,11 @@ class TestGetProviderTokensBitbucketDCHost:
     async def test_host_remains_none_when_host_empty(self):
         """host stays None when BITBUCKET_DATA_CENTER_HOST is empty."""
         with (
-            patch('server.auth.saas_user_auth.token_manager') as mock_tm,
-            patch('server.auth.saas_user_auth.a_session_maker') as mock_session_maker,
-            patch('server.auth.saas_user_auth.BITBUCKET_DATA_CENTER_HOST', ''),
+            patch("server.auth.saas_user_auth.token_manager") as mock_tm,
+            patch("server.auth.saas_user_auth.a_session_maker") as mock_session_maker,
+            patch("server.auth.saas_user_auth.BITBUCKET_DATA_CENTER_HOST", ""),
         ):
-            mock_tm.get_idp_token = AsyncMock(return_value='bdc_access_token')
+            mock_tm.get_idp_token = AsyncMock(return_value="bdc_access_token")
             user_auth, mock_session = self._make_user_auth(mock_session_maker)
             user_auth.get_secrets = AsyncMock(return_value=None)
 
@@ -350,12 +350,12 @@ class TestGetProviderTokensBitbucketDCHost:
 async def test_get_provider_tokens_cached(mock_token_manager):
     """Test that get_provider_tokens returns cached tokens if available."""
     user_auth = SaasUserAuth(
-        user_id='test_user_id',
-        refresh_token=SecretStr('refresh_token'),
+        user_id="test_user_id",
+        refresh_token=SecretStr("refresh_token"),
         provider_tokens={
             ProviderType.GITHUB: ProviderToken(
-                token=SecretStr('cached_github_token'),
-                user_id='github_user_id',
+                token=SecretStr("cached_github_token"),
+                user_id="github_user_id",
             )
         },
     )
@@ -363,7 +363,7 @@ async def test_get_provider_tokens_cached(mock_token_manager):
     result = await user_auth.get_provider_tokens()
 
     assert ProviderType.GITHUB in result
-    assert result[ProviderType.GITHUB].token.get_secret_value() == 'cached_github_token'
+    assert result[ProviderType.GITHUB].token.get_secret_value() == "cached_github_token"
     mock_token_manager.get_user_info_from_user_id.assert_not_called()
     mock_token_manager.get_idp_token.assert_not_called()
 
@@ -377,8 +377,8 @@ async def test_get_user_settings_store():
     mock_user.current_org_id = org_id
 
     with (
-        patch('server.auth.saas_user_auth.SaasSettingsStore') as mock_store_cls,
-        patch('server.auth.saas_user_auth.UserStore') as mock_user_store,
+        patch("server.auth.saas_user_auth.SaasSettingsStore") as mock_store_cls,
+        patch("server.auth.saas_user_auth.UserStore") as mock_user_store,
     ):
         mock_store = MagicMock()
         mock_store_cls.return_value = mock_store
@@ -386,7 +386,7 @@ async def test_get_user_settings_store():
 
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr('refresh_token'),
+            refresh_token=SecretStr("refresh_token"),
         )
 
         result = await user_auth.get_user_settings_store()
@@ -402,8 +402,8 @@ async def test_get_user_settings_store_cached():
     mock_store = MagicMock()
 
     user_auth = SaasUserAuth(
-        user_id='test_user_id',
-        refresh_token=SecretStr('refresh_token'),
+        user_id="test_user_id",
+        refresh_token=SecretStr("refresh_token"),
         settings_store=mock_store,
     )
 
@@ -416,7 +416,7 @@ async def test_get_user_settings_store_cached():
 async def test_get_instance_from_bearer(mock_request):
     """Test that get_instance returns auth from bearer token."""
     with patch(
-        'server.auth.saas_user_auth.saas_user_auth_from_bearer'
+        "server.auth.saas_user_auth.saas_user_auth_from_bearer"
     ) as mock_from_bearer:
         mock_auth = MagicMock()
         mock_from_bearer.return_value = mock_auth
@@ -432,10 +432,10 @@ async def test_get_instance_from_cookie(mock_request):
     """Test that get_instance returns auth from cookie if bearer fails."""
     with (
         patch(
-            'server.auth.saas_user_auth.saas_user_auth_from_bearer'
+            "server.auth.saas_user_auth.saas_user_auth_from_bearer"
         ) as mock_from_bearer,
         patch(
-            'server.auth.saas_user_auth.saas_user_auth_from_cookie'
+            "server.auth.saas_user_auth.saas_user_auth_from_cookie"
         ) as mock_from_cookie,
     ):
         mock_from_bearer.return_value = None
@@ -454,10 +454,10 @@ async def test_get_instance_no_auth(mock_request):
     """Test that get_instance raises NoCredentialsError if no auth is found."""
     with (
         patch(
-            'server.auth.saas_user_auth.saas_user_auth_from_bearer'
+            "server.auth.saas_user_auth.saas_user_auth_from_bearer"
         ) as mock_from_bearer,
         patch(
-            'server.auth.saas_user_auth.saas_user_auth_from_cookie'
+            "server.auth.saas_user_auth.saas_user_auth_from_cookie"
         ) as mock_from_cookie,
     ):
         mock_from_bearer.return_value = None
@@ -475,26 +475,26 @@ async def test_saas_user_auth_from_bearer_success():
     """Test successful authentication from bearer token sets user_id and api_key_org_id."""
     # Arrange
     mock_request = MagicMock()
-    mock_request.headers = {'Authorization': 'Bearer test_api_key'}
+    mock_request.headers = {"Authorization": "Bearer test_api_key"}
 
     # Create a valid offline token (refresh token)
     offline_token = jwt.encode(
-        {'sub': 'test_user_id', 'exp': int(time.time()) + 3600},
-        'secret',
-        algorithm='HS256',
+        {"sub": "test_user_id", "exp": int(time.time()) + 3600},
+        "secret",
+        algorithm="HS256",
     )
 
     mock_org_id = uuid.uuid4()
     mock_validation_result = ApiKeyValidationResult(
-        user_id='test_user_id',
+        user_id="test_user_id",
         org_id=mock_org_id,
         key_id=42,
-        key_name='Test Key',
+        key_name="Test Key",
     )
 
     with (
-        patch('server.auth.saas_user_auth.ApiKeyStore') as mock_api_key_store_cls,
-        patch('server.auth.saas_user_auth.token_manager') as mock_token_manager,
+        patch("server.auth.saas_user_auth.ApiKeyStore") as mock_api_key_store_cls,
+        patch("server.auth.saas_user_auth.token_manager") as mock_token_manager,
     ):
         mock_api_key_store = MagicMock()
         mock_api_key_store.validate_api_key = AsyncMock(
@@ -504,18 +504,18 @@ async def test_saas_user_auth_from_bearer_success():
 
         mock_token_manager.load_offline_token = AsyncMock(return_value=offline_token)
         mock_token_manager.refresh = AsyncMock(
-            return_value=create_mock_jwt_tokens('test_user_id')
+            return_value=create_mock_jwt_tokens("test_user_id")
         )
 
         result = await saas_user_auth_from_bearer(mock_request)
 
         assert isinstance(result, SaasUserAuth)
-        assert result.user_id == 'test_user_id'
+        assert result.user_id == "test_user_id"
         assert result.api_key_org_id == mock_org_id
         assert result.api_key_id == 42
-        assert result.api_key_name == 'Test Key'
-        mock_api_key_store.validate_api_key.assert_called_once_with('test_api_key')
-        mock_token_manager.load_offline_token.assert_called_once_with('test_user_id')
+        assert result.api_key_name == "Test Key"
+        mock_api_key_store.validate_api_key.assert_called_once_with("test_api_key")
+        mock_token_manager.load_offline_token.assert_called_once_with("test_user_id")
         mock_token_manager.refresh.assert_called_once_with(offline_token)
 
 
@@ -534,9 +534,9 @@ async def test_saas_user_auth_from_bearer_no_auth_header():
 async def test_saas_user_auth_from_bearer_invalid_api_key():
     """Test that saas_user_auth_from_bearer returns None if API key is invalid."""
     mock_request = MagicMock()
-    mock_request.headers = {'Authorization': 'Bearer test_api_key'}
+    mock_request.headers = {"Authorization": "Bearer test_api_key"}
 
-    with patch('server.auth.saas_user_auth.ApiKeyStore') as mock_api_key_store_cls:
+    with patch("server.auth.saas_user_auth.ApiKeyStore") as mock_api_key_store_cls:
         mock_api_key_store = MagicMock()
         mock_api_key_store.validate_api_key = AsyncMock(return_value=None)
         mock_api_key_store_cls.get_instance.return_value = mock_api_key_store
@@ -544,17 +544,17 @@ async def test_saas_user_auth_from_bearer_invalid_api_key():
         result = await saas_user_auth_from_bearer(mock_request)
 
         assert result is None
-        mock_api_key_store.validate_api_key.assert_called_once_with('test_api_key')
+        mock_api_key_store.validate_api_key.assert_called_once_with("test_api_key")
 
 
 @pytest.mark.asyncio
 async def test_saas_user_auth_from_bearer_exception():
     """Test that saas_user_auth_from_bearer raises BearerTokenError on exception."""
     mock_request = MagicMock()
-    mock_request.headers = {'Authorization': 'Bearer test_api_key'}
+    mock_request.headers = {"Authorization": "Bearer test_api_key"}
 
-    with patch('server.auth.saas_user_auth.ApiKeyStore') as mock_api_key_store_cls:
-        mock_api_key_store_cls.get_instance.side_effect = Exception('Test error')
+    with patch("server.auth.saas_user_auth.ApiKeyStore") as mock_api_key_store_cls:
+        mock_api_key_store_cls.get_instance.side_effect = Exception("Test error")
 
         with pytest.raises(BearerTokenError):
             await saas_user_auth_from_bearer(mock_request)
@@ -565,16 +565,16 @@ async def test_saas_user_auth_from_cookie_success(mock_config):
     """Test successful authentication from cookie."""
     # Create a signed token
     payload = {
-        'access_token': 'test_access_token',
-        'refresh_token': 'test_refresh_token',
+        "access_token": "test_access_token",
+        "refresh_token": "test_refresh_token",
     }
-    signed_token = jwt.encode(payload, 'test_secret', algorithm='HS256')
+    signed_token = jwt.encode(payload, "test_secret", algorithm="HS256")
 
     mock_request = MagicMock()
-    mock_request.cookies = {'keycloak_auth': signed_token}
+    mock_request.cookies = {"keycloak_auth": signed_token}
 
     with patch(
-        'server.auth.saas_user_auth.saas_user_auth_from_signed_token'
+        "server.auth.saas_user_auth.saas_user_auth_from_signed_token"
     ) as mock_from_signed:
         mock_auth = MagicMock()
         mock_from_signed.return_value = mock_auth
@@ -600,7 +600,7 @@ async def test_saas_user_auth_from_cookie_no_cookie():
 async def test_saas_user_auth_from_cookie_exception():
     """Test that saas_user_auth_from_cookie raises CookieError on exception."""
     mock_request = MagicMock()
-    mock_request.cookies = {'keycloak_auth': 'invalid_token'}
+    mock_request.cookies = {"keycloak_auth": "invalid_token"}
 
     with pytest.raises(CookieError):
         await saas_user_auth_from_cookie(mock_request)
@@ -611,33 +611,33 @@ async def test_saas_user_auth_from_signed_token(mock_config):
     """Test successful creation of SaasUserAuth from signed token."""
     # Create a JWT access token
     access_payload = {
-        'sub': 'test_user_id',
-        'exp': int(time.time()) + 3600,
-        'email': 'test@example.com',
-        'email_verified': True,
+        "sub": "test_user_id",
+        "exp": int(time.time()) + 3600,
+        "email": "test@example.com",
+        "email_verified": True,
     }
-    access_token = jwt.encode(access_payload, 'access_secret', algorithm='HS256')
+    access_token = jwt.encode(access_payload, "access_secret", algorithm="HS256")
 
     # Create a signed token containing the access and refresh tokens
     token_payload = {
-        'access_token': access_token,
-        'refresh_token': 'test_refresh_token',
+        "access_token": access_token,
+        "refresh_token": "test_refresh_token",
     }
-    signed_token = jwt.encode(token_payload, 'test_secret', algorithm='HS256')
+    signed_token = jwt.encode(token_payload, "test_secret", algorithm="HS256")
 
     # Mock UserAuthorizationStore to avoid database access
     with patch(
-        'server.auth.saas_user_auth.UserAuthorizationStore'
+        "server.auth.saas_user_auth.UserAuthorizationStore"
     ) as mock_user_auth_store:
         mock_user_auth_store.get_authorization_type = AsyncMock(return_value=None)
 
         result = await saas_user_auth_from_signed_token(signed_token)
 
         assert isinstance(result, SaasUserAuth)
-        assert result.user_id == 'test_user_id'
+        assert result.user_id == "test_user_id"
         assert result.access_token.get_secret_value() == access_token
-        assert result.refresh_token.get_secret_value() == 'test_refresh_token'
-        assert result.email == 'test@example.com'
+        assert result.refresh_token.get_secret_value() == "test_refresh_token"
+        assert result.email == "test@example.com"
         assert result.email_verified is True
 
 
@@ -645,26 +645,26 @@ def test_get_api_key_from_header_with_authorization_header():
     """Test that get_api_key_from_header extracts API key from Authorization header."""
     # Create a mock request with Authorization header
     mock_request = MagicMock(spec=Request)
-    mock_request.headers = {'Authorization': 'Bearer test_api_key'}
+    mock_request.headers = {"Authorization": "Bearer test_api_key"}
 
     # Call the function
     api_key = get_api_key_from_header(mock_request)
 
     # Assert that the API key was correctly extracted
-    assert api_key == 'test_api_key'
+    assert api_key == "test_api_key"
 
 
 def test_get_api_key_from_header_with_x_session_api_key():
     """Test that get_api_key_from_header extracts API key from X-Session-API-Key header."""
     # Create a mock request with X-Session-API-Key header
     mock_request = MagicMock(spec=Request)
-    mock_request.headers = {'X-Session-API-Key': 'session_api_key'}
+    mock_request.headers = {"X-Session-API-Key": "session_api_key"}
 
     # Call the function
     api_key = get_api_key_from_header(mock_request)
 
     # Assert that the API key was correctly extracted
-    assert api_key == 'session_api_key'
+    assert api_key == "session_api_key"
 
 
 def test_get_api_key_from_header_with_both_headers():
@@ -672,22 +672,22 @@ def test_get_api_key_from_header_with_both_headers():
     # Create a mock request with both headers
     mock_request = MagicMock(spec=Request)
     mock_request.headers = {
-        'Authorization': 'Bearer auth_api_key',
-        'X-Session-API-Key': 'session_api_key',
+        "Authorization": "Bearer auth_api_key",
+        "X-Session-API-Key": "session_api_key",
     }
 
     # Call the function
     api_key = get_api_key_from_header(mock_request)
 
     # Assert that the API key from Authorization header was used
-    assert api_key == 'auth_api_key'
+    assert api_key == "auth_api_key"
 
 
 def test_get_api_key_from_header_with_no_headers():
     """Test that get_api_key_from_header returns None when no relevant headers are present."""
     # Create a mock request with no relevant headers
     mock_request = MagicMock(spec=Request)
-    mock_request.headers = {'Other-Header': 'some_value'}
+    mock_request.headers = {"Other-Header": "some_value"}
 
     # Call the function
     api_key = get_api_key_from_header(mock_request)
@@ -700,7 +700,7 @@ def test_get_api_key_from_header_with_invalid_authorization_format():
     """Test that get_api_key_from_header handles Authorization headers without 'Bearer ' prefix."""
     # Create a mock request with incorrectly formatted Authorization header
     mock_request = MagicMock(spec=Request)
-    mock_request.headers = {'Authorization': 'InvalidFormat api_key'}
+    mock_request.headers = {"Authorization": "InvalidFormat api_key"}
 
     # Call the function
     api_key = get_api_key_from_header(mock_request)
@@ -713,13 +713,13 @@ def test_get_api_key_from_header_with_x_access_token():
     """Test that get_api_key_from_header extracts API key from X-Access-Token header."""
     # Create a mock request with X-Access-Token header
     mock_request = MagicMock(spec=Request)
-    mock_request.headers = {'X-Access-Token': 'access_token_key'}
+    mock_request.headers = {"X-Access-Token": "access_token_key"}
 
     # Call the function
     api_key = get_api_key_from_header(mock_request)
 
     # Assert that the API key was correctly extracted
-    assert api_key == 'access_token_key'
+    assert api_key == "access_token_key"
 
 
 def test_get_api_key_from_header_priority_authorization_over_x_access_token():
@@ -727,15 +727,15 @@ def test_get_api_key_from_header_priority_authorization_over_x_access_token():
     # Create a mock request with both headers
     mock_request = MagicMock(spec=Request)
     mock_request.headers = {
-        'Authorization': 'Bearer auth_api_key',
-        'X-Access-Token': 'access_token_key',
+        "Authorization": "Bearer auth_api_key",
+        "X-Access-Token": "access_token_key",
     }
 
     # Call the function
     api_key = get_api_key_from_header(mock_request)
 
     # Assert that the API key from Authorization header was used
-    assert api_key == 'auth_api_key'
+    assert api_key == "auth_api_key"
 
 
 def test_get_api_key_from_header_priority_x_session_over_x_access_token():
@@ -743,15 +743,15 @@ def test_get_api_key_from_header_priority_x_session_over_x_access_token():
     # Create a mock request with both headers
     mock_request = MagicMock(spec=Request)
     mock_request.headers = {
-        'X-Session-API-Key': 'session_api_key',
-        'X-Access-Token': 'access_token_key',
+        "X-Session-API-Key": "session_api_key",
+        "X-Access-Token": "access_token_key",
     }
 
     # Call the function
     api_key = get_api_key_from_header(mock_request)
 
     # Assert that the API key from X-Session-API-Key header was used
-    assert api_key == 'session_api_key'
+    assert api_key == "session_api_key"
 
 
 def test_get_api_key_from_header_all_three_headers():
@@ -759,16 +759,16 @@ def test_get_api_key_from_header_all_three_headers():
     # Create a mock request with all three headers
     mock_request = MagicMock(spec=Request)
     mock_request.headers = {
-        'Authorization': 'Bearer auth_api_key',
-        'X-Session-API-Key': 'session_api_key',
-        'X-Access-Token': 'access_token_key',
+        "Authorization": "Bearer auth_api_key",
+        "X-Session-API-Key": "session_api_key",
+        "X-Access-Token": "access_token_key",
     }
 
     # Call the function
     api_key = get_api_key_from_header(mock_request)
 
     # Assert that the API key from Authorization header was used (highest priority)
-    assert api_key == 'auth_api_key'
+    assert api_key == "auth_api_key"
 
 
 def test_get_api_key_from_header_invalid_authorization_fallback_to_x_access_token():
@@ -776,15 +776,15 @@ def test_get_api_key_from_header_invalid_authorization_fallback_to_x_access_toke
     # Create a mock request with invalid Authorization header and X-Access-Token
     mock_request = MagicMock(spec=Request)
     mock_request.headers = {
-        'Authorization': 'InvalidFormat api_key',
-        'X-Access-Token': 'access_token_key',
+        "Authorization": "InvalidFormat api_key",
+        "X-Access-Token": "access_token_key",
     }
 
     # Call the function
     api_key = get_api_key_from_header(mock_request)
 
     # Assert that the API key from X-Access-Token header was used
-    assert api_key == 'access_token_key'
+    assert api_key == "access_token_key"
 
 
 def test_get_api_key_from_header_empty_headers():
@@ -792,16 +792,16 @@ def test_get_api_key_from_header_empty_headers():
     # Create a mock request with empty header values
     mock_request = MagicMock(spec=Request)
     mock_request.headers = {
-        'Authorization': '',
-        'X-Session-API-Key': '',
-        'X-Access-Token': 'access_token_key',
+        "Authorization": "",
+        "X-Session-API-Key": "",
+        "X-Access-Token": "access_token_key",
     }
 
     # Call the function
     api_key = get_api_key_from_header(mock_request)
 
     # Assert that the API key from X-Access-Token header was used
-    assert api_key == 'access_token_key'
+    assert api_key == "access_token_key"
 
 
 def test_get_api_key_from_header_bearer_with_empty_token():
@@ -809,8 +809,8 @@ def test_get_api_key_from_header_bearer_with_empty_token():
     # Create a mock request with Bearer header with empty token
     mock_request = MagicMock(spec=Request)
     mock_request.headers = {
-        'Authorization': 'Bearer ',
-        'X-Access-Token': 'access_token_key',
+        "Authorization": "Bearer ",
+        "X-Access-Token": "access_token_key",
     }
 
     # Call the function
@@ -818,7 +818,7 @@ def test_get_api_key_from_header_bearer_with_empty_token():
 
     # Assert that empty string from Bearer is returned (current behavior)
     # This tests the current implementation behavior
-    assert api_key == ''
+    assert api_key == ""
 
 
 @pytest.mark.asyncio
@@ -826,21 +826,21 @@ async def test_saas_user_auth_from_signed_token_blocked_domain(mock_config):
     """Test that saas_user_auth_from_signed_token raises AuthError when email domain is blocked."""
     # Arrange
     access_payload = {
-        'sub': 'test_user_id',
-        'exp': int(time.time()) + 3600,
-        'email': 'user@colsch.us',
-        'email_verified': True,
+        "sub": "test_user_id",
+        "exp": int(time.time()) + 3600,
+        "email": "user@colsch.us",
+        "email_verified": True,
     }
-    access_token = jwt.encode(access_payload, 'access_secret', algorithm='HS256')
+    access_token = jwt.encode(access_payload, "access_secret", algorithm="HS256")
 
     token_payload = {
-        'access_token': access_token,
-        'refresh_token': 'test_refresh_token',
+        "access_token": access_token,
+        "refresh_token": "test_refresh_token",
     }
-    signed_token = jwt.encode(token_payload, 'test_secret', algorithm='HS256')
+    signed_token = jwt.encode(token_payload, "test_secret", algorithm="HS256")
 
     with patch(
-        'server.auth.saas_user_auth.UserAuthorizationStore'
+        "server.auth.saas_user_auth.UserAuthorizationStore"
     ) as mock_user_auth_store:
         mock_user_auth_store.get_authorization_type = AsyncMock(
             return_value=UserAuthorizationType.BLACKLIST
@@ -850,9 +850,9 @@ async def test_saas_user_auth_from_signed_token_blocked_domain(mock_config):
         with pytest.raises(AuthError) as exc_info:
             await saas_user_auth_from_signed_token(signed_token)
 
-        assert 'email domain is not allowed' in str(exc_info.value)
+        assert "email domain is not allowed" in str(exc_info.value)
         mock_user_auth_store.get_authorization_type.assert_called_once_with(
-            'user@colsch.us', None
+            "user@colsch.us", None
         )
 
 
@@ -861,21 +861,21 @@ async def test_saas_user_auth_from_signed_token_allowed_domain(mock_config):
     """Test that saas_user_auth_from_signed_token succeeds when email domain is not blocked."""
     # Arrange
     access_payload = {
-        'sub': 'test_user_id',
-        'exp': int(time.time()) + 3600,
-        'email': 'user@example.com',
-        'email_verified': True,
+        "sub": "test_user_id",
+        "exp": int(time.time()) + 3600,
+        "email": "user@example.com",
+        "email_verified": True,
     }
-    access_token = jwt.encode(access_payload, 'access_secret', algorithm='HS256')
+    access_token = jwt.encode(access_payload, "access_secret", algorithm="HS256")
 
     token_payload = {
-        'access_token': access_token,
-        'refresh_token': 'test_refresh_token',
+        "access_token": access_token,
+        "refresh_token": "test_refresh_token",
     }
-    signed_token = jwt.encode(token_payload, 'test_secret', algorithm='HS256')
+    signed_token = jwt.encode(token_payload, "test_secret", algorithm="HS256")
 
     with patch(
-        'server.auth.saas_user_auth.UserAuthorizationStore'
+        "server.auth.saas_user_auth.UserAuthorizationStore"
     ) as mock_user_auth_store:
         mock_user_auth_store.get_authorization_type = AsyncMock(return_value=None)
 
@@ -884,10 +884,10 @@ async def test_saas_user_auth_from_signed_token_allowed_domain(mock_config):
 
         # Assert
         assert isinstance(result, SaasUserAuth)
-        assert result.user_id == 'test_user_id'
-        assert result.email == 'user@example.com'
+        assert result.user_id == "test_user_id"
+        assert result.email == "user@example.com"
         mock_user_auth_store.get_authorization_type.assert_called_once_with(
-            'user@example.com', None
+            "user@example.com", None
         )
 
 
@@ -896,21 +896,21 @@ async def test_saas_user_auth_from_signed_token_domain_blocking_inactive(mock_co
     """Test that saas_user_auth_from_signed_token succeeds when email domain is not blocked."""
     # Arrange
     access_payload = {
-        'sub': 'test_user_id',
-        'exp': int(time.time()) + 3600,
-        'email': 'user@colsch.us',
-        'email_verified': True,
+        "sub": "test_user_id",
+        "exp": int(time.time()) + 3600,
+        "email": "user@colsch.us",
+        "email_verified": True,
     }
-    access_token = jwt.encode(access_payload, 'access_secret', algorithm='HS256')
+    access_token = jwt.encode(access_payload, "access_secret", algorithm="HS256")
 
     token_payload = {
-        'access_token': access_token,
-        'refresh_token': 'test_refresh_token',
+        "access_token": access_token,
+        "refresh_token": "test_refresh_token",
     }
-    signed_token = jwt.encode(token_payload, 'test_secret', algorithm='HS256')
+    signed_token = jwt.encode(token_payload, "test_secret", algorithm="HS256")
 
     with patch(
-        'server.auth.saas_user_auth.UserAuthorizationStore'
+        "server.auth.saas_user_auth.UserAuthorizationStore"
     ) as mock_user_auth_store:
         mock_user_auth_store.get_authorization_type = AsyncMock(return_value=None)
 
@@ -919,9 +919,9 @@ async def test_saas_user_auth_from_signed_token_domain_blocking_inactive(mock_co
 
         # Assert
         assert isinstance(result, SaasUserAuth)
-        assert result.user_id == 'test_user_id'
+        assert result.user_id == "test_user_id"
         mock_user_auth_store.get_authorization_type.assert_called_once_with(
-            'user@colsch.us', None
+            "user@colsch.us", None
         )
 
 
@@ -936,9 +936,9 @@ class TestOpenHandsApiKey:
     @pytest.mark.asyncio
     async def test_get_openhands_api_key_creates_system_key(self):
         """Test that _get_openhands_api_key creates a system key via ApiKeyStore."""
-        user_id = 'test_user_id'
+        user_id = "test_user_id"
         org_id = uuid.uuid4()
-        expected_api_key = 'sk-oh-test-key-12345'
+        expected_api_key = "sk-oh-test-key-12345"
 
         # Create mock user
         mock_user = MagicMock()
@@ -946,12 +946,12 @@ class TestOpenHandsApiKey:
 
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr('refresh_token'),
+            refresh_token=SecretStr("refresh_token"),
         )
 
         with (
-            patch('server.auth.saas_user_auth.UserStore') as mock_user_store,
-            patch('server.auth.saas_user_auth.ApiKeyStore') as mock_api_key_store_cls,
+            patch("server.auth.saas_user_auth.UserStore") as mock_user_store,
+            patch("server.auth.saas_user_auth.ApiKeyStore") as mock_api_key_store_cls,
         ):
             mock_user_store.get_user_by_id = AsyncMock(return_value=mock_user)
 
@@ -970,7 +970,7 @@ class TestOpenHandsApiKey:
             mock_api_key_store.get_or_create_system_api_key.assert_called_once_with(
                 user_id=user_id,
                 org_id=org_id,
-                name='OPENHANDS_API_KEY',
+                name="OPENHANDS_API_KEY",
             )
 
     @pytest.mark.asyncio
@@ -982,26 +982,26 @@ class TestOpenHandsApiKey:
         case, since both ultimately mean we cannot resolve an effective
         org for the request.
         """
-        user_id = 'nonexistent_user'
+        user_id = "nonexistent_user"
 
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr('refresh_token'),
+            refresh_token=SecretStr("refresh_token"),
         )
 
-        with patch('server.auth.saas_user_auth.UserStore') as mock_user_store:
+        with patch("server.auth.saas_user_auth.UserStore") as mock_user_store:
             mock_user_store.get_user_by_id = AsyncMock(return_value=None)
 
             # Act & Assert
             with pytest.raises(
-                ValueError, match=f'User {user_id} has no current organization'
+                ValueError, match=f"User {user_id} has no current organization"
             ):
                 await user_auth._get_openhands_api_key()
 
     @pytest.mark.asyncio
     async def test_get_openhands_api_key_raises_for_user_without_org(self):
         """Test that _get_openhands_api_key raises ValueError if user has no org."""
-        user_id = 'test_user_id'
+        user_id = "test_user_id"
 
         # Create mock user with no current organization
         mock_user = MagicMock()
@@ -1009,22 +1009,22 @@ class TestOpenHandsApiKey:
 
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr('refresh_token'),
+            refresh_token=SecretStr("refresh_token"),
         )
 
-        with patch('server.auth.saas_user_auth.UserStore') as mock_user_store:
+        with patch("server.auth.saas_user_auth.UserStore") as mock_user_store:
             mock_user_store.get_user_by_id = AsyncMock(return_value=mock_user)
 
             # Act & Assert
-            with pytest.raises(ValueError, match='has no current organization'):
+            with pytest.raises(ValueError, match="has no current organization"):
                 await user_auth._get_openhands_api_key()
 
     @pytest.mark.asyncio
     async def test_get_secrets_includes_openhands_api_key(self):
         """Test that get_secrets injects OPENHANDS_API_KEY into custom_secrets."""
-        user_id = 'test_user_id'
+        user_id = "test_user_id"
         org_id = uuid.uuid4()
-        expected_api_key = 'sk-oh-test-key-12345'
+        expected_api_key = "sk-oh-test-key-12345"
 
         # Create mock user
         mock_user = MagicMock()
@@ -1033,23 +1033,23 @@ class TestOpenHandsApiKey:
         # Create mock secrets from store (without OPENHANDS_API_KEY)
         mock_stored_secrets = Secrets(
             custom_secrets={
-                'MY_SECRET': {
-                    'secret': 'my-secret-value',
-                    'description': 'My custom secret',
+                "MY_SECRET": {
+                    "secret": "my-secret-value",
+                    "description": "My custom secret",
                 }
             }
         )
 
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr('refresh_token'),
+            refresh_token=SecretStr("refresh_token"),
         )
 
         with (
-            patch('server.auth.saas_user_auth.UserStore') as mock_user_store,
-            patch('server.auth.saas_user_auth.ApiKeyStore') as mock_api_key_store_cls,
+            patch("server.auth.saas_user_auth.UserStore") as mock_user_store,
+            patch("server.auth.saas_user_auth.ApiKeyStore") as mock_api_key_store_cls,
             patch(
-                'server.auth.saas_user_auth.SaasSecretsStore'
+                "server.auth.saas_user_auth.SaasSecretsStore"
             ) as mock_secrets_store_cls,
         ):
             mock_user_store.get_user_by_id = AsyncMock(return_value=mock_user)
@@ -1071,24 +1071,24 @@ class TestOpenHandsApiKey:
 
             # Assert
             assert result is not None
-            assert 'OPENHANDS_API_KEY' in result.custom_secrets
+            assert "OPENHANDS_API_KEY" in result.custom_secrets
             assert (
-                result.custom_secrets['OPENHANDS_API_KEY'].secret.get_secret_value()
+                result.custom_secrets["OPENHANDS_API_KEY"].secret.get_secret_value()
                 == expected_api_key
             )
             assert (
-                'system-managed'
-                in result.custom_secrets['OPENHANDS_API_KEY'].description
+                "system-managed"
+                in result.custom_secrets["OPENHANDS_API_KEY"].description
             )
             # Original secret should still be present
-            assert 'MY_SECRET' in result.custom_secrets
+            assert "MY_SECRET" in result.custom_secrets
 
     @pytest.mark.asyncio
     async def test_get_secrets_caches_result(self):
         """Test that get_secrets caches the result and doesn't call store again."""
-        user_id = 'test_user_id'
+        user_id = "test_user_id"
         org_id = uuid.uuid4()
-        expected_api_key = 'sk-oh-test-key-12345'
+        expected_api_key = "sk-oh-test-key-12345"
 
         mock_user = MagicMock()
         mock_user.current_org_id = org_id
@@ -1097,14 +1097,14 @@ class TestOpenHandsApiKey:
 
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr('refresh_token'),
+            refresh_token=SecretStr("refresh_token"),
         )
 
         with (
-            patch('server.auth.saas_user_auth.UserStore') as mock_user_store,
-            patch('server.auth.saas_user_auth.ApiKeyStore') as mock_api_key_store_cls,
+            patch("server.auth.saas_user_auth.UserStore") as mock_user_store,
+            patch("server.auth.saas_user_auth.ApiKeyStore") as mock_api_key_store_cls,
             patch(
-                'server.auth.saas_user_auth.SaasSecretsStore'
+                "server.auth.saas_user_auth.SaasSecretsStore"
             ) as mock_secrets_store_cls,
         ):
             mock_user_store.get_user_by_id = AsyncMock(return_value=mock_user)
@@ -1132,9 +1132,9 @@ class TestOpenHandsApiKey:
     @pytest.mark.asyncio
     async def test_get_secrets_handles_empty_stored_secrets(self):
         """Test that get_secrets works when store returns empty Secrets."""
-        user_id = 'test_user_id'
+        user_id = "test_user_id"
         org_id = uuid.uuid4()
-        expected_api_key = 'sk-oh-test-key-12345'
+        expected_api_key = "sk-oh-test-key-12345"
 
         mock_user = MagicMock()
         mock_user.current_org_id = org_id
@@ -1144,14 +1144,14 @@ class TestOpenHandsApiKey:
 
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr('refresh_token'),
+            refresh_token=SecretStr("refresh_token"),
         )
 
         with (
-            patch('server.auth.saas_user_auth.UserStore') as mock_user_store,
-            patch('server.auth.saas_user_auth.ApiKeyStore') as mock_api_key_store_cls,
+            patch("server.auth.saas_user_auth.UserStore") as mock_user_store,
+            patch("server.auth.saas_user_auth.ApiKeyStore") as mock_api_key_store_cls,
             patch(
-                'server.auth.saas_user_auth.SaasSecretsStore'
+                "server.auth.saas_user_auth.SaasSecretsStore"
             ) as mock_secrets_store_cls,
         ):
             mock_user_store.get_user_by_id = AsyncMock(return_value=mock_user)
@@ -1173,5 +1173,5 @@ class TestOpenHandsApiKey:
 
             # Assert - should have only OPENHANDS_API_KEY
             assert result is not None
-            assert 'OPENHANDS_API_KEY' in result.custom_secrets
+            assert "OPENHANDS_API_KEY" in result.custom_secrets
             assert len(result.custom_secrets) == 1

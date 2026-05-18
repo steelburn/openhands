@@ -40,11 +40,11 @@ class RateLimitResult:
 
     def add_headers(self, response: Response) -> None:
         """Add rate limit headers to a response"""
-        response.headers['X-RateLimit-Limit'] = self.description
-        response.headers['X-RateLimit-Remaining'] = str(self.remaining)
-        response.headers['X-RateLimit-Reset'] = str(self.reset_time)
+        response.headers["X-RateLimit-Limit"] = self.description
+        response.headers["X-RateLimit-Remaining"] = str(self.remaining)
+        response.headers["X-RateLimit-Reset"] = str(self.reset_time)
         if self.retry_after is not None:
-            response.headers['Retry-After'] = str(self.retry_after)
+            response.headers["Retry-After"] = str(self.retry_after)
 
 
 class RateLimiter:
@@ -65,14 +65,14 @@ class RateLimiter:
             try:
                 allowed = await self.strategy.hit(lim, namespace, key)
             except Exception:
-                logger.exception('Rate limit check could not complete, redis issue?')
+                logger.exception("Rate limit check could not complete, redis issue?")
             if not allowed:
-                logger.info(f'Rate limit hit for {namespace}:{key}')
+                logger.info(f"Rate limit hit for {namespace}:{key}")
                 try:
                     result = await self._get_stats_as_result(lim, namespace, key)
                 except Exception:
                     logger.exception(
-                        'Rate limit exceeded but window lookup failed, swallowing'
+                        "Rate limit exceeded but window lookup failed, swallowing"
                     )
                 else:
                     raise RateLimitException(result)
@@ -101,7 +101,7 @@ def create_redis_rate_limiter(windows: str) -> RateLimiter:
     Create a RateLimiter with the Redis backend and "Fixed Window" strategy.
     windows arg example: "10/second; 100/minute"
     """
-    backend = limits.aio.storage.RedisStorage(f'async+{get_redis_authed_url()}')
+    backend = limits.aio.storage.RedisStorage(f"async+{get_redis_authed_url()}")
     strategy = limits.aio.strategies.FixedWindowRateLimiter(backend)
     return RateLimiter(strategy, windows)
 
@@ -127,11 +127,11 @@ def _rate_limit_exceeded_handler(request: Request, exc: Exception) -> Response:
     logger.info(exc.__class__.__name__)
     if isinstance(exc, RateLimitException):
         response = JSONResponse(
-            {'error': f'Rate limit exceeded: { exc.detail}'}, status_code=429
+            {"error": f"Rate limit exceeded: {exc.detail}"}, status_code=429
         )
         if exc.result:
             exc.result.add_headers(response)
     else:
         # Shouldn't happen, this handler is only bound to RateLimitException
-        response = JSONResponse({'error': 'Rate limit exceeded'}, status_code=429)
+        response = JSONResponse({"error": "Rate limit exceeded"}, status_code=429)
     return response

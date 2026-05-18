@@ -44,12 +44,12 @@ class BitbucketManager(Manager[BitbucketViewType]):
         self.token_manager = token_manager
         self.webhook_store = BitbucketWebhookStore()
         self.jinja_env = Environment(
-            loader=FileSystemLoader(OPENHANDS_RESOLVER_TEMPLATES_DIR + 'bitbucket')
+            loader=FileSystemLoader(OPENHANDS_RESOLVER_TEMPLATES_DIR + "bitbucket")
         )
 
     def _confirm_incoming_source_type(self, message: Message) -> None:
         if message.source != SourceType.BITBUCKET:
-            raise ValueError(f'Unexpected message source {message.source}')
+            raise ValueError(f"Unexpected message source {message.source}")
 
     async def _commenter_has_write_access(
         self, message: Message, installer_user_id: str
@@ -64,15 +64,15 @@ class BitbucketManager(Manager[BitbucketViewType]):
         """
         from integrations.bitbucket.bitbucket_service import SaaSBitBucketService
 
-        payload = message.message.get('payload') or {}
-        repository = payload.get('repository') or {}
-        full_repo_name = repository.get('full_name') or ''
-        workspace, _, repo_slug = full_repo_name.partition('/')
-        actor = payload.get('actor') or {}
+        payload = message.message.get("payload") or {}
+        repository = payload.get("repository") or {}
+        full_repo_name = repository.get("full_name") or ""
+        workspace, _, repo_slug = full_repo_name.partition("/")
+        actor = payload.get("actor") or {}
         # ``account_id`` is the canonical Bitbucket Cloud user id; fall back
         # to the (brace-stripped) ``uuid`` when an older payload omits it.
         actor_id = (
-            actor.get('account_id') or (actor.get('uuid') or '').strip('{}') or ''
+            actor.get("account_id") or (actor.get("uuid") or "").strip("{}") or ""
         )
         if not actor_id:
             return False
@@ -84,7 +84,7 @@ class BitbucketManager(Manager[BitbucketViewType]):
             )
         except Exception as e:
             logger.warning(
-                f'[Bitbucket] permission check failed for {full_repo_name}: {e}'
+                f"[Bitbucket] permission check failed for {full_repo_name}: {e}"
             )
             return False
 
@@ -93,23 +93,23 @@ class BitbucketManager(Manager[BitbucketViewType]):
         if not self.is_job_requested(message):
             return
 
-        webhook_uuid = message.message.get('installation_id') or ''
+        webhook_uuid = message.message.get("installation_id") or ""
         installer_user_id = await self.webhook_store.get_webhook_user_id(
             webhook_uuid=webhook_uuid
         )
         if not installer_user_id:
             logger.warning(
-                f'[Bitbucket] No installer recorded for webhook {webhook_uuid}'
+                f"[Bitbucket] No installer recorded for webhook {webhook_uuid}"
             )
             return
 
         if not await self._commenter_has_write_access(message, installer_user_id):
-            payload = message.message.get('payload') or {}
-            repository = payload.get('repository') or {}
-            actor = payload.get('actor') or {}
+            payload = message.message.get("payload") or {}
+            repository = payload.get("repository") or {}
+            actor = payload.get("actor") or {}
             logger.info(
-                f'[Bitbucket] {actor.get("display_name", "?")} lacks write '
-                f'access to {repository.get("full_name", "?")}; ignoring.'
+                f"[Bitbucket] {actor.get('display_name', '?')} lacks write "
+                f"access to {repository.get('full_name', '?')}; ignoring."
             )
             return
 
@@ -117,8 +117,8 @@ class BitbucketManager(Manager[BitbucketViewType]):
             message, installer_user_id
         )
         logger.info(
-            f'[Bitbucket] Creating job for {bitbucket_view.user_info.username} '
-            f'in {bitbucket_view.full_repo_name}#{bitbucket_view.issue_number}'
+            f"[Bitbucket] Creating job for {bitbucket_view.user_info.username} "
+            f"in {bitbucket_view.full_repo_name}#{bitbucket_view.issue_number}"
         )
         await self.start_job(bitbucket_view)
 
@@ -144,8 +144,8 @@ class BitbucketManager(Manager[BitbucketViewType]):
                 body=message,
                 parent_comment_id=bitbucket_view.parent_comment_id,
                 inline={
-                    'path': bitbucket_view.file_location,
-                    'to': bitbucket_view.line_number,
+                    "path": bitbucket_view.file_location,
+                    "to": bitbucket_view.line_number,
                 },
             )
         elif isinstance(bitbucket_view, BitbucketPRComment):
@@ -158,7 +158,7 @@ class BitbucketManager(Manager[BitbucketViewType]):
             )
         else:
             logger.warning(
-                f'[Bitbucket] Unsupported view type: {type(bitbucket_view).__name__}'
+                f"[Bitbucket] Unsupported view type: {type(bitbucket_view).__name__}"
             )
 
     async def start_job(self, bitbucket_view: BitbucketViewType) -> None:
@@ -166,8 +166,8 @@ class BitbucketManager(Manager[BitbucketViewType]):
             user_info = bitbucket_view.user_info
             try:
                 logger.info(
-                    f'[Bitbucket] Starting job for {user_info.username} '
-                    f'in {bitbucket_view.full_repo_name}#{bitbucket_view.issue_number}'
+                    f"[Bitbucket] Starting job for {user_info.username} "
+                    f"in {bitbucket_view.full_repo_name}#{bitbucket_view.issue_number}"
                 )
 
                 # Auth runs as the webhook installer (``user_info.keycloak_user_id``),
@@ -181,20 +181,20 @@ class BitbucketManager(Manager[BitbucketViewType]):
                 )
                 if not offline_token:
                     logger.warning(
-                        f'[Bitbucket] No offline token for installer '
-                        f'{user_info.keycloak_user_id}'
+                        f"[Bitbucket] No offline token for installer "
+                        f"{user_info.keycloak_user_id}"
                     )
-                    raise MissingSettingsError('Missing settings')
+                    raise MissingSettingsError("Missing settings")
 
                 user_token = await self.token_manager.get_idp_token_from_offline_token(
                     offline_token, ProviderType.BITBUCKET
                 )
                 if not user_token:
                     logger.warning(
-                        f'[Bitbucket] No Bitbucket token for installer '
-                        f'{user_info.keycloak_user_id}'
+                        f"[Bitbucket] No Bitbucket token for installer "
+                        f"{user_info.keycloak_user_id}"
                     )
-                    raise MissingSettingsError('Missing settings')
+                    raise MissingSettingsError("Missing settings")
 
                 secret_store = Secrets(
                     provider_tokens=MappingProxyType(
@@ -220,45 +220,45 @@ class BitbucketManager(Manager[BitbucketViewType]):
                 conversation_id_hex = bitbucket_view.conversation_id
 
                 logger.info(
-                    f'[Bitbucket] Created conversation {conversation_id_hex} '
-                    f'for user {user_info.username}'
+                    f"[Bitbucket] Created conversation {conversation_id_hex} "
+                    f"for user {user_info.username}"
                 )
                 conversation_link = CONVERSATION_URL.format(conversation_id_hex)
                 msg_info = (
                     f"I'm on it! {user_info.username} can [track my progress at "
-                    f'all-hands.dev]({conversation_link})'
+                    f"all-hands.dev]({conversation_link})"
                 )
 
             except MissingSettingsError as e:
                 logger.warning(
-                    f'[Bitbucket] Missing settings for {user_info.username}: {e}'
+                    f"[Bitbucket] Missing settings for {user_info.username}: {e}"
                 )
                 msg_info = (
-                    f'@{user_info.username} please re-login into '
-                    f'[OpenHands Cloud]({HOST_URL}) before starting a job.'
+                    f"@{user_info.username} please re-login into "
+                    f"[OpenHands Cloud]({HOST_URL}) before starting a job."
                 )
 
             except LLMAuthenticationError as e:
                 logger.warning(
-                    f'[Bitbucket] LLM authentication error for '
-                    f'{user_info.username}: {e}'
+                    f"[Bitbucket] LLM authentication error for "
+                    f"{user_info.username}: {e}"
                 )
                 msg_info = (
-                    f'@{user_info.username} please set a valid LLM API key in '
-                    f'[OpenHands Cloud]({HOST_URL}) before starting a job.'
+                    f"@{user_info.username} please set a valid LLM API key in "
+                    f"[OpenHands Cloud]({HOST_URL}) before starting a job."
                 )
 
             except SessionExpiredError as e:
                 logger.warning(
-                    f'[Bitbucket] Session expired for {user_info.username}: {e}'
+                    f"[Bitbucket] Session expired for {user_info.username}: {e}"
                 )
                 msg_info = get_session_expired_message(user_info.username)
 
             await self.send_message(msg_info, bitbucket_view)
 
         except Exception as e:
-            logger.exception(f'[Bitbucket] Error starting job: {e}')
+            logger.exception(f"[Bitbucket] Error starting job: {e}")
             await self.send_message(
-                'Uh oh! There was an unexpected error starting the job :(',
+                "Uh oh! There was an unexpected error starting the job :(",
                 bitbucket_view,
             )

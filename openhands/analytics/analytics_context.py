@@ -23,9 +23,9 @@ from openhands.app_server.utils.logger import openhands_logger as logger
 
 # Sentinel reused by resolve_analytics_context for the safe-default path.
 _SAFE_DEFAULT_KWARGS: dict[str, Any] = {
-    'consented': False,
-    'org_id': None,
-    'user': None,
+    "consented": False,
+    "org_id": None,
+    "user": None,
 }
 
 
@@ -92,7 +92,7 @@ async def resolve_analytics_context(user_id: str) -> AnalyticsContext:
         )
     except Exception:
         logger.warning(
-            'resolve_analytics_context failed for user_id=%s, returning safe default',
+            "resolve_analytics_context failed for user_id=%s, returning safe default",
             user_id,
         )
         return AnalyticsContext(user_id=user_id, **_SAFE_DEFAULT_KWARGS)

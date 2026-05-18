@@ -31,9 +31,9 @@ def mock_request():
     """Create a mock FastAPI Request."""
     request = MagicMock(spec=Request)
     request.url = MagicMock()
-    request.url.hostname = 'localhost'
-    request.url.netloc = 'localhost:8000'
-    request.base_url = 'http://localhost:8000/'
+    request.url.hostname = "localhost"
+    request.url.netloc = "localhost:8000"
+    request.base_url = "http://localhost:8000/"
     request.headers = {}
     request.cookies = {}
     return request
@@ -60,7 +60,7 @@ class TestShouldRedirectToOnboarding:
         """Test that completed onboarding users are not redirected."""
         mock_user.onboarding_completed = True
 
-        result = await _should_redirect_to_onboarding('user-123', mock_user)
+        result = await _should_redirect_to_onboarding("user-123", mock_user)
 
         assert result is False
 
@@ -69,8 +69,8 @@ class TestShouldRedirectToOnboarding:
         """Test that cloud mode users with incomplete onboarding are redirected."""
         mock_user.onboarding_completed = False
 
-        with patch('server.routes.auth.DEPLOYMENT_MODE', 'cloud'):
-            result = await _should_redirect_to_onboarding('user-123', mock_user)
+        with patch("server.routes.auth.DEPLOYMENT_MODE", "cloud"):
+            result = await _should_redirect_to_onboarding("user-123", mock_user)
 
         assert result is True
 
@@ -85,9 +85,9 @@ class TestShouldRedirectToOnboarding:
         first_owner.id = mock_user.id
 
         with (
-            patch('server.routes.auth.DEPLOYMENT_MODE', 'self_hosted'),
+            patch("server.routes.auth.DEPLOYMENT_MODE", "self_hosted"),
             patch(
-                'server.routes.auth.UserStore.get_first_owner_in_org',
+                "server.routes.auth.UserStore.get_first_owner_in_org",
                 new_callable=AsyncMock,
                 return_value=first_owner,
             ),
@@ -107,9 +107,9 @@ class TestShouldRedirectToOnboarding:
         first_owner.id = uuid.uuid4()  # Different user
 
         with (
-            patch('server.routes.auth.DEPLOYMENT_MODE', 'self_hosted'),
+            patch("server.routes.auth.DEPLOYMENT_MODE", "self_hosted"),
             patch(
-                'server.routes.auth.UserStore.get_first_owner_in_org',
+                "server.routes.auth.UserStore.get_first_owner_in_org",
                 new_callable=AsyncMock,
                 return_value=first_owner,
             ),
@@ -125,9 +125,9 @@ class TestShouldRedirectToOnboarding:
         user_id = str(mock_user.id)
 
         with (
-            patch('server.routes.auth.DEPLOYMENT_MODE', 'self_hosted'),
+            patch("server.routes.auth.DEPLOYMENT_MODE", "self_hosted"),
             patch(
-                'server.routes.auth.UserStore.get_first_owner_in_org',
+                "server.routes.auth.UserStore.get_first_owner_in_org",
                 new_callable=AsyncMock,
                 return_value=None,
             ),
@@ -144,9 +144,9 @@ class TestShouldRedirectToOnboarding:
         mock_get_first_owner = AsyncMock(return_value=None)
 
         with (
-            patch('server.routes.auth.DEPLOYMENT_MODE', 'self_hosted'),
+            patch("server.routes.auth.DEPLOYMENT_MODE", "self_hosted"),
             patch(
-                'server.routes.auth.UserStore.get_first_owner_in_org',
+                "server.routes.auth.UserStore.get_first_owner_in_org",
                 mock_get_first_owner,
             ),
         ):
@@ -168,18 +168,18 @@ class TestGetPostAuthRedirect:
         user_id = str(mock_user.id)
 
         with (
-            patch('server.routes.auth.DEPLOYMENT_MODE', 'cloud'),
+            patch("server.routes.auth.DEPLOYMENT_MODE", "cloud"),
             patch(
-                'server.routes.auth.UserStore.get_user_by_id',
+                "server.routes.auth.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
                 return_value=mock_user,
             ),
         ):
             result = await _get_post_auth_redirect(
-                user_id, 'https://example.com/', 'https://example.com'
+                user_id, "https://example.com/", "https://example.com"
             )
 
-        assert result == 'https://example.com/onboarding'
+        assert result == "https://example.com/onboarding"
 
     @pytest.mark.asyncio
     async def test_returns_default_url_when_onboarding_completed(self, mock_user):
@@ -188,29 +188,29 @@ class TestGetPostAuthRedirect:
         user_id = str(mock_user.id)
 
         with patch(
-            'server.routes.auth.UserStore.get_user_by_id',
+            "server.routes.auth.UserStore.get_user_by_id",
             new_callable=AsyncMock,
             return_value=mock_user,
         ):
             result = await _get_post_auth_redirect(
-                user_id, 'https://example.com/dashboard', 'https://example.com'
+                user_id, "https://example.com/dashboard", "https://example.com"
             )
 
-        assert result == 'https://example.com/dashboard'
+        assert result == "https://example.com/dashboard"
 
     @pytest.mark.asyncio
     async def test_returns_default_url_when_user_not_found(self):
         """Test that default URL is returned when user is not found."""
         with patch(
-            'server.routes.auth.UserStore.get_user_by_id',
+            "server.routes.auth.UserStore.get_user_by_id",
             new_callable=AsyncMock,
             return_value=None,
         ):
             result = await _get_post_auth_redirect(
-                'nonexistent-user', 'https://example.com/', 'https://example.com'
+                "nonexistent-user", "https://example.com/", "https://example.com"
             )
 
-        assert result == 'https://example.com/'
+        assert result == "https://example.com/"
 
     @pytest.mark.asyncio
     async def test_logs_when_redirecting_to_onboarding(self, mock_user):
@@ -219,22 +219,22 @@ class TestGetPostAuthRedirect:
         user_id = str(mock_user.id)
 
         with (
-            patch('server.routes.auth.DEPLOYMENT_MODE', 'cloud'),
+            patch("server.routes.auth.DEPLOYMENT_MODE", "cloud"),
             patch(
-                'server.routes.auth.UserStore.get_user_by_id',
+                "server.routes.auth.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
                 return_value=mock_user,
             ),
-            patch('server.routes.auth.logger') as mock_logger,
+            patch("server.routes.auth.logger") as mock_logger,
         ):
             await _get_post_auth_redirect(
-                user_id, 'https://example.com/', 'https://example.com'
+                user_id, "https://example.com/", "https://example.com"
             )
 
         mock_logger.info.assert_called_once()
         call_args = mock_logger.info.call_args
-        assert call_args[0][0] == 'Redirecting user to onboarding'
-        assert call_args[1]['extra']['user_id'] == user_id
+        assert call_args[0][0] == "Redirecting user to onboarding"
+        assert call_args[1]["extra"]["user_id"] == user_id
 
 
 # --- Tests for /complete_onboarding endpoint ---
@@ -250,7 +250,7 @@ class TestCompleteOnboardingEndpoint:
         mock_user_auth.get_user_id = AsyncMock(return_value=None)
 
         with patch(
-            'server.routes.auth.get_user_auth',
+            "server.routes.auth.get_user_auth",
             new_callable=AsyncMock,
             return_value=mock_user_auth,
         ):
@@ -268,12 +268,12 @@ class TestCompleteOnboardingEndpoint:
 
         with (
             patch(
-                'server.routes.auth.get_user_auth',
+                "server.routes.auth.get_user_auth",
                 new_callable=AsyncMock,
                 return_value=mock_user_auth,
             ),
             patch(
-                'server.routes.auth.UserStore.mark_onboarding_completed',
+                "server.routes.auth.UserStore.mark_onboarding_completed",
                 new_callable=AsyncMock,
                 return_value=None,
             ),
@@ -292,12 +292,12 @@ class TestCompleteOnboardingEndpoint:
 
         with (
             patch(
-                'server.routes.auth.get_user_auth',
+                "server.routes.auth.get_user_auth",
                 new_callable=AsyncMock,
                 return_value=mock_user_auth,
             ),
             patch(
-                'server.routes.auth.UserStore.mark_onboarding_completed',
+                "server.routes.auth.UserStore.mark_onboarding_completed",
                 new_callable=AsyncMock,
                 return_value=mock_user,
             ),
@@ -319,12 +319,12 @@ class TestCompleteOnboardingEndpoint:
 
         with (
             patch(
-                'server.routes.auth.get_user_auth',
+                "server.routes.auth.get_user_auth",
                 new_callable=AsyncMock,
                 return_value=mock_user_auth,
             ),
             patch(
-                'server.routes.auth.UserStore.mark_onboarding_completed',
+                "server.routes.auth.UserStore.mark_onboarding_completed",
                 mock_mark_completed,
             ),
         ):
@@ -343,7 +343,7 @@ class TestOnboardingStatusEndpoint:
         mock_user_auth.get_user_id = AsyncMock(return_value=None)
 
         with patch(
-            'server.routes.auth.get_user_auth',
+            "server.routes.auth.get_user_auth",
             new_callable=AsyncMock,
             return_value=mock_user_auth,
         ):
@@ -362,23 +362,23 @@ class TestOnboardingStatusEndpoint:
 
         with (
             patch(
-                'server.routes.auth.get_user_auth',
+                "server.routes.auth.get_user_auth",
                 new_callable=AsyncMock,
                 return_value=mock_user_auth,
             ),
             patch(
-                'server.routes.auth.UserStore.get_user_by_id',
+                "server.routes.auth.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
                 return_value=mock_user,
             ),
-            patch('server.routes.auth.DEPLOYMENT_MODE', 'cloud'),
+            patch("server.routes.auth.DEPLOYMENT_MODE", "cloud"),
         ):
             result = await onboarding_status(mock_request)
 
         assert isinstance(result, JSONResponse)
         assert result.status_code == status.HTTP_200_OK
         body = json.loads(result.body)
-        assert body == {'should_complete_onboarding': True}
+        assert body == {"should_complete_onboarding": True}
 
     @pytest.mark.asyncio
     async def test_returns_false_for_completed_user(self, mock_request, mock_user):
@@ -390,12 +390,12 @@ class TestOnboardingStatusEndpoint:
 
         with (
             patch(
-                'server.routes.auth.get_user_auth',
+                "server.routes.auth.get_user_auth",
                 new_callable=AsyncMock,
                 return_value=mock_user_auth,
             ),
             patch(
-                'server.routes.auth.UserStore.get_user_by_id',
+                "server.routes.auth.UserStore.get_user_by_id",
                 new_callable=AsyncMock,
                 return_value=mock_user,
             ),
@@ -405,4 +405,4 @@ class TestOnboardingStatusEndpoint:
         assert isinstance(result, JSONResponse)
         assert result.status_code == status.HTTP_200_OK
         body = json.loads(result.body)
-        assert body == {'should_complete_onboarding': False}
+        assert body == {"should_complete_onboarding": False}

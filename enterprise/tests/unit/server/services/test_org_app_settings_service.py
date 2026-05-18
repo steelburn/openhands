@@ -94,7 +94,7 @@ async def test_get_org_app_settings_org_not_found(
     with pytest.raises(OrgNotFoundError) as exc_info:
         await service.get_org_app_settings()
 
-    assert 'current' in str(exc_info.value)
+    assert "current" in str(exc_info.value)
 
 
 @pytest.mark.asyncio
@@ -175,4 +175,4 @@ async def test_update_org_app_settings_org_not_found(
     with pytest.raises(OrgNotFoundError) as exc_info:
         await service.update_org_app_settings(update_data)
 
-    assert 'current' in str(exc_info.value)
+    assert "current" in str(exc_info.value)

@@ -41,7 +41,7 @@ def user_id():
 def make_claim():
     """Factory to create mock OrgGitClaim objects."""
 
-    def _make(org_id, provider='github', git_organization='OpenHands', claimed_by=None):
+    def _make(org_id, provider="github", git_organization="OpenHands", claimed_by=None):
         claim = MagicMock(spec=OrgGitClaim)
         claim.id = uuid.uuid4()
         claim.org_id = org_id
@@ -70,7 +70,7 @@ class TestGetGitClaims:
         THEN: An empty list is returned
         """
         with patch(
-            'server.routes.orgs.OrgGitClaimStore.get_claims_by_org_id',
+            "server.routes.orgs.OrgGitClaimStore.get_claims_by_org_id",
             AsyncMock(return_value=[]),
         ) as mock_get:
             result = await get_git_claims(org_id=org_id, user_id=user_id)
@@ -85,11 +85,11 @@ class TestGetGitClaims:
         WHEN: GET /api/organizations/{org_id}/git-claims is called
         THEN: All claims are returned with correct details
         """
-        claim1 = make_claim(org_id, provider='github', git_organization='OpenHands')
-        claim2 = make_claim(org_id, provider='gitlab', git_organization='AcmeCo')
+        claim1 = make_claim(org_id, provider="github", git_organization="OpenHands")
+        claim2 = make_claim(org_id, provider="gitlab", git_organization="AcmeCo")
 
         with patch(
-            'server.routes.orgs.OrgGitClaimStore.get_claims_by_org_id',
+            "server.routes.orgs.OrgGitClaimStore.get_claims_by_org_id",
             AsyncMock(return_value=[claim1, claim2]),
         ):
             result = await get_git_claims(org_id=org_id, user_id=user_id)
@@ -97,13 +97,13 @@ class TestGetGitClaims:
         assert len(result) == 2
         assert result[0].id == str(claim1.id)
         assert result[0].org_id == str(org_id)
-        assert result[0].provider == 'github'
-        assert result[0].git_organization == 'OpenHands'
+        assert result[0].provider == "github"
+        assert result[0].git_organization == "OpenHands"
         assert result[0].claimed_by == str(claim1.claimed_by)
-        assert result[0].claimed_at == '2026-04-01T12:00:00'
+        assert result[0].claimed_at == "2026-04-01T12:00:00"
         assert result[1].id == str(claim2.id)
-        assert result[1].provider == 'gitlab'
-        assert result[1].git_organization == 'AcmeCo'
+        assert result[1].provider == "gitlab"
+        assert result[1].git_organization == "AcmeCo"
 
     @pytest.mark.asyncio
     async def test_returns_500_on_unexpected_error(self, org_id, user_id):
@@ -113,8 +113,8 @@ class TestGetGitClaims:
         THEN: A 500 Internal Server Error is returned
         """
         with patch(
-            'server.routes.orgs.OrgGitClaimStore.get_claims_by_org_id',
-            AsyncMock(side_effect=RuntimeError('db connection failed')),
+            "server.routes.orgs.OrgGitClaimStore.get_claims_by_org_id",
+            AsyncMock(side_effect=RuntimeError("db connection failed")),
         ):
             with pytest.raises(Exception) as exc_info:
                 await get_git_claims(org_id=org_id, user_id=user_id)
@@ -140,16 +140,16 @@ class TestClaimGitOrganization:
         # Arrange
         mock_claim = make_claim(org_id, claimed_by=uuid.UUID(user_id))
         request = MagicMock()
-        request.provider = 'github'
-        request.git_organization = 'OpenHands'
+        request.provider = "github"
+        request.git_organization = "OpenHands"
 
         with (
             patch(
-                'server.routes.orgs.OrgGitClaimStore.get_claim_by_provider_and_git_org',
+                "server.routes.orgs.OrgGitClaimStore.get_claim_by_provider_and_git_org",
                 AsyncMock(return_value=None),
             ),
             patch(
-                'server.routes.orgs.OrgGitClaimStore.create_claim',
+                "server.routes.orgs.OrgGitClaimStore.create_claim",
                 AsyncMock(return_value=mock_claim),
             ) as mock_create,
         ):
@@ -161,13 +161,13 @@ class TestClaimGitOrganization:
         # Assert
         assert response.id == str(mock_claim.id)
         assert response.org_id == str(org_id)
-        assert response.provider == 'github'
-        assert response.git_organization == 'OpenHands'
+        assert response.provider == "github"
+        assert response.git_organization == "OpenHands"
         assert response.claimed_by == user_id
         mock_create.assert_called_once_with(
             org_id=org_id,
-            provider='github',
-            git_organization='OpenHands',
+            provider="github",
+            git_organization="OpenHands",
             claimed_by=uuid.UUID(user_id),
         )
 
@@ -181,14 +181,14 @@ class TestClaimGitOrganization:
         # Arrange
         other_org_id = uuid.uuid4()
         existing_claim = make_claim(
-            other_org_id, provider='github', git_organization='AlreadyClaimed'
+            other_org_id, provider="github", git_organization="AlreadyClaimed"
         )
         request = MagicMock()
-        request.provider = 'github'
-        request.git_organization = 'AlreadyClaimed'
+        request.provider = "github"
+        request.git_organization = "AlreadyClaimed"
 
         with patch(
-            'server.routes.orgs.OrgGitClaimStore.get_claim_by_provider_and_git_org',
+            "server.routes.orgs.OrgGitClaimStore.get_claim_by_provider_and_git_org",
             AsyncMock(return_value=existing_claim),
         ):
             # Act & Assert
@@ -208,12 +208,12 @@ class TestClaimGitOrganization:
         """
         # Arrange
         request = MagicMock()
-        request.provider = 'github'
-        request.git_organization = 'OpenHands'
+        request.provider = "github"
+        request.git_organization = "OpenHands"
 
         with patch(
-            'server.routes.orgs.OrgGitClaimStore.get_claim_by_provider_and_git_org',
-            AsyncMock(side_effect=RuntimeError('db connection failed')),
+            "server.routes.orgs.OrgGitClaimStore.get_claim_by_provider_and_git_org",
+            AsyncMock(side_effect=RuntimeError("db connection failed")),
         ):
             # Act & Assert
             with pytest.raises(Exception) as exc_info:
@@ -232,21 +232,21 @@ class TestClaimGitOrganization:
         """
         # Arrange
         request = MagicMock()
-        request.provider = 'github'
-        request.git_organization = 'RaceOrg'
+        request.provider = "github"
+        request.git_organization = "RaceOrg"
 
         with (
             patch(
-                'server.routes.orgs.OrgGitClaimStore.get_claim_by_provider_and_git_org',
+                "server.routes.orgs.OrgGitClaimStore.get_claim_by_provider_and_git_org",
                 AsyncMock(return_value=None),
             ),
             patch(
-                'server.routes.orgs.OrgGitClaimStore.create_claim',
+                "server.routes.orgs.OrgGitClaimStore.create_claim",
                 AsyncMock(
                     side_effect=IntegrityError(
-                        'duplicate',
-                        '',
-                        Exception('uq_provider_git_org'),
+                        "duplicate",
+                        "",
+                        Exception("uq_provider_git_org"),
                     )
                 ),
             ),
@@ -279,7 +279,7 @@ class TestDisconnectGitOrganization:
         claim_id = uuid.uuid4()
 
         with patch(
-            'server.routes.orgs.OrgGitClaimStore.delete_claim',
+            "server.routes.orgs.OrgGitClaimStore.delete_claim",
             AsyncMock(return_value=True),
         ) as mock_delete:
             # Act
@@ -288,7 +288,7 @@ class TestDisconnectGitOrganization:
             )
 
         # Assert
-        assert result == {'message': 'Git organization claim removed successfully'}
+        assert result == {"message": "Git organization claim removed successfully"}
         mock_delete.assert_called_once_with(claim_id=claim_id, org_id=org_id)
 
     @pytest.mark.asyncio
@@ -302,7 +302,7 @@ class TestDisconnectGitOrganization:
         claim_id = uuid.uuid4()
 
         with patch(
-            'server.routes.orgs.OrgGitClaimStore.delete_claim',
+            "server.routes.orgs.OrgGitClaimStore.delete_claim",
             AsyncMock(return_value=False),
         ):
             # Act & Assert
@@ -324,8 +324,8 @@ class TestDisconnectGitOrganization:
         claim_id = uuid.uuid4()
 
         with patch(
-            'server.routes.orgs.OrgGitClaimStore.delete_claim',
-            AsyncMock(side_effect=RuntimeError('db connection failed')),
+            "server.routes.orgs.OrgGitClaimStore.delete_claim",
+            AsyncMock(side_effect=RuntimeError("db connection failed")),
         ):
             # Act & Assert
             with pytest.raises(Exception) as exc_info:
@@ -348,8 +348,8 @@ class TestGitOrgClaimRequestValidation:
         """Each supported provider is accepted and normalized to lowercase."""
         from server.routes.org_models import GitOrgClaimRequest
 
-        for provider in ['github', 'GitLab', 'BITBUCKET']:
-            req = GitOrgClaimRequest(provider=provider, git_organization='test-org')
+        for provider in ["github", "GitLab", "BITBUCKET"]:
+            req = GitOrgClaimRequest(provider=provider, git_organization="test-org")
             assert req.provider == provider.lower().strip()
 
     def test_invalid_provider_is_rejected(self):
@@ -357,23 +357,23 @@ class TestGitOrgClaimRequestValidation:
         from pydantic import ValidationError
         from server.routes.org_models import GitOrgClaimRequest
 
-        with pytest.raises(ValidationError, match='Invalid provider'):
-            GitOrgClaimRequest(provider='azure_devops', git_organization='test-org')
+        with pytest.raises(ValidationError, match="Invalid provider"):
+            GitOrgClaimRequest(provider="azure_devops", git_organization="test-org")
 
     def test_empty_git_organization_is_rejected(self):
         """An empty git_organization raises a validation error."""
         from pydantic import ValidationError
         from server.routes.org_models import GitOrgClaimRequest
 
-        with pytest.raises(ValidationError, match='git_organization must not be empty'):
-            GitOrgClaimRequest(provider='github', git_organization='   ')
+        with pytest.raises(ValidationError, match="git_organization must not be empty"):
+            GitOrgClaimRequest(provider="github", git_organization="   ")
 
     def test_git_organization_is_normalized_to_lowercase(self):
         """git_organization is lowercased to prevent case-sensitive duplicates."""
         from server.routes.org_models import GitOrgClaimRequest
 
-        req = GitOrgClaimRequest(provider='github', git_organization='OpenHands')
-        assert req.git_organization == 'openhands'
+        req = GitOrgClaimRequest(provider="github", git_organization="OpenHands")
+        assert req.git_organization == "openhands"
 
 
 # =============================================================================
@@ -394,14 +394,14 @@ def mock_app():
 @pytest.fixture
 def mock_owner_role():
     role = MagicMock()
-    role.name = 'owner'
+    role.name = "owner"
     return role
 
 
 @pytest.fixture
 def mock_member_role():
     role = MagicMock()
-    role.name = 'member'
+    role.name = "member"
     return role
 
 
@@ -417,14 +417,14 @@ class TestGitClaimsAuthorization:
         org_id = uuid.uuid4()
 
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=None),
         ):
             client = TestClient(mock_app)
-            response = client.get(f'/api/organizations/{org_id}/git-claims')
+            response = client.get(f"/api/organizations/{org_id}/git-claims")
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert 'not a member' in response.json()['detail']
+        assert "not a member" in response.json()["detail"]
 
     def test_member_without_permission_gets_403_on_post(
         self, mock_app, mock_member_role
@@ -437,17 +437,17 @@ class TestGitClaimsAuthorization:
         org_id = uuid.uuid4()
 
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=mock_member_role),
         ):
             client = TestClient(mock_app)
             response = client.post(
-                f'/api/organizations/{org_id}/git-claims',
-                json={'provider': 'github', 'git_organization': 'SomeOrg'},
+                f"/api/organizations/{org_id}/git-claims",
+                json={"provider": "github", "git_organization": "SomeOrg"},
             )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert 'manage_org_claims' in response.json()['detail']
+        assert "manage_org_claims" in response.json()["detail"]
 
     def test_member_without_permission_gets_403_on_delete(
         self, mock_app, mock_member_role
@@ -461,16 +461,16 @@ class TestGitClaimsAuthorization:
         claim_id = uuid.uuid4()
 
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=mock_member_role),
         ):
             client = TestClient(mock_app)
             response = client.delete(
-                f'/api/organizations/{org_id}/git-claims/{claim_id}'
+                f"/api/organizations/{org_id}/git-claims/{claim_id}"
             )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert 'manage_org_claims' in response.json()['detail']
+        assert "manage_org_claims" in response.json()["detail"]
 
 
 class TestGitClaimsHTTPIntegration:
@@ -487,13 +487,13 @@ class TestGitClaimsHTTPIntegration:
         org_id = uuid.uuid4()
 
         with patch(
-            'server.auth.authorization.get_user_org_role',
+            "server.auth.authorization.get_user_org_role",
             AsyncMock(return_value=mock_owner_role),
         ):
             client = TestClient(mock_app)
             response = client.post(
-                f'/api/organizations/{org_id}/git-claims',
-                json={'provider': 'azure_devops', 'git_organization': 'test'},
+                f"/api/organizations/{org_id}/git-claims",
+                json={"provider": "azure_devops", "git_organization": "test"},
             )
 
         assert response.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
@@ -508,36 +508,36 @@ class TestGitClaimsHTTPIntegration:
         mock_claim = MagicMock(spec=OrgGitClaim)
         mock_claim.id = uuid.uuid4()
         mock_claim.org_id = org_id
-        mock_claim.provider = 'github'
-        mock_claim.git_organization = 'openhands'
+        mock_claim.provider = "github"
+        mock_claim.git_organization = "openhands"
         mock_claim.claimed_by = uuid.UUID(TEST_USER_ID)
         mock_claim.claimed_at = datetime(2026, 4, 1, 12, 0, 0)
 
         with (
             patch(
-                'server.auth.authorization.get_user_org_role',
+                "server.auth.authorization.get_user_org_role",
                 AsyncMock(return_value=mock_owner_role),
             ),
             patch(
-                'server.routes.orgs.OrgGitClaimStore.get_claim_by_provider_and_git_org',
+                "server.routes.orgs.OrgGitClaimStore.get_claim_by_provider_and_git_org",
                 AsyncMock(return_value=None),
             ),
             patch(
-                'server.routes.orgs.OrgGitClaimStore.create_claim',
+                "server.routes.orgs.OrgGitClaimStore.create_claim",
                 AsyncMock(return_value=mock_claim),
             ),
         ):
             client = TestClient(mock_app)
             response = client.post(
-                f'/api/organizations/{org_id}/git-claims',
-                json={'provider': 'github', 'git_organization': 'OpenHands'},
+                f"/api/organizations/{org_id}/git-claims",
+                json={"provider": "github", "git_organization": "OpenHands"},
             )
 
         assert response.status_code == status.HTTP_201_CREATED
         data = response.json()
-        assert data['org_id'] == str(org_id)
-        assert data['provider'] == 'github'
-        assert data['git_organization'] == 'openhands'
+        assert data["org_id"] == str(org_id)
+        assert data["provider"] == "github"
+        assert data["git_organization"] == "openhands"
 
     def test_delete_claim_success_returns_200(self, mock_app, mock_owner_role):
         """
@@ -550,22 +550,22 @@ class TestGitClaimsHTTPIntegration:
 
         with (
             patch(
-                'server.auth.authorization.get_user_org_role',
+                "server.auth.authorization.get_user_org_role",
                 AsyncMock(return_value=mock_owner_role),
             ),
             patch(
-                'server.routes.orgs.OrgGitClaimStore.delete_claim',
+                "server.routes.orgs.OrgGitClaimStore.delete_claim",
                 AsyncMock(return_value=True),
             ),
         ):
             client = TestClient(mock_app)
             response = client.delete(
-                f'/api/organizations/{org_id}/git-claims/{claim_id}'
+                f"/api/organizations/{org_id}/git-claims/{claim_id}"
             )
 
         assert response.status_code == status.HTTP_200_OK
         assert (
-            response.json()['message'] == 'Git organization claim removed successfully'
+            response.json()["message"] == "Git organization claim removed successfully"
         )
 
     def test_get_claims_success_returns_200(self, mock_app, mock_owner_role):
@@ -578,26 +578,26 @@ class TestGitClaimsHTTPIntegration:
         mock_claim = MagicMock(spec=OrgGitClaim)
         mock_claim.id = uuid.uuid4()
         mock_claim.org_id = org_id
-        mock_claim.provider = 'github'
-        mock_claim.git_organization = 'openhands'
+        mock_claim.provider = "github"
+        mock_claim.git_organization = "openhands"
         mock_claim.claimed_by = uuid.UUID(TEST_USER_ID)
         mock_claim.claimed_at = datetime(2026, 4, 1, 12, 0, 0)
 
         with (
             patch(
-                'server.auth.authorization.get_user_org_role',
+                "server.auth.authorization.get_user_org_role",
                 AsyncMock(return_value=mock_owner_role),
             ),
             patch(
-                'server.routes.orgs.OrgGitClaimStore.get_claims_by_org_id',
+                "server.routes.orgs.OrgGitClaimStore.get_claims_by_org_id",
                 AsyncMock(return_value=[mock_claim]),
             ),
         ):
             client = TestClient(mock_app)
-            response = client.get(f'/api/organizations/{org_id}/git-claims')
+            response = client.get(f"/api/organizations/{org_id}/git-claims")
 
         assert response.status_code == status.HTTP_200_OK
         data = response.json()
         assert len(data) == 1
-        assert data[0]['provider'] == 'github'
-        assert data[0]['git_organization'] == 'openhands'
+        assert data[0]["provider"] == "github"
+        assert data[0]["git_organization"] == "openhands"

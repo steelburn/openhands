@@ -63,47 +63,47 @@ class OrgInvitationService:
         email = email.lower().strip()
 
         logger.info(
-            'Creating organization invitation',
+            "Creating organization invitation",
             extra={
-                'org_id': str(org_id),
-                'email': email,
-                'role_name': role_name,
-                'inviter_id': str(inviter_id),
+                "org_id": str(org_id),
+                "email": email,
+                "role_name": role_name,
+                "inviter_id": str(inviter_id),
             },
         )
 
         # Step 1: Validate organization exists
         org = await OrgStore.get_org_by_id(org_id)
         if not org:
-            raise ValueError(f'Organization {org_id} not found')
+            raise ValueError(f"Organization {org_id} not found")
 
         # Step 2: Check this is not a personal workspace
         # A personal workspace has org_id matching the user's id
         if str(org_id) == str(inviter_id):
             raise InsufficientPermissionError(
-                'Cannot invite users to a personal workspace'
+                "Cannot invite users to a personal workspace"
             )
 
         # Step 3: Check inviter is a member and has permission
         inviter_member = await OrgMemberStore.get_org_member(org_id, inviter_id)
         if not inviter_member:
             raise InsufficientPermissionError(
-                'You are not a member of this organization'
+                "You are not a member of this organization"
             )
 
         inviter_role = await RoleStore.get_role_by_id(inviter_member.role_id)
         if not inviter_role or inviter_role.name not in [ROLE_OWNER, ROLE_ADMIN]:
-            raise InsufficientPermissionError('Only owners and admins can invite users')
+            raise InsufficientPermissionError("Only owners and admins can invite users")
 
         # Step 4: Validate role assignment permissions
         role_name_lower = role_name.lower()
         if role_name_lower == ROLE_OWNER and inviter_role.name != ROLE_OWNER:
-            raise InsufficientPermissionError('Only owners can invite with owner role')
+            raise InsufficientPermissionError("Only owners can invite with owner role")
 
         # Get the target role
         target_role = await RoleStore.get_role_by_name(role_name_lower)
         if not target_role:
-            raise ValueError(f'Invalid role: {role_name}')
+            raise ValueError(f"Invalid role: {role_name}")
 
         # Step 5: Check if user is already a member (by email)
         existing_user = await UserStore.get_user_by_email(email)
@@ -113,7 +113,7 @@ class OrgInvitationService:
             )
             if existing_member:
                 raise UserAlreadyMemberError(
-                    'User is already a member of this organization'
+                    "User is already a member of this organization"
                 )
 
         # Step 6: Create the invitation
@@ -128,9 +128,9 @@ class OrgInvitationService:
         try:
             # Get inviter info for the email
             inviter_user = await UserStore.get_user_by_id(str(inviter_member.user_id))
-            inviter_name = 'A team member'
+            inviter_name = "A team member"
             if inviter_user and inviter_user.email:
-                inviter_name = inviter_user.email.split('@')[0]
+                inviter_name = inviter_user.email.split("@")[0]
 
             EmailService.send_invitation_email(
                 to_email=email,
@@ -142,11 +142,11 @@ class OrgInvitationService:
             )
         except Exception as e:
             logger.error(
-                'Failed to send invitation email',
+                "Failed to send invitation email",
                 extra={
-                    'invitation_id': invitation.id,
-                    'email': email,
-                    'error': str(e),
+                    "invitation_id": invitation.id,
+                    "email": email,
+                    "error": str(e),
                 },
             )
             # Don't fail the invitation creation if email fails
@@ -179,42 +179,42 @@ class OrgInvitationService:
             InsufficientPermissionError: If inviter lacks permission
         """
         logger.info(
-            'Creating batch organization invitations',
+            "Creating batch organization invitations",
             extra={
-                'org_id': str(org_id),
-                'email_count': len(emails),
-                'role_name': role_name,
-                'inviter_id': str(inviter_id),
+                "org_id": str(org_id),
+                "email_count": len(emails),
+                "role_name": role_name,
+                "inviter_id": str(inviter_id),
             },
         )
 
         # Step 1: Validate permissions upfront (shared for all emails)
         org = await OrgStore.get_org_by_id(org_id)
         if not org:
-            raise ValueError(f'Organization {org_id} not found')
+            raise ValueError(f"Organization {org_id} not found")
 
         if str(org_id) == str(inviter_id):
             raise InsufficientPermissionError(
-                'Cannot invite users to a personal workspace'
+                "Cannot invite users to a personal workspace"
             )
 
         inviter_member = await OrgMemberStore.get_org_member(org_id, inviter_id)
         if not inviter_member:
             raise InsufficientPermissionError(
-                'You are not a member of this organization'
+                "You are not a member of this organization"
             )
 
         inviter_role = await RoleStore.get_role_by_id(inviter_member.role_id)
         if not inviter_role or inviter_role.name not in [ROLE_OWNER, ROLE_ADMIN]:
-            raise InsufficientPermissionError('Only owners and admins can invite users')
+            raise InsufficientPermissionError("Only owners and admins can invite users")
 
         role_name_lower = role_name.lower()
         if role_name_lower == ROLE_OWNER and inviter_role.name != ROLE_OWNER:
-            raise InsufficientPermissionError('Only owners can invite with owner role')
+            raise InsufficientPermissionError("Only owners can invite with owner role")
 
         target_role = await RoleStore.get_role_by_name(role_name_lower)
         if not target_role:
-            raise ValueError(f'Invalid role: {role_name}')
+            raise ValueError(f"Invalid role: {role_name}")
 
         # Step 2: Create invitations concurrently
         async def create_single(
@@ -244,11 +244,11 @@ class OrgInvitationService:
                 failed.append((email, error))
 
         logger.info(
-            'Batch invitation creation completed',
+            "Batch invitation creation completed",
             extra={
-                'org_id': str(org_id),
-                'successful': len(successful),
-                'failed': len(failed),
+                "org_id": str(org_id),
+                "successful": len(successful),
+                "failed": len(failed),
             },
         )
 
@@ -279,10 +279,10 @@ class OrgInvitationService:
             UserAlreadyMemberError: If user is already a member
         """
         logger.info(
-            'Accepting organization invitation',
+            "Accepting organization invitation",
             extra={
-                'token_prefix': token[:10] + '...' if len(token) > 10 else token,
-                'user_id': str(user_id),
+                "token_prefix": token[:10] + "..." if len(token) > 10 else token,
+                "user_id": str(user_id),
             },
         )
 
@@ -290,27 +290,27 @@ class OrgInvitationService:
         invitation = await OrgInvitationStore.get_invitation_by_token(token)
 
         if not invitation:
-            raise InvitationInvalidError('Invalid invitation token')
+            raise InvitationInvalidError("Invalid invitation token")
 
         if invitation.status != OrgInvitation.STATUS_PENDING:
             if invitation.status == OrgInvitation.STATUS_ACCEPTED:
-                raise InvitationInvalidError('Invitation has already been accepted')
+                raise InvitationInvalidError("Invitation has already been accepted")
             elif invitation.status == OrgInvitation.STATUS_REVOKED:
-                raise InvitationInvalidError('Invitation has been revoked')
+                raise InvitationInvalidError("Invitation has been revoked")
             else:
-                raise InvitationInvalidError('Invitation is no longer valid')
+                raise InvitationInvalidError("Invitation is no longer valid")
 
         # Step 2: Check expiration
         if OrgInvitationStore.is_token_expired(invitation):
             await OrgInvitationStore.update_invitation_status(
                 invitation.id, OrgInvitation.STATUS_EXPIRED
             )
-            raise InvitationExpiredError('Invitation has expired')
+            raise InvitationExpiredError("Invitation has expired")
 
         # Step 2.5: Verify user email matches invitation email
         user = await UserStore.get_user_by_id(str(user_id))
         if not user:
-            raise InvitationInvalidError('User not found')
+            raise InvitationInvalidError("User not found")
 
         user_email = user.email
         # Fallback: fetch email from Keycloak if not in database (for existing users).
@@ -320,30 +320,30 @@ class OrgInvitationService:
             token_manager = TokenManager()
             user_info = await token_manager.get_user_info_from_user_id(str(user_id))
             if user_info:
-                user_email = user_info.get('email')
+                user_email = user_info.get("email")
                 if user_email:
                     await UserStore.backfill_user_email(
                         str(user_id),
                         {
-                            'email': user_email,
-                            'email_verified': user_info.get('emailVerified', False),
+                            "email": user_email,
+                            "email_verified": user_info.get("emailVerified", False),
                         },
                     )
 
         if not user_email:
-            raise EmailMismatchError('Your account does not have an email address')
+            raise EmailMismatchError("Your account does not have an email address")
 
         user_email = user_email.lower().strip()
         invitation_email = invitation.email.lower().strip()
 
         if user_email != invitation_email:
             logger.warning(
-                'Email mismatch during invitation acceptance',
+                "Email mismatch during invitation acceptance",
                 extra={
-                    'user_id': str(user_id),
-                    'user_email': user_email,
-                    'invitation_email': invitation_email,
-                    'invitation_id': invitation.id,
+                    "user_id": str(user_id),
+                    "user_email": user_email,
+                    "invitation_email": invitation_email,
+                    "invitation_id": invitation.id,
                 },
             )
             raise EmailMismatchError()
@@ -354,7 +354,7 @@ class OrgInvitationService:
         )
         if existing_member:
             raise UserAlreadyMemberError(
-                'You are already a member of this organization'
+                "You are already a member of this organization"
             )
 
         # Step 4: Create LiteLLM integration for the user in the new org
@@ -364,29 +364,29 @@ class OrgInvitationService:
             )
         except Exception as e:
             logger.error(
-                'Failed to create LiteLLM integration for invitation acceptance',
+                "Failed to create LiteLLM integration for invitation acceptance",
                 extra={
-                    'invitation_id': invitation.id,
-                    'user_id': str(user_id),
-                    'org_id': str(invitation.org_id),
-                    'error': str(e),
+                    "invitation_id": invitation.id,
+                    "user_id": str(user_id),
+                    "org_id": str(invitation.org_id),
+                    "error": str(e),
                 },
             )
             raise InvitationInvalidError(
-                'Failed to set up organization access. Please try again.'
+                "Failed to set up organization access. Please try again."
             )
 
         # Step 4.5: Ensure the organization still exists before adding membership
         org = await OrgStore.get_org_by_id(invitation.org_id)
         if not org:
-            raise InvitationInvalidError('Organization not found')
+            raise InvitationInvalidError("Organization not found")
 
         # Step 5: Add user to organization. New members start with no
         # personal agent-setting overrides so future org default changes
         # continue to flow through automatically.
         llm_api_key_secret = settings.agent_settings.llm.api_key
         llm_api_key = (
-            llm_api_key_secret.get_secret_value() if llm_api_key_secret else ''
+            llm_api_key_secret.get_secret_value() if llm_api_key_secret else ""
         )
 
         await OrgMemberStore.add_user_to_org(
@@ -394,7 +394,7 @@ class OrgInvitationService:
             user_id=user_id,
             role_id=invitation.role_id,
             llm_api_key=llm_api_key,
-            status='active',
+            status="active",
             agent_settings_diff={},
             conversation_settings_diff={},
         )
@@ -407,15 +407,15 @@ class OrgInvitationService:
         )
 
         if not updated_invitation:
-            raise InvitationInvalidError('Failed to update invitation status')
+            raise InvitationInvalidError("Failed to update invitation status")
 
         logger.info(
-            'Organization invitation accepted',
+            "Organization invitation accepted",
             extra={
-                'invitation_id': invitation.id,
-                'user_id': str(user_id),
-                'org_id': str(invitation.org_id),
-                'role_id': invitation.role_id,
+                "invitation_id": invitation.id,
+                "user_id": str(user_id),
+                "org_id": str(invitation.org_id),
+                "role_id": invitation.role_id,
             },
         )
 

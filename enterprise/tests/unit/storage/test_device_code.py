@@ -13,13 +13,13 @@ class TestDeviceCode:
     def device_code(self):
         """Create a test device code."""
         return DeviceCode(
-            device_code='test-device-code-123',
-            user_code='ABC12345',
+            device_code="test-device-code-123",
+            user_code="ABC12345",
             expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
         )
 
     @pytest.mark.parametrize(
-        'expires_delta,expected',
+        "expires_delta,expected",
         [
             (timedelta(minutes=5), False),  # Future expiry
             (timedelta(minutes=-5), True),  # Past expiry
@@ -29,14 +29,14 @@ class TestDeviceCode:
     def test_is_expired(self, expires_delta, expected):
         """Test expiration check with various time deltas."""
         device_code = DeviceCode(
-            device_code='test-device-code',
-            user_code='ABC12345',
+            device_code="test-device-code",
+            user_code="ABC12345",
             expires_at=datetime.now(timezone.utc) + expires_delta,
         )
         assert device_code.is_expired() == expected
 
     @pytest.mark.parametrize(
-        'status,expired,expected',
+        "status,expired,expected",
         [
             (DeviceCodeStatus.PENDING.value, False, True),
             (DeviceCodeStatus.PENDING.value, True, False),
@@ -52,8 +52,8 @@ class TestDeviceCode:
             else datetime.now(timezone.utc) + timedelta(minutes=10)
         )
         device_code = DeviceCode(
-            device_code='test-device-code',
-            user_code='ABC12345',
+            device_code="test-device-code",
+            user_code="ABC12345",
             status=status,
             expires_at=expires_at,
         )
@@ -61,7 +61,7 @@ class TestDeviceCode:
 
     def test_authorize(self, device_code):
         """Test device authorization."""
-        user_id = 'test-user-123'
+        user_id = "test-user-123"
 
         device_code.authorize(user_id)
 
@@ -71,10 +71,10 @@ class TestDeviceCode:
         assert isinstance(device_code.authorized_at, datetime)
 
     @pytest.mark.parametrize(
-        'method,expected_status',
+        "method,expected_status",
         [
-            ('deny', DeviceCodeStatus.DENIED.value),
-            ('expire', DeviceCodeStatus.EXPIRED.value),
+            ("deny", DeviceCodeStatus.DENIED.value),
+            ("expire", DeviceCodeStatus.EXPIRED.value),
         ],
     )
     def test_status_changes(self, device_code, method, expected_status):

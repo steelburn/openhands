@@ -21,7 +21,7 @@ mock_search = AsyncMock(return_value=mock_search_result)
 
 # Mock stripe create
 mock_create_result = MagicMock()
-mock_create_result.id = 'cus_test123'
+mock_create_result.id = "cus_test123"
 mock_create = AsyncMock(return_value=mock_create_result)
 
 # Mock stripe list payment methods
@@ -57,7 +57,7 @@ async def find_or_create_customer(user_id: str) -> str:
 
     # Create the customer in stripe
     customer = await mock_create(
-        metadata={'user_id': user_id},
+        metadata={"user_id": user_id},
     )
 
     # Save the stripe customer in the local db

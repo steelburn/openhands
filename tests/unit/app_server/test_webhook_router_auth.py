@@ -34,7 +34,7 @@ class MockRequestState:
         self._attributes = {}
 
     def __setattr__(self, name, value):
-        if name.startswith('_'):
+        if name.startswith("_"):
             super().__setattr__(name, value)
         else:
             self._attributes[name] = value
@@ -71,14 +71,14 @@ class TestValidSandbox:
     async def test_valid_sandbox_with_valid_api_key(self):
         """Test that valid API key returns sandbox info and sets user_context."""
         # Arrange
-        session_api_key = 'valid-api-key-123'
-        user_id = 'user-123'
+        session_api_key = "valid-api-key-123"
+        user_id = "user-123"
         expected_sandbox = SandboxInfo(
-            id='sandbox-123',
+            id="sandbox-123",
             status=SandboxStatus.RUNNING,
             session_api_key=session_api_key,
             created_by_user_id=user_id,
-            sandbox_spec_id='spec-123',
+            sandbox_spec_id="spec-123",
         )
 
         mock_sandbox_service = AsyncMock()
@@ -90,7 +90,7 @@ class TestValidSandbox:
 
         # Act
         with patch(
-            'openhands.app_server.event_callback.webhook_router.get_sandbox_service',
+            "openhands.app_server.event_callback.webhook_router.get_sandbox_service",
             create_sandbox_service_context_manager(mock_sandbox_service),
         ):
             result = await valid_sandbox(
@@ -114,14 +114,14 @@ class TestValidSandbox:
     async def test_valid_sandbox_sets_user_context_to_sandbox_owner(self):
         """Test that user_context is set to the sandbox owner's user ID."""
         # Arrange
-        session_api_key = 'valid-api-key'
-        sandbox_owner_id = 'sandbox-owner-user-id'
+        session_api_key = "valid-api-key"
+        sandbox_owner_id = "sandbox-owner-user-id"
         expected_sandbox = SandboxInfo(
-            id='sandbox-456',
+            id="sandbox-456",
             status=SandboxStatus.RUNNING,
             session_api_key=session_api_key,
             created_by_user_id=sandbox_owner_id,
-            sandbox_spec_id='spec-456',
+            sandbox_spec_id="spec-456",
         )
 
         mock_sandbox_service = AsyncMock()
@@ -133,7 +133,7 @@ class TestValidSandbox:
 
         # Act
         with patch(
-            'openhands.app_server.event_callback.webhook_router.get_sandbox_service',
+            "openhands.app_server.event_callback.webhook_router.get_sandbox_service",
             create_sandbox_service_context_manager(mock_sandbox_service),
         ):
             await valid_sandbox(
@@ -151,13 +151,13 @@ class TestValidSandbox:
     async def test_valid_sandbox_no_user_context_when_no_user_id(self):
         """Test that user_context is not set when sandbox has no created_by_user_id."""
         # Arrange
-        session_api_key = 'valid-api-key'
+        session_api_key = "valid-api-key"
         expected_sandbox = SandboxInfo(
-            id='sandbox-789',
+            id="sandbox-789",
             status=SandboxStatus.RUNNING,
             session_api_key=session_api_key,
             created_by_user_id=None,  # No user ID
-            sandbox_spec_id='spec-789',
+            sandbox_spec_id="spec-789",
         )
 
         mock_sandbox_service = AsyncMock()
@@ -169,7 +169,7 @@ class TestValidSandbox:
 
         # Act
         with patch(
-            'openhands.app_server.event_callback.webhook_router.get_sandbox_service',
+            "openhands.app_server.event_callback.webhook_router.get_sandbox_service",
             create_sandbox_service_context_manager(mock_sandbox_service),
         ):
             result = await valid_sandbox(
@@ -189,13 +189,13 @@ class TestValidSandbox:
     ):
         """Test that user_context is not set when sandbox has no created_by_user_id."""
         # Arrange
-        session_api_key = 'valid-api-key'
+        session_api_key = "valid-api-key"
         expected_sandbox = SandboxInfo(
-            id='sandbox-789',
+            id="sandbox-789",
             status=SandboxStatus.RUNNING,
             session_api_key=session_api_key,
             created_by_user_id=None,  # No user ID
-            sandbox_spec_id='spec-789',
+            sandbox_spec_id="spec-789",
         )
 
         mock_sandbox_service = AsyncMock()
@@ -208,11 +208,11 @@ class TestValidSandbox:
         # Act
         with (
             patch(
-                'openhands.app_server.event_callback.webhook_router.get_sandbox_service',
+                "openhands.app_server.event_callback.webhook_router.get_sandbox_service",
                 create_sandbox_service_context_manager(mock_sandbox_service),
             ),
             patch(
-                'openhands.app_server.event_callback.webhook_router.app_mode',
+                "openhands.app_server.event_callback.webhook_router.app_mode",
                 AppMode.SAAS,
             ),
         ):
@@ -237,13 +237,13 @@ class TestValidSandbox:
             )
 
         assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
-        assert 'X-Session-API-Key header is required' in exc_info.value.detail
+        assert "X-Session-API-Key header is required" in exc_info.value.detail
 
     @pytest.mark.asyncio
     async def test_valid_sandbox_with_invalid_api_key_raises_401(self):
         """Test that invalid API key raises 401 error."""
         # Arrange
-        session_api_key = 'invalid-api-key'
+        session_api_key = "invalid-api-key"
         mock_sandbox_service = AsyncMock()
         mock_sandbox_service.get_sandbox_by_session_api_key = AsyncMock(
             return_value=None
@@ -253,7 +253,7 @@ class TestValidSandbox:
 
         # Act & Assert
         with patch(
-            'openhands.app_server.event_callback.webhook_router.get_sandbox_service',
+            "openhands.app_server.event_callback.webhook_router.get_sandbox_service",
             create_sandbox_service_context_manager(mock_sandbox_service),
         ):
             with pytest.raises(HTTPException) as exc_info:
@@ -263,13 +263,13 @@ class TestValidSandbox:
                 )
 
         assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
-        assert 'Invalid session API key' in exc_info.value.detail
+        assert "Invalid session API key" in exc_info.value.detail
 
     @pytest.mark.asyncio
     async def test_valid_sandbox_with_empty_api_key_raises_401(self):
         """Test that empty API key raises 401 error (same as missing key)."""
         # Arrange - empty string is falsy, so it gets rejected at the check
-        session_api_key = ''
+        session_api_key = ""
         mock_sandbox_service = AsyncMock()
         mock_request = create_mock_request()
 
@@ -281,7 +281,7 @@ class TestValidSandbox:
             )
 
         assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
-        assert 'X-Session-API-Key header is required' in exc_info.value.detail
+        assert "X-Session-API-Key header is required" in exc_info.value.detail
         # Verify the sandbox service was NOT called (rejected before lookup)
         mock_sandbox_service.get_sandbox_by_session_api_key.assert_not_called()
 
@@ -295,15 +295,15 @@ class TestValidConversation:
         # Arrange
         conversation_id = uuid4()
         sandbox_info = SandboxInfo(
-            id='sandbox-123',
+            id="sandbox-123",
             status=SandboxStatus.RUNNING,
-            session_api_key='api-key',
-            created_by_user_id='user-123',
-            sandbox_spec_id='spec-123',
+            session_api_key="api-key",
+            created_by_user_id="user-123",
+            sandbox_spec_id="spec-123",
         )
 
         expected_info = MagicMock()
-        expected_info.created_by_user_id = 'user-123'
+        expected_info.created_by_user_id = "user-123"
 
         mock_service = AsyncMock()
         mock_service.get_app_conversation_info = AsyncMock(return_value=expected_info)
@@ -324,11 +324,11 @@ class TestValidConversation:
         # Arrange
         conversation_id = uuid4()
         sandbox_info = SandboxInfo(
-            id='sandbox-123',
+            id="sandbox-123",
             status=SandboxStatus.RUNNING,
-            session_api_key='api-key',
-            created_by_user_id='user-123',
-            sandbox_spec_id='spec-123',
+            session_api_key="api-key",
+            created_by_user_id="user-123",
+            sandbox_spec_id="spec-123",
         )
 
         mock_service = AsyncMock()
@@ -352,16 +352,16 @@ class TestValidConversation:
         # Arrange
         conversation_id = uuid4()
         sandbox_info = SandboxInfo(
-            id='sandbox-123',
+            id="sandbox-123",
             status=SandboxStatus.RUNNING,
-            session_api_key='api-key',
-            created_by_user_id='user-123',
-            sandbox_spec_id='spec-123',
+            session_api_key="api-key",
+            created_by_user_id="user-123",
+            sandbox_spec_id="spec-123",
         )
 
         # Conversation created by different user
         different_user_info = MagicMock()
-        different_user_info.created_by_user_id = 'different-user-id'
+        different_user_info.created_by_user_id = "different-user-id"
 
         mock_service = AsyncMock()
         mock_service.get_app_conversation_info = AsyncMock(
@@ -383,13 +383,13 @@ class TestValidConversation:
         """Test that conversation from same user succeeds."""
         # Arrange
         conversation_id = uuid4()
-        user_id = 'user-123'
+        user_id = "user-123"
         sandbox_info = SandboxInfo(
-            id='sandbox-123',
+            id="sandbox-123",
             status=SandboxStatus.RUNNING,
-            session_api_key='api-key',
+            session_api_key="api-key",
             created_by_user_id=user_id,
-            sandbox_spec_id='spec-123',
+            sandbox_spec_id="spec-123",
         )
 
         # Conversation created by same user
@@ -417,13 +417,13 @@ class TestWebhookAuthenticationIntegration:
     async def test_full_auth_flow_valid_key(self):
         """Test complete auth flow with valid API key."""
         # Arrange
-        session_api_key = 'valid-api-key'
+        session_api_key = "valid-api-key"
         sandbox_info = SandboxInfo(
-            id='sandbox-123',
+            id="sandbox-123",
             status=SandboxStatus.RUNNING,
             session_api_key=session_api_key,
-            created_by_user_id='user-123',
-            sandbox_spec_id='spec-123',
+            created_by_user_id="user-123",
+            sandbox_spec_id="spec-123",
         )
 
         mock_sandbox_service = AsyncMock()
@@ -432,7 +432,7 @@ class TestWebhookAuthenticationIntegration:
         )
 
         conversation_info = MagicMock()
-        conversation_info.created_by_user_id = 'user-123'
+        conversation_info.created_by_user_id = "user-123"
 
         mock_conversation_service = AsyncMock()
         mock_conversation_service.get_app_conversation_info = AsyncMock(
@@ -443,7 +443,7 @@ class TestWebhookAuthenticationIntegration:
 
         # Act - Call valid_sandbox first
         with patch(
-            'openhands.app_server.event_callback.webhook_router.get_sandbox_service',
+            "openhands.app_server.event_callback.webhook_router.get_sandbox_service",
             create_sandbox_service_context_manager(mock_sandbox_service),
         ):
             sandbox_result = await valid_sandbox(
@@ -459,14 +459,14 @@ class TestWebhookAuthenticationIntegration:
         )
 
         # Assert
-        assert sandbox_result.id == 'sandbox-123'
-        assert conversation_result.created_by_user_id == 'user-123'
+        assert sandbox_result.id == "sandbox-123"
+        assert conversation_result.created_by_user_id == "user-123"
 
     @pytest.mark.asyncio
     async def test_full_auth_flow_invalid_key_fails(self):
         """Test complete auth flow with invalid API key fails at sandbox validation."""
         # Arrange
-        session_api_key = 'invalid-api-key'
+        session_api_key = "invalid-api-key"
         mock_sandbox_service = AsyncMock()
         mock_sandbox_service.get_sandbox_by_session_api_key = AsyncMock(
             return_value=None
@@ -476,7 +476,7 @@ class TestWebhookAuthenticationIntegration:
 
         # Act & Assert - Should fail at valid_sandbox
         with patch(
-            'openhands.app_server.event_callback.webhook_router.get_sandbox_service',
+            "openhands.app_server.event_callback.webhook_router.get_sandbox_service",
             create_sandbox_service_context_manager(mock_sandbox_service),
         ):
             with pytest.raises(HTTPException) as exc_info:
@@ -491,13 +491,13 @@ class TestWebhookAuthenticationIntegration:
     async def test_full_auth_flow_wrong_user_fails(self):
         """Test complete auth flow with valid key but wrong user fails."""
         # Arrange
-        session_api_key = 'valid-api-key'
+        session_api_key = "valid-api-key"
         sandbox_info = SandboxInfo(
-            id='sandbox-123',
+            id="sandbox-123",
             status=SandboxStatus.RUNNING,
             session_api_key=session_api_key,
-            created_by_user_id='user-123',
-            sandbox_spec_id='spec-123',
+            created_by_user_id="user-123",
+            sandbox_spec_id="spec-123",
         )
 
         mock_sandbox_service = AsyncMock()
@@ -507,7 +507,7 @@ class TestWebhookAuthenticationIntegration:
 
         # Conversation created by different user
         different_user_info = MagicMock()
-        different_user_info.created_by_user_id = 'different-user'
+        different_user_info.created_by_user_id = "different-user"
 
         mock_conversation_service = AsyncMock()
         mock_conversation_service.get_app_conversation_info = AsyncMock(
@@ -518,7 +518,7 @@ class TestWebhookAuthenticationIntegration:
 
         # Act - valid_sandbox succeeds
         with patch(
-            'openhands.app_server.event_callback.webhook_router.get_sandbox_service',
+            "openhands.app_server.event_callback.webhook_router.get_sandbox_service",
             create_sandbox_service_context_manager(mock_sandbox_service),
         ):
             sandbox_result = await valid_sandbox(
@@ -557,22 +557,22 @@ class TestWebhookRouterHTTPIntegration:
         """
         # Create a minimal FastAPI app with just the webhook router
         app = FastAPI()
-        app.include_router(webhook_router, prefix='/api/v1')
+        app.include_router(webhook_router, prefix="/api/v1")
 
         client = TestClient(app, raise_server_exceptions=False)
 
         # Create a valid request body with conversation_id in it
         conversation_id = str(uuid4())
         request_body = {
-            'id': conversation_id,
-            'execution_status': 'running',
-            'agent': {
-                'llm': {
-                    'model': 'gpt-4',
+            "id": conversation_id,
+            "execution_status": "running",
+            "agent": {
+                "llm": {
+                    "model": "gpt-4",
                 },
             },
-            'stats': {
-                'usage_to_metrics': {},
+            "stats": {
+                "usage_to_metrics": {},
             },
         }
 
@@ -580,7 +580,7 @@ class TestWebhookRouterHTTPIntegration:
         # If the old bug existed (conversation_id required as query param),
         # FastAPI would return 422 Unprocessable Entity
         response = client.post(
-            '/api/v1/webhooks/conversations',
+            "/api/v1/webhooks/conversations",
             json=request_body,
             # No X-Session-API-Key header - should fail auth but NOT validation
         )
@@ -589,11 +589,11 @@ class TestWebhookRouterHTTPIntegration:
         # NOT 422 Unprocessable Entity (which would indicate conversation_id
         # was incorrectly required as a query parameter)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED, (
-            f'Expected 401 (auth failure), got {response.status_code}. '
-            f'If 422, the endpoint incorrectly requires conversation_id as query param. '
-            f'Response: {response.json()}'
+            f"Expected 401 (auth failure), got {response.status_code}. "
+            f"If 422, the endpoint incorrectly requires conversation_id as query param. "
+            f"Response: {response.json()}"
         )
-        assert response.json()['detail'] == 'X-Session-API-Key header is required'
+        assert response.json()["detail"] == "X-Session-API-Key header is required"
 
     def test_events_endpoint_still_requires_conversation_id_in_path(self):
         """Test that /webhooks/events/{conversation_id} correctly requires path param.
@@ -603,7 +603,7 @@ class TestWebhookRouterHTTPIntegration:
         """
         # Create a minimal FastAPI app with just the webhook router
         app = FastAPI()
-        app.include_router(webhook_router, prefix='/api/v1')
+        app.include_router(webhook_router, prefix="/api/v1")
 
         client = TestClient(app, raise_server_exceptions=False)
 
@@ -612,11 +612,11 @@ class TestWebhookRouterHTTPIntegration:
 
         # POST to /webhooks/events/{conversation_id} with path parameter
         response = client.post(
-            f'/api/v1/webhooks/events/{conversation_id}',
+            f"/api/v1/webhooks/events/{conversation_id}",
             json=request_body,
             # No X-Session-API-Key header - should fail auth but NOT validation
         )
 
         # We expect 401 Unauthorized (missing session API key)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-        assert response.json()['detail'] == 'X-Session-API-Key header is required'
+        assert response.json()["detail"] == "X-Session-API-Key header is required"

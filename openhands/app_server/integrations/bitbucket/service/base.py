@@ -22,7 +22,7 @@ class BitBucketMixinBase(BaseGitService, HTTPClient):
     Base mixin for BitBucket service containing common functionality
     """
 
-    BASE_URL = 'https://api.bitbucket.org/2.0'
+    BASE_URL = "https://api.bitbucket.org/2.0"
 
     @staticmethod
     def _resolve_primary_email(emails: list[dict]) -> str | None:
@@ -32,8 +32,8 @@ class BitBucketMixinBase(BaseGitService, HTTPClient):
         'email', 'is_primary', and 'is_confirmed' keys.
         """
         for entry in emails:
-            if entry.get('is_primary') and entry.get('is_confirmed'):
-                return entry.get('email')
+            if entry.get("is_primary") and entry.get("is_confirmed"):
+                return entry.get("email")
         return None
 
     def _extract_owner_and_repo(self, repository: str) -> tuple[str, str]:
@@ -48,9 +48,9 @@ class BitBucketMixinBase(BaseGitService, HTTPClient):
         Raises:
             ValueError: If repository format is invalid
         """
-        parts = repository.split('/')
+        parts = repository.split("/")
         if len(parts) < 2:
-            raise ValueError(f'Invalid repository name: {repository}')
+            raise ValueError(f"Invalid repository name: {repository}")
 
         return parts[-2], parts[-1]
 
@@ -78,16 +78,16 @@ class BitBucketMixinBase(BaseGitService, HTTPClient):
         token_value = self.token.get_secret_value()
 
         # Check if the token contains a colon, which indicates it's in username:password format
-        if ':' in token_value:
+        if ":" in token_value:
             auth_str = base64.b64encode(token_value.encode()).decode()
             return {
-                'Authorization': f'Basic {auth_str}',
-                'Accept': 'application/json',
+                "Authorization": f"Basic {auth_str}",
+                "Accept": "application/json",
             }
         else:
             return {
-                'Authorization': f'Bearer {token_value}',
-                'Accept': 'application/json',
+                "Authorization": f"Bearer {token_value}",
+                "Accept": "application/json",
             }
 
     async def _make_request(
@@ -150,11 +150,11 @@ class BitBucketMixinBase(BaseGitService, HTTPClient):
             response, _ = await self._make_request(current_url, params)
 
             # Extract items from response
-            page_items = response.get('values', [])
+            page_items = response.get("values", [])
             all_items.extend(page_items)
 
             # Get next page URL from response
-            current_url = response.get('next')
+            current_url = response.get("next")
 
             # Clear params for subsequent requests as they're included in the next URL
             params = {}
@@ -168,16 +168,16 @@ class BitBucketMixinBase(BaseGitService, HTTPClient):
         'values' list of email objects containing 'email', 'is_primary',
         and 'is_confirmed' fields.
         """
-        url = f'{self.BASE_URL}/user/emails'
+        url = f"{self.BASE_URL}/user/emails"
         response, _ = await self._make_request(url)
-        return response.get('values', [])
+        return response.get("values", [])
 
     async def get_user(self) -> User:
         """Get the authenticated user's information."""
-        url = f'{self.BASE_URL}/user'
+        url = f"{self.BASE_URL}/user"
         data, _ = await self._make_request(url)
 
-        account_id = data.get('account_id', '')
+        account_id = data.get("account_id", "")
 
         email = None
         try:
@@ -185,15 +185,15 @@ class BitBucketMixinBase(BaseGitService, HTTPClient):
             email = self._resolve_primary_email(emails)
         except Exception:
             logger.warning(
-                'bitbucket:get_user:email_fallback_failed',
+                "bitbucket:get_user:email_fallback_failed",
                 exc_info=True,
             )
 
         return User(
             id=account_id,
-            login=data.get('username', ''),
-            avatar_url=data.get('links', {}).get('avatar', {}).get('href', ''),
-            name=data.get('display_name'),
+            login=data.get("username", ""),
+            avatar_url=data.get("links", {}).get("avatar", {}).get("href", ""),
+            name=data.get("display_name"),
             email=email,
         )
 
@@ -209,17 +209,17 @@ class BitBucketMixinBase(BaseGitService, HTTPClient):
         Returns:
             Repository object
         """
-        repo_id = repo.get('uuid', '')
+        repo_id = repo.get("uuid", "")
 
-        workspace_slug = repo.get('workspace', {}).get('slug', '')
-        repo_slug = repo.get('slug', '')
+        workspace_slug = repo.get("workspace", {}).get("slug", "")
+        repo_slug = repo.get("slug", "")
         full_name = (
-            f'{workspace_slug}/{repo_slug}' if workspace_slug and repo_slug else ''
+            f"{workspace_slug}/{repo_slug}" if workspace_slug and repo_slug else ""
         )
 
-        is_public = not repo.get('is_private', True)
+        is_public = not repo.get("is_private", True)
         owner_type = OwnerType.ORGANIZATION
-        main_branch = repo.get('mainbranch', {}).get('name')
+        main_branch = repo.get("mainbranch", {}).get("name")
 
         return Repository(
             id=repo_id,
@@ -227,7 +227,7 @@ class BitBucketMixinBase(BaseGitService, HTTPClient):
             git_provider=ProviderType.BITBUCKET,
             is_public=is_public,
             stargazers_count=None,  # Bitbucket doesn't have stars
-            pushed_at=repo.get('updated_on'),
+            pushed_at=repo.get("updated_on"),
             owner_type=owner_type,
             link_header=link_header,
             main_branch=main_branch,
@@ -244,6 +244,6 @@ class BitBucketMixinBase(BaseGitService, HTTPClient):
         Returns:
             Repository object with details
         """
-        url = f'{self.BASE_URL}/repositories/{repository}'
+        url = f"{self.BASE_URL}/repositories/{repository}"
         data, _ = await self._make_request(url)
         return self._parse_repository(data)

@@ -11,7 +11,7 @@ from pydantic import BaseModel
 
 from openhands.app_server.user_auth import get_user_id
 
-onboarding_router = APIRouter(prefix='/api', tags=['Onboarding'])
+onboarding_router = APIRouter(prefix="/api", tags=["Onboarding"])
 
 
 class OnboardingSubmission(BaseModel):
@@ -25,7 +25,7 @@ class OnboardingResponse(BaseModel):
     redirect_url: str
 
 
-@onboarding_router.post('/onboarding', response_model=OnboardingResponse)
+@onboarding_router.post("/onboarding", response_model=OnboardingResponse)
 async def submit_onboarding(
     body: OnboardingSubmission,
     user_id: str | None = Depends(get_user_id),
@@ -48,10 +48,10 @@ async def submit_onboarding(
             if ctx.org_id:
                 analytics.group_identify(
                     ctx=ctx,
-                    group_type='org',
+                    group_type="org",
                     group_key=ctx.org_id,
                     properties={
-                        'onboarding_completed_at': datetime.now(
+                        "onboarding_completed_at": datetime.now(
                             timezone.utc
                         ).isoformat(),
                     },
@@ -59,6 +59,6 @@ async def submit_onboarding(
     except Exception:
         import logging
 
-        logging.getLogger(__name__).exception('analytics:onboarding_completed:failed')
+        logging.getLogger(__name__).exception("analytics:onboarding_completed:failed")
 
-    return OnboardingResponse(status='ok', redirect_url='/')
+    return OnboardingResponse(status="ok", redirect_url="/")

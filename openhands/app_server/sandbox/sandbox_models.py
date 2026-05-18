@@ -7,11 +7,11 @@ from openhands.agent_server.utils import utc_now
 
 
 class SandboxStatus(Enum):
-    STARTING = 'STARTING'
-    RUNNING = 'RUNNING'
-    PAUSED = 'PAUSED'
-    ERROR = 'ERROR'
-    MISSING = 'MISSING'
+    STARTING = "STARTING"
+    RUNNING = "RUNNING"
+    PAUSED = "PAUSED"
+    ERROR = "ERROR"
+    MISSING = "MISSING"
     """Missing - possibly deleted"""
 
 
@@ -24,10 +24,10 @@ class ExposedUrl(BaseModel):
 
 
 # Standard names
-AGENT_SERVER = 'AGENT_SERVER'
-VSCODE = 'VSCODE'
-WORKER_1 = 'WORKER_1'
-WORKER_2 = 'WORKER_2'
+AGENT_SERVER = "AGENT_SERVER"
+VSCODE = "VSCODE"
+WORKER_1 = "WORKER_1"
+WORKER_2 = "WORKER_2"
 
 
 class SandboxInfo(BaseModel):
@@ -39,18 +39,18 @@ class SandboxInfo(BaseModel):
     status: SandboxStatus
     session_api_key: str | None = Field(
         description=(
-            'Key to access sandbox, to be added as an `X-Session-API-Key` header '
-            'in each request. In cases where the sandbox statues is STARTING or '
-            'PAUSED, or the current user does not have full access '
-            'the session_api_key will be None.'
+            "Key to access sandbox, to be added as an `X-Session-API-Key` header "
+            "in each request. In cases where the sandbox statues is STARTING or "
+            "PAUSED, or the current user does not have full access "
+            "the session_api_key will be None."
         )
     )
     exposed_urls: list[ExposedUrl] | None = Field(
         default_factory=lambda: [],
         description=(
-            'URLs exposed by the sandbox (App server, Vscode, etc...)'
-            'Sandboxes with a status STARTING / PAUSED / ERROR may '
-            'not return urls.'
+            "URLs exposed by the sandbox (App server, Vscode, etc...)"
+            "Sandboxes with a status STARTING / PAUSED / ERROR may "
+            "not return urls."
         ),
     )
     created_at: datetime = Field(default_factory=utc_now)
@@ -64,9 +64,9 @@ class SandboxPage(BaseModel):
 class SecretNameItem(BaseModel):
     """A secret's name and optional description (value NOT included)."""
 
-    name: str = Field(description='The secret name/key')
+    name: str = Field(description="The secret name/key")
     description: str | None = Field(
-        default=None, description='Optional description of the secret'
+        default=None, description="Optional description of the secret"
     )
 
 
@@ -74,5 +74,5 @@ class SecretNamesResponse(BaseModel):
     """Response listing available secret names (no raw values)."""
 
     secrets: list[SecretNameItem] = Field(
-        default_factory=list, description='Available secrets'
+        default_factory=list, description="Available secrets"
     )

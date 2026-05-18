@@ -95,7 +95,7 @@ class GithubIssue(ResolverViewInterface):
     previous_comments: list[Comment]
 
     def _get_branch_name(self) -> str | None:
-        return getattr(self, 'branch_name', None)
+        return getattr(self, "branch_name", None)
 
     async def _load_resolver_context(self):
         github_service = GithubServiceImpl(
@@ -114,7 +114,7 @@ class GithubIssue(ResolverViewInterface):
         )
 
     async def _get_instructions(self, jinja_env: Environment) -> tuple[str, str]:
-        user_instructions_template = jinja_env.get_template('issue_prompt.j2')
+        user_instructions_template = jinja_env.get_template("issue_prompt.j2")
 
         user_instructions = user_instructions_template.render(
             issue_number=self.issue_number,
@@ -123,7 +123,7 @@ class GithubIssue(ResolverViewInterface):
         await self._load_resolver_context()
 
         conversation_instructions_template = jinja_env.get_template(
-            'issue_conversation_instructions.j2'
+            "issue_conversation_instructions.j2"
         )
         conversation_instructions = conversation_instructions_template.render(
             issue_title=self.title,
@@ -144,7 +144,7 @@ class GithubIssue(ResolverViewInterface):
     async def initialize_new_conversation(self) -> UUID:
         # Resolve target org based on claimed git organizations
         self.resolved_org_id = await resolve_org_for_repo(
-            provider='github',
+            provider="github",
             full_repo_name=self.full_repo_name,
             keycloak_user_id=self.user_info.keycloak_user_id,
         )
@@ -184,7 +184,7 @@ class GithubIssue(ResolverViewInterface):
         if conversation_instructions.strip():
             parts.append(conversation_instructions.strip())
 
-        return '\n\n'.join(parts)
+        return "\n\n".join(parts)
 
     async def _create_v1_conversation(
         self,
@@ -193,13 +193,13 @@ class GithubIssue(ResolverViewInterface):
         conversation_id: UUID,
     ):
         """Create conversation using the new V1 app conversation system."""
-        logger.info('[GitHub V1]: Creating V1 conversation')
+        logger.info("[GitHub V1]: Creating V1 conversation")
 
         initial_user_text = await self._get_v1_initial_user_message(jinja_env)
 
         # Create the initial message request
         initial_message = SendMessageRequest(
-            role='user', content=[TextContent(text=initial_user_text)]
+            role="user", content=[TextContent(text=initial_user_text)]
         )
 
         # Create the GitHub V1 callback processor
@@ -218,7 +218,7 @@ class GithubIssue(ResolverViewInterface):
             selected_repository=self.full_repo_name,
             selected_branch=self._get_branch_name(),
             git_provider=ProviderType.GITHUB,
-            title=f'GitHub Issue #{self.issue_number}: {self.title}',
+            title=f"GitHub Issue #{self.issue_number}: {self.title}",
             trigger=ConversationTrigger.RESOLVER,
             processors=[
                 github_callback_processor
@@ -239,9 +239,9 @@ class GithubIssue(ResolverViewInterface):
                 start_request
             ):
                 if task.status == AppConversationStartTaskStatus.ERROR:
-                    logger.error(f'Failed to start V1 conversation: {task.detail}')
+                    logger.error(f"Failed to start V1 conversation: {task.detail}")
                     raise RuntimeError(
-                        f'Failed to start V1 conversation: {task.detail}'
+                        f"Failed to start V1 conversation: {task.detail}"
                     )
 
     def _create_github_v1_callback_processor(self):
@@ -253,9 +253,9 @@ class GithubIssue(ResolverViewInterface):
         # Create and return the GitHub V1 callback processor
         return GithubV1CallbackProcessor(
             github_view_data={
-                'issue_number': self.issue_number,
-                'full_repo_name': self.full_repo_name,
-                'installation_id': self.installation_id,
+                "issue_number": self.issue_number,
+                "full_repo_name": self.full_repo_name,
+                "installation_id": self.installation_id,
             },
             should_request_summary=self.send_summary_instruction,
         )
@@ -267,7 +267,7 @@ class GithubIssueComment(GithubIssue):
     comment_id: int
 
     async def _get_instructions(self, jinja_env: Environment) -> tuple[str, str]:
-        user_instructions_template = jinja_env.get_template('issue_prompt.j2')
+        user_instructions_template = jinja_env.get_template("issue_prompt.j2")
 
         await self._load_resolver_context()
 
@@ -276,7 +276,7 @@ class GithubIssueComment(GithubIssue):
         )
 
         conversation_instructions_template = jinja_env.get_template(
-            'issue_conversation_instructions.j2'
+            "issue_conversation_instructions.j2"
         )
         conversation_instructions = conversation_instructions_template.render(
             issue_number=self.issue_number,
@@ -289,7 +289,7 @@ class GithubIssueComment(GithubIssue):
 
     async def _get_v1_initial_user_message(self, jinja_env: Environment) -> str:
         await self._load_resolver_context()
-        template = jinja_env.get_template('issue_comment_initial_message.j2')
+        template = jinja_env.get_template("issue_comment_initial_message.j2")
         return template.render(
             issue_number=self.issue_number,
             issue_title=self.title,
@@ -304,7 +304,7 @@ class GithubPRComment(GithubIssueComment):
     branch_name: str
 
     async def _get_instructions(self, jinja_env: Environment) -> tuple[str, str]:
-        user_instructions_template = jinja_env.get_template('pr_update_prompt.j2')
+        user_instructions_template = jinja_env.get_template("pr_update_prompt.j2")
         await self._load_resolver_context()
 
         user_instructions = user_instructions_template.render(
@@ -312,7 +312,7 @@ class GithubPRComment(GithubIssueComment):
         )
 
         conversation_instructions_template = jinja_env.get_template(
-            'pr_update_conversation_instructions.j2'
+            "pr_update_conversation_instructions.j2"
         )
         conversation_instructions = conversation_instructions_template.render(
             pr_number=self.issue_number,
@@ -326,7 +326,7 @@ class GithubPRComment(GithubIssueComment):
 
     async def _get_v1_initial_user_message(self, jinja_env: Environment) -> str:
         await self._load_resolver_context()
-        template = jinja_env.get_template('pr_update_initial_message.j2')
+        template = jinja_env.get_template("pr_update_initial_message.j2")
         return template.render(
             pr_number=self.issue_number,
             branch_name=self.branch_name,
@@ -360,7 +360,7 @@ class GithubInlinePRComment(GithubPRComment):
         )
 
     async def _get_instructions(self, jinja_env: Environment) -> tuple[str, str]:
-        user_instructions_template = jinja_env.get_template('pr_update_prompt.j2')
+        user_instructions_template = jinja_env.get_template("pr_update_prompt.j2")
         await self._load_resolver_context()
 
         user_instructions = user_instructions_template.render(
@@ -368,7 +368,7 @@ class GithubInlinePRComment(GithubPRComment):
         )
 
         conversation_instructions_template = jinja_env.get_template(
-            'pr_update_conversation_instructions.j2'
+            "pr_update_conversation_instructions.j2"
         )
         conversation_instructions = conversation_instructions_template.render(
             pr_number=self.issue_number,
@@ -384,7 +384,7 @@ class GithubInlinePRComment(GithubPRComment):
 
     async def _get_v1_initial_user_message(self, jinja_env: Environment) -> str:
         await self._load_resolver_context()
-        template = jinja_env.get_template('pr_update_initial_message.j2')
+        template = jinja_env.get_template("pr_update_initial_message.j2")
         return template.render(
             pr_number=self.issue_number,
             branch_name=self.branch_name,
@@ -405,10 +405,10 @@ class GithubInlinePRComment(GithubPRComment):
         # Create and return the GitHub V1 callback processor
         return GithubV1CallbackProcessor(
             github_view_data={
-                'issue_number': self.issue_number,
-                'full_repo_name': self.full_repo_name,
-                'installation_id': self.installation_id,
-                'comment_id': self.comment_id,
+                "issue_number": self.issue_number,
+                "full_repo_name": self.full_repo_name,
+                "installation_id": self.installation_id,
+                "comment_id": self.comment_id,
             },
             inline_pr_comment=True,
             should_request_summary=self.send_summary_instruction,
@@ -418,7 +418,7 @@ class GithubInlinePRComment(GithubPRComment):
 @dataclass
 class GithubFailingAction:
     unqiue_suggestions_header: str = (
-        'Looks like there are a few issues preventing this PR from being merged!'
+        "Looks like there are a few issues preventing this PR from being merged!"
     )
 
     @staticmethod
@@ -466,35 +466,35 @@ class GithubFailingAction:
         issues = []
 
         # Collect failing actions with their specific names
-        if failed_jobs['actions']:
-            failing_actions = failed_jobs['actions']
-            issues.append(('GitHub Actions are failing:', False))
+        if failed_jobs["actions"]:
+            failing_actions = failed_jobs["actions"]
+            issues.append(("GitHub Actions are failing:", False))
             for action in failing_actions:
                 issues.append((action, True))
 
-        if any(failed_jobs['merge conflict']):
-            issues.append(('There are merge conflicts', False))
+        if any(failed_jobs["merge conflict"]):
+            issues.append(("There are merge conflicts", False))
 
         # Format each line with proper indentation and dashes
         formatted_issues = []
         for issue, is_nested in issues:
             if is_nested:
-                formatted_issues.append(f'  - {issue}')
+                formatted_issues.append(f"  - {issue}")
             else:
-                formatted_issues.append(f'- {issue}')
-        issues_text = '\n'.join(formatted_issues)
+                formatted_issues.append(f"- {issue}")
+        issues_text = "\n".join(formatted_issues)
 
         # Build list of possible suggestions based on actual issues
         suggestions = []
-        branch_info = f' at branch `{branch_name}`' if branch_name else ''
+        branch_info = f" at branch `{branch_name}`" if branch_name else ""
 
-        if any(failed_jobs['merge conflict']):
+        if any(failed_jobs["merge conflict"]):
             suggestions.append(
-                f'@OpenHands please fix the merge conflicts on PR #{pr_number}{branch_info}'
+                f"@OpenHands please fix the merge conflicts on PR #{pr_number}{branch_info}"
             )
-        if any(failed_jobs['actions']):
+        if any(failed_jobs["actions"]):
             suggestions.append(
-                f'@OpenHands please fix the failing actions on PR #{pr_number}{branch_info}'
+                f"@OpenHands please fix the failing actions on PR #{pr_number}{branch_info}"
             )
 
         # Take at most 2 suggestions
@@ -509,24 +509,24 @@ class GithubFailingAction:
 Feel free to include any additional details that might help me get this PR into a better state.
 
 <sub><sup>You can manage your notification [settings]({})</sup></sub>""".format(
-            '\n```\n\nor\n\n```\n'.join(suggestions), f'{HOST_URL}/settings/app'
+            "\n```\n\nor\n\n```\n".join(suggestions), f"{HOST_URL}/settings/app"
         )
 
-        return f'{GithubFailingAction.unqiue_suggestions_header}\n\n{issues_text}\n\n{help_text}'
+        return f"{GithubFailingAction.unqiue_suggestions_header}\n\n{issues_text}\n\n{help_text}"
 
     @staticmethod
     def leave_requesting_comment(pr: Issue, failed_runs: WorkflowRunGroup):
-        failed_jobs: dict = {'actions': [], 'merge conflict': []}
+        failed_jobs: dict = {"actions": [], "merge conflict": []}
 
         pr_obj = pr.as_pull_request()
         if not pr_obj.mergeable:
-            failed_jobs['merge conflict'].append('Merge conflict detected')
+            failed_jobs["merge conflict"].append("Merge conflict detected")
 
         for _, workflow_run in failed_runs.runs.items():
             if workflow_run.status == WorkflowRunStatus.FAILURE:
-                failed_jobs['actions'].append(workflow_run.name)
+                failed_jobs["actions"].append(workflow_run.name)
 
-        logger.info(f'[GitHub] Found failing jobs for PR #{pr.number}: {failed_jobs}')
+        logger.info(f"[GitHub] Found failing jobs for PR #{pr.number}: {failed_jobs}")
 
         # Get the branch name
         branch_name = pr_obj.head.ref
@@ -553,11 +553,11 @@ GithubViewType = (
 class GithubFactory:
     @staticmethod
     def is_labeled_issue(message: Message):
-        payload = message.message.get('payload', {})
-        action = payload.get('action', '')
+        payload = message.message.get("payload", {})
+        action = payload.get("action", "")
 
-        if action == 'labeled' and 'label' in payload and 'issue' in payload:
-            label_name = payload['label'].get('name', '')
+        if action == "labeled" and "label" in payload and "issue" in payload:
+            label_name = payload["label"].get("name", "")
             if label_name == OH_LABEL:
                 return True
 
@@ -565,16 +565,16 @@ class GithubFactory:
 
     @staticmethod
     def is_issue_comment(message: Message):
-        payload = message.message.get('payload', {})
-        action = payload.get('action', '')
+        payload = message.message.get("payload", {})
+        action = payload.get("action", "")
 
         if (
-            action == 'created'
-            and 'comment' in payload
-            and 'issue' in payload
-            and 'pull_request' not in payload['issue']
+            action == "created"
+            and "comment" in payload
+            and "issue" in payload
+            and "pull_request" not in payload["issue"]
         ):
-            comment_body = payload['comment']['body']
+            comment_body = payload["comment"]["body"]
             if has_exact_mention(comment_body, INLINE_OH_LABEL):
                 return True
 
@@ -582,16 +582,16 @@ class GithubFactory:
 
     @staticmethod
     def is_pr_comment(message: Message):
-        payload = message.message.get('payload', {})
-        action = payload.get('action', '')
+        payload = message.message.get("payload", {})
+        action = payload.get("action", "")
 
         if (
-            action == 'created'
-            and 'comment' in payload
-            and 'issue' in payload
-            and 'pull_request' in payload['issue']
+            action == "created"
+            and "comment" in payload
+            and "issue" in payload
+            and "pull_request" in payload["issue"]
         ):
-            comment_body = payload['comment'].get('body', '')
+            comment_body = payload["comment"].get("body", "")
             if has_exact_mention(comment_body, INLINE_OH_LABEL):
                 return True
 
@@ -599,11 +599,11 @@ class GithubFactory:
 
     @staticmethod
     def is_inline_pr_comment(message: Message):
-        payload = message.message.get('payload', {})
-        action = payload.get('action', '')
+        payload = message.message.get("payload", {})
+        action = payload.get("action", "")
 
-        if action == 'created' and 'comment' in payload and 'pull_request' in payload:
-            comment_body = payload['comment'].get('body', '')
+        if action == "created" and "comment" in payload and "pull_request" in payload:
+            comment_body = payload["comment"].get("body", "")
             if has_exact_mention(comment_body, INLINE_OH_LABEL):
                 return True
 
@@ -614,10 +614,10 @@ class GithubFactory:
         if not ENABLE_PROACTIVE_CONVERSATION_STARTERS:
             return False
 
-        payload = message.message.get('payload', {})
-        action = payload.get('action', '')
+        payload = message.message.get("payload", {})
+        action = payload.get("action", "")
 
-        if not (action == 'completed' and 'workflow_run' in payload):
+        if not (action == "completed" and "workflow_run" in payload):
             return False
 
         return True
@@ -628,33 +628,33 @@ class GithubFactory:
 
         This is the updated version that checks user settings.
         """
-        payload = message.message.get('payload', {})
-        workflow_payload = payload['workflow_run']
+        payload = message.message.get("payload", {})
+        workflow_payload = payload["workflow_run"]
         status = WorkflowRunStatus.COMPLETED
 
-        if workflow_payload['conclusion'] == 'failure':
+        if workflow_payload["conclusion"] == "failure":
             status = WorkflowRunStatus.FAILURE
-        elif workflow_payload['conclusion'] is None:
+        elif workflow_payload["conclusion"] is None:
             status = WorkflowRunStatus.PENDING
 
         workflow_run = WorkflowRun(
-            id=str(workflow_payload['id']), name=workflow_payload['name'], status=status
+            id=str(workflow_payload["id"]), name=workflow_payload["name"], status=status
         )
 
-        selected_repo = GithubFactory.get_full_repo_name(payload['repository'])
-        head_branch = payload['workflow_run']['head_branch']
+        selected_repo = GithubFactory.get_full_repo_name(payload["repository"])
+        head_branch = payload["workflow_run"]["head_branch"]
 
         # Get the user ID to check their settings
         user_id = None
         try:
-            sender_id = payload['sender']['id']
+            sender_id = payload["sender"]["id"]
             token_manager = TokenManager()
             user_id = await token_manager.get_user_id_from_idp_user_id(
                 sender_id, ProviderType.GITHUB
             )
         except (KeyError, Exception) as e:
             logger.warning(
-                f'Failed to get user ID for proactive conversation check: {str(e)}'
+                f"Failed to get user ID for proactive conversation check: {str(e)}"
             )
 
         # Check if proactive conversations are enabled for this user
@@ -666,19 +666,19 @@ class GithubFactory:
                 auth=Auth.AppAuth(GITHUB_APP_CLIENT_ID, GITHUB_APP_PRIVATE_KEY)
             ) as integration:
                 access_token = integration.get_access_token(
-                    payload['installation']['id']
+                    payload["installation"]["id"]
                 ).token
 
             with Github(auth=Auth.Token(access_token)) as gh:
                 repo = gh.get_repo(selected_repo)
                 login = (
-                    payload['organization']['login']
-                    if 'organization' in payload
-                    else payload['sender']['login']
+                    payload["organization"]["login"]
+                    if "organization" in payload
+                    else payload["sender"]["login"]
                 )
 
                 # See if a pull request is open
-                open_pulls = repo.get_pulls(state='open', head=f'{login}:{head_branch}')
+                open_pulls = repo.get_pulls(state="open", head=f"{login}:{head_branch}")
                 if open_pulls.totalCount > 0:
                     prs = open_pulls.get_page(0)
                     relevant_pr = prs[0]
@@ -691,7 +691,7 @@ class GithubFactory:
         if not issue:
             return False
 
-        incoming_commit = payload['workflow_run']['head_sha']
+        incoming_commit = payload["workflow_run"]["head_sha"]
         latest_sha = GithubFailingAction.get_latest_sha(issue)
         if latest_sha != incoming_commit:
             # Return as this commit is not the latest
@@ -700,7 +700,7 @@ class GithubFactory:
         convo_store = ProactiveConversationStore()
         workflow_group = await convo_store.store_workflow_information(
             provider=ProviderType.GITHUB,
-            repo_id=payload['repository']['id'],
+            repo_id=payload["repository"]["id"],
             incoming_commit=incoming_commit,
             workflow=workflow_run,
             pr_number=issue.number,
@@ -713,7 +713,7 @@ class GithubFactory:
             return False
 
         logger.info(
-            f'[GitHub] Workflow completed for {selected_repo}#{issue.number} on branch {head_branch}'
+            f"[GitHub] Workflow completed for {selected_repo}#{issue.number} on branch {head_branch}"
         )
         GithubFailingAction.leave_requesting_comment(issue, workflow_group)
 
@@ -721,9 +721,9 @@ class GithubFactory:
 
     @staticmethod
     def get_full_repo_name(repo_obj: dict) -> str:
-        owner = repo_obj['owner']['login']
-        repo_name = repo_obj['name']
-        return f'{owner}/{repo_name}'
+        owner = repo_obj["owner"]["login"]
+        repo_name = repo_obj["name"]
+        return f"{owner}/{repo_name}"
 
     @staticmethod
     async def create_github_view_from_payload(
@@ -732,23 +732,23 @@ class GithubFactory:
         """Create the appropriate class (GithubIssue or GithubPRComment) based on the payload.
         Also return metadata about the event (e.g., action type).
         """
-        payload = message.message.get('payload', {})
-        repo_obj = payload['repository']
-        user_id = payload['sender']['id']
-        username = payload['sender']['login']
+        payload = message.message.get("payload", {})
+        repo_obj = payload["repository"]
+        user_id = payload["sender"]["id"]
+        username = payload["sender"]["login"]
 
         selected_repo = GithubFactory.get_full_repo_name(repo_obj)
-        is_public_repo = not repo_obj.get('private', True)
+        is_public_repo = not repo_obj.get("private", True)
         user_info = UserData(
             user_id=user_id, username=username, keycloak_user_id=keycloak_user_id
         )
 
-        installation_id = message.message['installation']
+        installation_id = message.message["installation"]
 
         if GithubFactory.is_labeled_issue(message):
-            issue_number = payload['issue']['number']
+            issue_number = payload["issue"]["number"]
             logger.info(
-                f'[GitHub] Creating view for labeled issue from {username} in {selected_repo}#{issue_number}'
+                f"[GitHub] Creating view for labeled issue from {username} in {selected_repo}#{issue_number}"
             )
             return GithubIssue(
                 issue_number=issue_number,
@@ -757,21 +757,21 @@ class GithubFactory:
                 is_public_repo=is_public_repo,
                 raw_payload=message,
                 user_info=user_info,
-                conversation_id='',
+                conversation_id="",
                 uuid=str(uuid4()),
                 should_extract=True,
                 send_summary_instruction=True,
-                title='',
-                description='',
+                title="",
+                description="",
                 previous_comments=[],
             )
 
         elif GithubFactory.is_issue_comment(message):
-            issue_number = payload['issue']['number']
-            comment_body = payload['comment']['body']
-            comment_id = payload['comment']['id']
+            issue_number = payload["issue"]["number"]
+            comment_body = payload["comment"]["body"]
+            comment_id = payload["comment"]["id"]
             logger.info(
-                f'[GitHub] Creating view for issue comment from {username} in {selected_repo}#{issue_number}'
+                f"[GitHub] Creating view for issue comment from {username} in {selected_repo}#{issue_number}"
             )
             return GithubIssueComment(
                 issue_number=issue_number,
@@ -782,22 +782,22 @@ class GithubFactory:
                 is_public_repo=is_public_repo,
                 raw_payload=message,
                 user_info=user_info,
-                conversation_id='',
+                conversation_id="",
                 uuid=None,
                 should_extract=True,
                 send_summary_instruction=True,
-                title='',
-                description='',
+                title="",
+                description="",
                 previous_comments=[],
             )
 
         elif GithubFactory.is_pr_comment(message):
-            issue_number = payload['issue']['number']
+            issue_number = payload["issue"]["number"]
             logger.info(
-                f'[GitHub] Creating view for PR comment from {username} in {selected_repo}#{issue_number}'
+                f"[GitHub] Creating view for PR comment from {username} in {selected_repo}#{issue_number}"
             )
 
-            access_token = ''
+            access_token = ""
             with GithubIntegration(
                 auth=Auth.AppAuth(GITHUB_APP_CLIENT_ID, GITHUB_APP_PRIVATE_KEY)
             ) as integration:
@@ -809,44 +809,44 @@ class GithubFactory:
                 pull_request = repo.get_pull(issue_number)
                 head_ref = pull_request.head.ref
                 logger.info(
-                    f'[GitHub] Found PR branch {head_ref} for {selected_repo}#{issue_number}'
+                    f"[GitHub] Found PR branch {head_ref} for {selected_repo}#{issue_number}"
                 )
 
-            comment_id = payload['comment']['id']
+            comment_id = payload["comment"]["id"]
             return GithubPRComment(
                 issue_number=issue_number,
                 branch_name=head_ref,
-                comment_body=payload['comment']['body'],
+                comment_body=payload["comment"]["body"],
                 comment_id=comment_id,
                 installation_id=installation_id,
                 full_repo_name=selected_repo,
                 is_public_repo=is_public_repo,
                 raw_payload=message,
                 user_info=user_info,
-                conversation_id='',
+                conversation_id="",
                 uuid=None,
                 should_extract=True,
                 send_summary_instruction=True,
-                title='',
-                description='',
+                title="",
+                description="",
                 previous_comments=[],
             )
 
         elif GithubFactory.is_inline_pr_comment(message):
-            pr_number = payload['pull_request']['number']
-            branch_name = payload['pull_request']['head']['ref']
-            comment_id = payload['comment']['id']
-            comment_node_id = payload['comment']['node_id']
-            file_path = payload['comment']['path']
-            line_number = payload['comment']['line']
+            pr_number = payload["pull_request"]["number"]
+            branch_name = payload["pull_request"]["head"]["ref"]
+            comment_id = payload["comment"]["id"]
+            comment_node_id = payload["comment"]["node_id"]
+            file_path = payload["comment"]["path"]
+            line_number = payload["comment"]["line"]
             logger.info(
-                f'[GitHub] Creating view for inline PR comment from {username} in {selected_repo}#{pr_number} at {file_path}'
+                f"[GitHub] Creating view for inline PR comment from {username} in {selected_repo}#{pr_number} at {file_path}"
             )
 
             return GithubInlinePRComment(
                 issue_number=pr_number,
                 branch_name=branch_name,
-                comment_body=payload['comment']['body'],
+                comment_body=payload["comment"]["body"],
                 comment_node_id=comment_node_id,
                 comment_id=comment_id,
                 file_location=file_path,
@@ -856,12 +856,12 @@ class GithubFactory:
                 is_public_repo=is_public_repo,
                 raw_payload=message,
                 user_info=user_info,
-                conversation_id='',
+                conversation_id="",
                 uuid=None,
                 should_extract=True,
                 send_summary_instruction=True,
-                title='',
-                description='',
+                title="",
+                description="",
                 previous_comments=[],
             )
 

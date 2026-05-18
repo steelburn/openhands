@@ -48,10 +48,10 @@ def extract_actor_slug(actor: dict) -> str:
     fall back to ``name``, and finally to the numeric ``id`` as a string.
     Returns an empty string when none are present.
     """
-    return actor.get('slug') or actor.get('name') or str(actor.get('id') or '') or ''
+    return actor.get("slug") or actor.get("name") or str(actor.get("id") or "") or ""
 
 
-PR_COMMENT_EVENTS = ('pr:comment:added', 'pr:comment:edited')
+PR_COMMENT_EVENTS = ("pr:comment:added", "pr:comment:edited")
 
 
 # =============================================================================
@@ -99,15 +99,15 @@ class BitbucketDCPR(ResolverViewInterface):
     async def _get_instructions(self, jinja_env: Environment) -> tuple[str, str]:
         await self._load_resolver_context()
 
-        user_instructions_template = jinja_env.get_template('pr_update_prompt.j2')
-        user_instructions = user_instructions_template.render(pr_comment='')
+        user_instructions_template = jinja_env.get_template("pr_update_prompt.j2")
+        user_instructions = user_instructions_template.render(pr_comment="")
 
         conversation_instructions_template = jinja_env.get_template(
-            'pr_update_conversation_instructions.j2'
+            "pr_update_conversation_instructions.j2"
         )
         conversation_instructions = conversation_instructions_template.render(
             pr_number=self.issue_number,
-            branch_name=self.branch_name or '',
+            branch_name=self.branch_name or "",
             pr_title=self.title,
             pr_body=self.description,
             comments=self.previous_comments,
@@ -135,7 +135,7 @@ class BitbucketDCPR(ResolverViewInterface):
             jinja_env
         )
         initial_message = SendMessageRequest(
-            role='user', content=[TextContent(text=user_instructions)]
+            role="user", content=[TextContent(text=user_instructions)]
         )
 
         from integrations.bitbucket_data_center.bitbucket_dc_v1_callback_processor import (
@@ -144,18 +144,18 @@ class BitbucketDCPR(ResolverViewInterface):
 
         callback_processor = BitbucketDCV1CallbackProcessor(
             bitbucket_dc_view_data={
-                'pr_id': self.issue_number,
-                'project_key': self.project_key,
-                'repo_slug': self.repo_slug,
-                'full_repo_name': self.full_repo_name,
-                'installation_id': self.installation_id,
-                'keycloak_user_id': self.user_info.keycloak_user_id,
-                'parent_comment_id': getattr(self, 'parent_comment_id', None),
+                "pr_id": self.issue_number,
+                "project_key": self.project_key,
+                "repo_slug": self.repo_slug,
+                "full_repo_name": self.full_repo_name,
+                "installation_id": self.installation_id,
+                "keycloak_user_id": self.user_info.keycloak_user_id,
+                "parent_comment_id": getattr(self, "parent_comment_id", None),
             },
             should_request_summary=self.send_summary_instruction,
         )
 
-        title = f'Bitbucket DC PR #{self.issue_number}: {self.title}'
+        title = f"Bitbucket DC PR #{self.issue_number}: {self.title}"
         start_request = AppConversationStartRequest(
             conversation_id=conversation_id,
             system_message_suffix=conversation_instructions,
@@ -182,9 +182,9 @@ class BitbucketDCPR(ResolverViewInterface):
                 start_request
             ):
                 if task.status == AppConversationStartTaskStatus.ERROR:
-                    logger.error(f'Failed to start V1 conversation: {task.detail}')
+                    logger.error(f"Failed to start V1 conversation: {task.detail}")
                     raise RuntimeError(
-                        f'Failed to start V1 conversation: {task.detail}'
+                        f"Failed to start V1 conversation: {task.detail}"
                     )
 
 
@@ -196,17 +196,17 @@ class BitbucketDCPRComment(BitbucketDCPR):
     async def _get_instructions(self, jinja_env: Environment) -> tuple[str, str]:
         await self._load_resolver_context()
 
-        user_instructions_template = jinja_env.get_template('pr_update_prompt.j2')
+        user_instructions_template = jinja_env.get_template("pr_update_prompt.j2")
         user_instructions = user_instructions_template.render(
             pr_comment=self.comment_body
         )
 
         conversation_instructions_template = jinja_env.get_template(
-            'pr_update_conversation_instructions.j2'
+            "pr_update_conversation_instructions.j2"
         )
         conversation_instructions = conversation_instructions_template.render(
             pr_number=self.issue_number,
-            branch_name=self.branch_name or '',
+            branch_name=self.branch_name or "",
             pr_title=self.title,
             pr_body=self.description,
             comments=self.previous_comments,
@@ -224,17 +224,17 @@ class BitbucketDCInlinePRComment(BitbucketDCPRComment):
     async def _get_instructions(self, jinja_env: Environment) -> tuple[str, str]:
         await self._load_resolver_context()
 
-        user_instructions_template = jinja_env.get_template('pr_update_prompt.j2')
+        user_instructions_template = jinja_env.get_template("pr_update_prompt.j2")
         user_instructions = user_instructions_template.render(
             pr_comment=self.comment_body
         )
 
         conversation_instructions_template = jinja_env.get_template(
-            'pr_update_conversation_instructions.j2'
+            "pr_update_conversation_instructions.j2"
         )
         conversation_instructions = conversation_instructions_template.render(
             pr_number=self.issue_number,
-            branch_name=self.branch_name or '',
+            branch_name=self.branch_name or "",
             pr_title=self.title,
             pr_body=self.description,
             comments=self.previous_comments,
@@ -264,18 +264,18 @@ class BitbucketDCFactory:
 
     @staticmethod
     def is_pr_comment(message: Message, inline: bool = False) -> bool:
-        event_key = message.message.get('event_key')
-        payload = message.message.get('payload') or {}
+        event_key = message.message.get("event_key")
+        payload = message.message.get("payload") or {}
         if event_key not in PR_COMMENT_EVENTS:
             return False
-        comment = payload.get('comment') or {}
-        body = comment.get('text') or ''
+        comment = payload.get("comment") or {}
+        body = comment.get("text") or ""
         if not has_exact_mention(body, INLINE_OH_LABEL):
             return False
         # DC indicates inline comments by presence of a ``commentAnchor``
         # alongside the comment, or an ``anchor`` block on the comment
         # itself in some payload variants.
-        is_inline = bool(payload.get('commentAnchor') or comment.get('anchor'))
+        is_inline = bool(payload.get("commentAnchor") or comment.get("anchor"))
         return is_inline if inline else not is_inline
 
     @staticmethod
@@ -289,36 +289,36 @@ class BitbucketDCFactory:
         ``bitbucket_dc_webhook`` table by the manager). The resolver acts
         on Bitbucket DC as the installer.
         """
-        payload = cast(dict, message.message['payload'])
-        installation_id = cast(str, message.message.get('installation_id') or '')
+        payload = cast(dict, message.message["payload"])
+        installation_id = cast(str, message.message.get("installation_id") or "")
 
-        actor = payload.get('actor') or {}
+        actor = payload.get("actor") or {}
         actor_slug = extract_actor_slug(actor)
-        username = actor.get('displayName') or actor.get('name') or 'unknown'
+        username = actor.get("displayName") or actor.get("name") or "unknown"
 
-        pull_request = payload.get('pullRequest') or {}
-        to_ref = pull_request.get('toRef') or {}
-        repository = to_ref.get('repository') or {}
-        project = repository.get('project') or {}
-        project_key = project.get('key') or ''
-        repo_slug = repository.get('slug') or ''
+        pull_request = payload.get("pullRequest") or {}
+        to_ref = pull_request.get("toRef") or {}
+        repository = to_ref.get("repository") or {}
+        project = repository.get("project") or {}
+        project_key = project.get("key") or ""
+        repo_slug = repository.get("slug") or ""
         full_repo_name = (
-            f'{project_key}/{repo_slug}' if project_key and repo_slug else ''
+            f"{project_key}/{repo_slug}" if project_key and repo_slug else ""
         )
-        is_public_repo = bool(repository.get('public'))
+        is_public_repo = bool(repository.get("public"))
 
-        raw_pr_id = pull_request.get('id')
+        raw_pr_id = pull_request.get("id")
         if not raw_pr_id:
             # ``is_pr_comment`` already validated the event key; a missing
             # PR id here means a malformed payload.
             raise ValueError(
-                f'Invalid PR id in Bitbucket DC webhook payload: {pull_request}'
+                f"Invalid PR id in Bitbucket DC webhook payload: {pull_request}"
             )
         pr_id = int(raw_pr_id)
-        from_ref = pull_request.get('fromRef') or {}
+        from_ref = pull_request.get("fromRef") or {}
         branch_name = (
-            from_ref.get('displayId')
-            or (from_ref.get('id') or '').replace('refs/heads/', '')
+            from_ref.get("displayId")
+            or (from_ref.get("id") or "").replace("refs/heads/", "")
             or None
         )
 
@@ -328,13 +328,13 @@ class BitbucketDCFactory:
             keycloak_user_id=keycloak_user_id,
         )
 
-        comment = payload.get('comment') or {}
-        comment_body = comment.get('text') or ''
-        parent_comment_id = (comment.get('parent') or {}).get('id')
+        comment = payload.get("comment") or {}
+        comment_body = comment.get("text") or ""
+        parent_comment_id = (comment.get("parent") or {}).get("id")
 
         # DC carries the inline anchor at the payload level under
         # ``commentAnchor``; some variants nest it under ``comment.anchor``.
-        anchor = payload.get('commentAnchor') or comment.get('anchor') or {}
+        anchor = payload.get("commentAnchor") or comment.get("anchor") or {}
 
         common_kwargs: dict = dict(
             installation_id=installation_id,
@@ -345,34 +345,34 @@ class BitbucketDCFactory:
             is_public_repo=is_public_repo,
             user_info=user_info,
             raw_payload=message,
-            conversation_id='',
+            conversation_id="",
             should_extract=True,
             send_summary_instruction=True,
-            title='',
-            description='',
+            title="",
+            description="",
             previous_comments=[],
             branch_name=branch_name,
         )
 
         if BitbucketDCFactory.is_pr_comment(message, inline=True):
             logger.info(
-                f'[Bitbucket DC] Creating view for inline PR comment from '
-                f'{username} in {full_repo_name}#{pr_id}'
+                f"[Bitbucket DC] Creating view for inline PR comment from "
+                f"{username} in {full_repo_name}#{pr_id}"
             )
             return BitbucketDCInlinePRComment(
                 **common_kwargs,
                 comment_body=comment_body,
                 parent_comment_id=parent_comment_id,
-                file_location=anchor.get('path') or '',
-                line_number=anchor.get('line') or 0,
-                line_type=anchor.get('lineType') or 'CONTEXT',
-                file_type=anchor.get('fileType') or 'TO',
+                file_location=anchor.get("path") or "",
+                line_number=anchor.get("line") or 0,
+                line_type=anchor.get("lineType") or "CONTEXT",
+                file_type=anchor.get("fileType") or "TO",
             )
 
         if BitbucketDCFactory.is_pr_comment(message):
             logger.info(
-                f'[Bitbucket DC] Creating view for PR comment from '
-                f'{username} in {full_repo_name}#{pr_id}'
+                f"[Bitbucket DC] Creating view for PR comment from "
+                f"{username} in {full_repo_name}#{pr_id}"
             )
             return BitbucketDCPRComment(
                 **common_kwargs,
@@ -380,4 +380,4 @@ class BitbucketDCFactory:
                 parent_comment_id=parent_comment_id,
             )
 
-        raise ValueError(f'Unhandled Bitbucket DC webhook event: {message}')
+        raise ValueError(f"Unhandled Bitbucket DC webhook event: {message}")

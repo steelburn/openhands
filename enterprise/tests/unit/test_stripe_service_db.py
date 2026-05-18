@@ -28,12 +28,12 @@ def add_test_org_and_user(session_maker):
 
     with session_maker() as session:
         # Create role first
-        role = Role(name='test-role', rank=1)
+        role = Role(name="test-role", rank=1)
         session.add(role)
         session.flush()
 
         # Create org
-        org = Org(id=test_org_id, name='test-org', contact_email='testy@tester.com')
+        org = Org(id=test_org_id, name="test-org", contact_email="testy@tester.com")
         session.add(org)
         session.flush()
 
@@ -47,7 +47,7 @@ def add_test_org_and_user(session_maker):
             org_id=test_org_id,
             user_id=test_user_id,
             role_id=role.id,
-            llm_api_key='test-key',
+            llm_api_key="test-key",
         )
         session.add(org_member)
         session.commit()
@@ -72,7 +72,7 @@ async def test_find_customer_id_by_user_id_checks_db_first(
             StripeCustomer(
                 keycloak_user_id=str(test_user_id),
                 org_id=test_org_id,
-                stripe_customer_id='cus_test123',
+                stripe_customer_id="cus_test123",
             )
         )
         await session.commit()
@@ -82,10 +82,10 @@ async def test_find_customer_id_by_user_id_checks_db_first(
     mock_org.id = test_org_id
 
     with (
-        patch('integrations.stripe_service.a_session_maker', async_session_maker),
-        patch('storage.org_store.a_session_maker', async_session_maker),
+        patch("integrations.stripe_service.a_session_maker", async_session_maker),
+        patch("storage.org_store.a_session_maker", async_session_maker),
         patch(
-            'integrations.stripe_service.OrgStore.get_current_org_from_keycloak_user_id',
+            "integrations.stripe_service.OrgStore.get_current_org_from_keycloak_user_id",
             new_callable=AsyncMock,
         ) as mock_get_org,
     ):
@@ -96,7 +96,7 @@ async def test_find_customer_id_by_user_id_checks_db_first(
         result = await find_customer_id_by_user_id(str(test_user_id))
 
         # Verify the result
-        assert result == 'cus_test123'
+        assert result == "cus_test123"
 
         # Verify that OrgStore.get_current_org_from_keycloak_user_id was called
         mock_get_org.assert_called_once_with(str(test_user_id))
@@ -114,7 +114,7 @@ async def test_find_customer_id_by_user_id_falls_back_to_stripe(
     )
 
     # Set up the mock for stripe.Customer.search_async
-    mock_customer = stripe.Customer(id='cus_test123')
+    mock_customer = stripe.Customer(id="cus_test123")
     mock_search = AsyncMock(return_value=MagicMock(data=[mock_customer]))
 
     # Create a mock org object to return from OrgStore
@@ -122,11 +122,11 @@ async def test_find_customer_id_by_user_id_falls_back_to_stripe(
     mock_org.id = test_org_id
 
     with (
-        patch('integrations.stripe_service.a_session_maker', async_session_maker),
-        patch('storage.org_store.a_session_maker', async_session_maker),
-        patch('stripe.Customer.search_async', mock_search),
+        patch("integrations.stripe_service.a_session_maker", async_session_maker),
+        patch("storage.org_store.a_session_maker", async_session_maker),
+        patch("stripe.Customer.search_async", mock_search),
         patch(
-            'integrations.stripe_service.OrgStore.get_current_org_from_keycloak_user_id',
+            "integrations.stripe_service.OrgStore.get_current_org_from_keycloak_user_id",
             new_callable=AsyncMock,
         ) as mock_get_org,
     ):
@@ -137,12 +137,12 @@ async def test_find_customer_id_by_user_id_falls_back_to_stripe(
         result = await find_customer_id_by_user_id(str(test_user_id))
 
         # Verify the result
-        assert result == 'cus_test123'
+        assert result == "cus_test123"
 
     # Verify that Stripe was searched with the org_id
     mock_search.assert_called_once()
     assert (
-        f"metadata['org_id']:'{str(test_org_id)}'" in mock_search.call_args[1]['query']
+        f"metadata['org_id']:'{str(test_org_id)}'" in mock_search.call_args[1]["query"]
     )
 
 
@@ -159,24 +159,24 @@ async def test_create_customer_stores_id_in_db(
 
     # Set up the mock for stripe.Customer.search_async and create_async
     mock_search = AsyncMock(return_value=MagicMock(data=[]))
-    mock_create_async = AsyncMock(return_value=stripe.Customer(id='cus_test123'))
+    mock_create_async = AsyncMock(return_value=stripe.Customer(id="cus_test123"))
 
     # Create a mock org object to return from OrgStore
     mock_org = MagicMock()
     mock_org.id = test_org_id
-    mock_org.contact_email = 'testy@tester.com'
+    mock_org.contact_email = "testy@tester.com"
 
     with (
-        patch('integrations.stripe_service.a_session_maker', async_session_maker),
-        patch('storage.org_store.a_session_maker', async_session_maker),
-        patch('stripe.Customer.search_async', mock_search),
-        patch('stripe.Customer.create_async', mock_create_async),
+        patch("integrations.stripe_service.a_session_maker", async_session_maker),
+        patch("storage.org_store.a_session_maker", async_session_maker),
+        patch("stripe.Customer.search_async", mock_search),
+        patch("stripe.Customer.create_async", mock_create_async),
         patch(
-            'integrations.stripe_service.OrgStore.get_current_org_from_keycloak_user_id',
+            "integrations.stripe_service.OrgStore.get_current_org_from_keycloak_user_id",
             new_callable=AsyncMock,
         ) as mock_get_org,
         patch(
-            'integrations.stripe_service.find_customer_id_by_org_id',
+            "integrations.stripe_service.find_customer_id_by_org_id",
             new_callable=AsyncMock,
         ) as mock_find_customer,
     ):
@@ -189,7 +189,7 @@ async def test_create_customer_stores_id_in_db(
         result = await find_or_create_customer_by_user_id(str(test_user_id))
 
     # Verify the result
-    assert result == {'customer_id': 'cus_test123', 'org_id': str(test_org_id)}
+    assert result == {"customer_id": "cus_test123", "org_id": str(test_org_id)}
 
     # Verify that the stripe customer was stored in the db
     async with async_session_maker() as session:
@@ -204,6 +204,6 @@ async def test_create_customer_stores_id_in_db(
         assert customer.id > 0
         assert customer.keycloak_user_id == str(test_user_id)
         assert customer.org_id == test_org_id
-        assert customer.stripe_customer_id == 'cus_test123'
+        assert customer.stripe_customer_id == "cus_test123"
         assert customer.created_at is not None
         assert customer.updated_at is not None

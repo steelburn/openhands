@@ -9,7 +9,7 @@ from integrations.gitlab.gitlab_service import SaaSGitLabService
 @pytest.fixture
 def gitlab_service():
     """Create a SaaSGitLabService instance for testing."""
-    return SaaSGitLabService(external_auth_id='test_user_id')
+    return SaaSGitLabService(external_auth_id="test_user_id")
 
 
 class TestSaaSGitLabServiceInit:
@@ -17,9 +17,9 @@ class TestSaaSGitLabServiceInit:
 
     def test_explicit_base_domain_overrides_default(self):
         """An explicit base_domain parameter overrides the upstream class default."""
-        service = SaaSGitLabService(external_auth_id='u1', base_domain='other.host')
+        service = SaaSGitLabService(external_auth_id="u1", base_domain="other.host")
 
-        assert service.BASE_URL == 'https://other.host/api/v4'
+        assert service.BASE_URL == "https://other.host/api/v4"
 
 
 class TestGetUserResourcesWithAdminAccess:
@@ -30,18 +30,18 @@ class TestGetUserResourcesWithAdminAccess:
         """Test fetching resources when all data fits in a single page."""
         # Arrange
         mock_projects = [
-            {'id': 1, 'name': 'Project 1'},
-            {'id': 2, 'name': 'Project 2'},
+            {"id": 1, "name": "Project 1"},
+            {"id": 2, "name": "Project 2"},
         ]
         mock_groups = [
-            {'id': 10, 'name': 'Group 1'},
+            {"id": 10, "name": "Group 1"},
         ]
 
-        with patch.object(gitlab_service, '_make_request') as mock_request:
+        with patch.object(gitlab_service, "_make_request") as mock_request:
             # First call for projects, second for groups
             mock_request.side_effect = [
-                (mock_projects, {'Link': ''}),  # No next page
-                (mock_groups, {'Link': ''}),  # No next page
+                (mock_projects, {"Link": ""}),  # No next page
+                (mock_groups, {"Link": ""}),  # No next page
             ]
 
             # Act
@@ -53,23 +53,23 @@ class TestGetUserResourcesWithAdminAccess:
             # Assert
             assert len(projects) == 2
             assert len(groups) == 1
-            assert projects[0]['id'] == 1
-            assert projects[1]['id'] == 2
-            assert groups[0]['id'] == 10
+            assert projects[0]["id"] == 1
+            assert projects[1]["id"] == 2
+            assert groups[0]["id"] == 10
             assert mock_request.call_count == 2
 
     @pytest.mark.asyncio
     async def test_get_resources_multiple_pages_projects(self, gitlab_service):
         """Test fetching projects across multiple pages."""
         # Arrange
-        page1_projects = [{'id': i, 'name': f'Project {i}'} for i in range(1, 101)]
-        page2_projects = [{'id': i, 'name': f'Project {i}'} for i in range(101, 151)]
+        page1_projects = [{"id": i, "name": f"Project {i}"} for i in range(1, 101)]
+        page2_projects = [{"id": i, "name": f"Project {i}"} for i in range(101, 151)]
 
-        with patch.object(gitlab_service, '_make_request') as mock_request:
+        with patch.object(gitlab_service, "_make_request") as mock_request:
             mock_request.side_effect = [
-                (page1_projects, {'Link': '<url>; rel="next"'}),  # Has next page
-                (page2_projects, {'Link': ''}),  # Last page
-                ([], {'Link': ''}),  # Groups (empty)
+                (page1_projects, {"Link": '<url>; rel="next"'}),  # Has next page
+                (page2_projects, {"Link": ""}),  # Last page
+                ([], {"Link": ""}),  # Groups (empty)
             ]
 
             # Act
@@ -87,14 +87,14 @@ class TestGetUserResourcesWithAdminAccess:
     async def test_get_resources_multiple_pages_groups(self, gitlab_service):
         """Test fetching groups across multiple pages."""
         # Arrange
-        page1_groups = [{'id': i, 'name': f'Group {i}'} for i in range(1, 101)]
-        page2_groups = [{'id': i, 'name': f'Group {i}'} for i in range(101, 151)]
+        page1_groups = [{"id": i, "name": f"Group {i}"} for i in range(1, 101)]
+        page2_groups = [{"id": i, "name": f"Group {i}"} for i in range(101, 151)]
 
-        with patch.object(gitlab_service, '_make_request') as mock_request:
+        with patch.object(gitlab_service, "_make_request") as mock_request:
             mock_request.side_effect = [
-                ([], {'Link': ''}),  # Projects (empty)
-                (page1_groups, {'Link': '<url>; rel="next"'}),  # Has next page
-                (page2_groups, {'Link': ''}),  # Last page
+                ([], {"Link": ""}),  # Projects (empty)
+                (page1_groups, {"Link": '<url>; rel="next"'}),  # Has next page
+                (page2_groups, {"Link": ""}),  # Last page
             ]
 
             # Act
@@ -112,10 +112,10 @@ class TestGetUserResourcesWithAdminAccess:
     async def test_get_resources_empty_response(self, gitlab_service):
         """Test when user has no projects or groups with admin access."""
         # Arrange
-        with patch.object(gitlab_service, '_make_request') as mock_request:
+        with patch.object(gitlab_service, "_make_request") as mock_request:
             mock_request.side_effect = [
-                ([], {'Link': ''}),  # No projects
-                ([], {'Link': ''}),  # No groups
+                ([], {"Link": ""}),  # No projects
+                ([], {"Link": ""}),  # No groups
             ]
 
             # Act
@@ -133,10 +133,10 @@ class TestGetUserResourcesWithAdminAccess:
     async def test_get_resources_uses_correct_params_for_projects(self, gitlab_service):
         """Test that projects API is called with correct parameters."""
         # Arrange
-        with patch.object(gitlab_service, '_make_request') as mock_request:
+        with patch.object(gitlab_service, "_make_request") as mock_request:
             mock_request.side_effect = [
-                ([], {'Link': ''}),  # Projects
-                ([], {'Link': ''}),  # Groups
+                ([], {"Link": ""}),  # Projects
+                ([], {"Link": ""}),  # Groups
             ]
 
             # Act
@@ -145,19 +145,19 @@ class TestGetUserResourcesWithAdminAccess:
             # Assert
             # Check first call (projects)
             first_call = mock_request.call_args_list[0]
-            assert 'projects' in first_call[0][0]
-            assert first_call[0][1]['membership'] == 1
-            assert first_call[0][1]['min_access_level'] == 40
-            assert first_call[0][1]['per_page'] == '100'
+            assert "projects" in first_call[0][0]
+            assert first_call[0][1]["membership"] == 1
+            assert first_call[0][1]["min_access_level"] == 40
+            assert first_call[0][1]["per_page"] == "100"
 
     @pytest.mark.asyncio
     async def test_get_resources_uses_correct_params_for_groups(self, gitlab_service):
         """Test that groups API is called with correct parameters."""
         # Arrange
-        with patch.object(gitlab_service, '_make_request') as mock_request:
+        with patch.object(gitlab_service, "_make_request") as mock_request:
             mock_request.side_effect = [
-                ([], {'Link': ''}),  # Projects
-                ([], {'Link': ''}),  # Groups
+                ([], {"Link": ""}),  # Projects
+                ([], {"Link": ""}),  # Groups
             ]
 
             # Act
@@ -166,20 +166,20 @@ class TestGetUserResourcesWithAdminAccess:
             # Assert
             # Check second call (groups)
             second_call = mock_request.call_args_list[1]
-            assert 'groups' in second_call[0][0]
-            assert second_call[0][1]['min_access_level'] == 40
-            assert second_call[0][1]['top_level_only'] == 'true'
-            assert second_call[0][1]['per_page'] == '100'
+            assert "groups" in second_call[0][0]
+            assert second_call[0][1]["min_access_level"] == 40
+            assert second_call[0][1]["top_level_only"] == "true"
+            assert second_call[0][1]["per_page"] == "100"
 
     @pytest.mark.asyncio
     async def test_get_resources_handles_api_error_gracefully(self, gitlab_service):
         """Test that API errors are handled gracefully and don't crash."""
         # Arrange
-        with patch.object(gitlab_service, '_make_request') as mock_request:
+        with patch.object(gitlab_service, "_make_request") as mock_request:
             # First call succeeds, second call fails
             mock_request.side_effect = [
-                ([{'id': 1, 'name': 'Project 1'}], {'Link': ''}),
-                Exception('API Error'),
+                ([{"id": 1, "name": "Project 1"}], {"Link": ""}),
+                Exception("API Error"),
             ]
 
             # Act
@@ -197,10 +197,10 @@ class TestGetUserResourcesWithAdminAccess:
     async def test_get_resources_stops_on_empty_response(self, gitlab_service):
         """Test that pagination stops when API returns empty response."""
         # Arrange
-        with patch.object(gitlab_service, '_make_request') as mock_request:
+        with patch.object(gitlab_service, "_make_request") as mock_request:
             mock_request.side_effect = [
-                (None, {'Link': ''}),  # Empty response stops pagination
-                ([], {'Link': ''}),  # Groups
+                (None, {"Link": ""}),  # Empty response stops pagination
+                ([], {"Link": ""}),  # Groups
             ]
 
             # Act

@@ -18,7 +18,7 @@ async def test_aenter_calls_init_analytics_service():
     from server.app_lifespan.saas_app_lifespan_service import SaasAppLifespanService
 
     with patch(
-        'server.app_lifespan.saas_app_lifespan_service.init_analytics_service'
+        "server.app_lifespan.saas_app_lifespan_service.init_analytics_service"
     ) as mock_init:
         svc = SaasAppLifespanService()
         await svc.__aenter__()
@@ -32,14 +32,14 @@ async def test_aenter_passes_env_vars_to_init():
 
     with (
         patch(
-            'server.app_lifespan.saas_app_lifespan_service.init_analytics_service'
+            "server.app_lifespan.saas_app_lifespan_service.init_analytics_service"
         ) as mock_init,
         patch.dict(
-            'os.environ',
+            "os.environ",
             {
-                'POSTHOG_CLIENT_KEY': 'test-key',
-                'POSTHOG_HOST': 'https://test.posthog.com',
-                'OPENHANDS_CONFIG_CLS': 'enterprise.server.config.SaaSServerConfig',
+                "POSTHOG_CLIENT_KEY": "test-key",
+                "POSTHOG_HOST": "https://test.posthog.com",
+                "OPENHANDS_CONFIG_CLS": "enterprise.server.config.SaaSServerConfig",
             },
         ),
     ):
@@ -47,8 +47,8 @@ async def test_aenter_passes_env_vars_to_init():
         await svc.__aenter__()
 
         call_kwargs = mock_init.call_args
-        assert call_kwargs.kwargs['api_key'] == 'test-key'
-        assert call_kwargs.kwargs['host'] == 'https://test.posthog.com'
+        assert call_kwargs.kwargs["api_key"] == "test-key"
+        assert call_kwargs.kwargs["host"] == "https://test.posthog.com"
 
 
 @pytest.mark.asyncio
@@ -57,9 +57,9 @@ async def test_aexit_calls_shutdown_when_service_exists(mock_analytics_service):
     from server.app_lifespan.saas_app_lifespan_service import SaasAppLifespanService
 
     with (
-        patch('server.app_lifespan.saas_app_lifespan_service.init_analytics_service'),
+        patch("server.app_lifespan.saas_app_lifespan_service.init_analytics_service"),
         patch(
-            'server.app_lifespan.saas_app_lifespan_service.get_analytics_service',
+            "server.app_lifespan.saas_app_lifespan_service.get_analytics_service",
             return_value=mock_analytics_service,
         ),
     ):
@@ -76,9 +76,9 @@ async def test_aexit_does_not_raise_when_service_is_none():
     from server.app_lifespan.saas_app_lifespan_service import SaasAppLifespanService
 
     with (
-        patch('server.app_lifespan.saas_app_lifespan_service.init_analytics_service'),
+        patch("server.app_lifespan.saas_app_lifespan_service.init_analytics_service"),
         patch(
-            'server.app_lifespan.saas_app_lifespan_service.get_analytics_service',
+            "server.app_lifespan.saas_app_lifespan_service.get_analytics_service",
             return_value=None,
         ),
     ):
@@ -93,12 +93,12 @@ async def test_aexit_does_not_raise_on_shutdown_error(mock_analytics_service):
     """SaasAppLifespanService.__aexit__ swallows errors from shutdown."""
     from server.app_lifespan.saas_app_lifespan_service import SaasAppLifespanService
 
-    mock_analytics_service.shutdown.side_effect = RuntimeError('connection closed')
+    mock_analytics_service.shutdown.side_effect = RuntimeError("connection closed")
 
     with (
-        patch('server.app_lifespan.saas_app_lifespan_service.init_analytics_service'),
+        patch("server.app_lifespan.saas_app_lifespan_service.init_analytics_service"),
         patch(
-            'server.app_lifespan.saas_app_lifespan_service.get_analytics_service',
+            "server.app_lifespan.saas_app_lifespan_service.get_analytics_service",
             return_value=mock_analytics_service,
         ),
     ):

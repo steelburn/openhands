@@ -27,7 +27,7 @@ class FilesystemEventService(EventServiceBase):
             return content  # type: ignore[return-value]
         except Exception:
             if path.exists():
-                _logger.exception('Error reading event', stack_info=True)
+                _logger.exception("Error reading event", stack_info=True)
             return None
 
     def _store_event(self, path: Path, event: Event):
@@ -36,7 +36,7 @@ class FilesystemEventService(EventServiceBase):
         path.write_text(content)
 
     def _search_paths(self, prefix: Path, page_id: str | None = None) -> list[Path]:
-        search_path = f'{prefix}/*'
+        search_path = f"{prefix}/*"
         files = glob.glob(str(search_path))
         paths = [Path(file) for file in files]
         return paths

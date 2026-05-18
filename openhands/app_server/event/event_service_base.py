@@ -67,7 +67,7 @@ class EventServiceBase(EventService, ABC):
     async def get_event(self, conversation_id: UUID, event_id: UUID) -> Event | None:
         """Get the event with the given id, or None if not found."""
         conversation_path = await self.get_conversation_path(conversation_id)
-        path = conversation_path / f'{event_id.hex}.json'
+        path = conversation_path / f"{event_id.hex}.json"
         loop = asyncio.get_running_loop()
         event: Event = await loop.run_in_executor(None, self._load_event, path)  # type: ignore[arg-type]
         return event
@@ -160,10 +160,10 @@ class EventServiceBase(EventService, ABC):
 
     async def save_event(self, conversation_id: UUID, event: Event):
         if isinstance(event.id, str):
-            id_hex = event.id.replace('-', '')
+            id_hex = event.id.replace("-", "")
         else:
             id_hex = event.id.hex  # type: ignore[unreachable]
-        path = (await self.get_conversation_path(conversation_id)) / f'{id_hex}.json'
+        path = (await self.get_conversation_path(conversation_id)) / f"{id_hex}.json"
         loop = asyncio.get_running_loop()
         await loop.run_in_executor(None, self._store_event, path, event)
 

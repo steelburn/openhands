@@ -24,8 +24,8 @@ async def test_middleware_sets_session_id_from_header(mock_response):
     """PostHogSessionMiddleware sets posthog_session_id from X-POSTHOG-SESSION-ID header."""
     from server.middleware import PostHogSessionMiddleware
 
-    session_id = 'sess_abc123'
-    request = make_mock_request({'X-POSTHOG-SESSION-ID': session_id})
+    session_id = "sess_abc123"
+    request = make_mock_request({"X-POSTHOG-SESSION-ID": session_id})
     call_next = AsyncMock(return_value=mock_response)
 
     middleware = PostHogSessionMiddleware()
@@ -57,7 +57,7 @@ async def test_middleware_does_not_modify_response(mock_response):
     """PostHogSessionMiddleware returns the response unchanged."""
     from server.middleware import PostHogSessionMiddleware
 
-    request = make_mock_request({'X-POSTHOG-SESSION-ID': 'sess_xyz'})
+    request = make_mock_request({"X-POSTHOG-SESSION-ID": "sess_xyz"})
     call_next = AsyncMock(return_value=mock_response)
 
     middleware = PostHogSessionMiddleware()
@@ -87,8 +87,8 @@ async def test_middleware_handles_case_insensitive_header(mock_response):
 
     # FastAPI/Starlette Headers are case-insensitive, but we test with dict mock
     # Test the exact header name used in the implementation
-    session_id = 'sess_case_test'
-    request = make_mock_request({'X-POSTHOG-SESSION-ID': session_id})
+    session_id = "sess_case_test"
+    request = make_mock_request({"X-POSTHOG-SESSION-ID": session_id})
     call_next = AsyncMock(return_value=mock_response)
 
     middleware = PostHogSessionMiddleware()

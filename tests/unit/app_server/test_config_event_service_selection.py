@@ -28,7 +28,7 @@ def _get_clean_env():
     """Get a base environment dict with essential system vars preserved."""
     # Preserve essential system environment variables
     env = {}
-    for key in ['PATH', 'HOME', 'PYTHONPATH', 'VIRTUAL_ENV', 'TMPDIR', 'TMP', 'TEMP']:
+    for key in ["PATH", "HOME", "PYTHONPATH", "VIRTUAL_ENV", "TMPDIR", "TMP", "TEMP"]:
         if key in os.environ:
             env[key] = os.environ[key]
     return env
@@ -57,14 +57,14 @@ class TestConfigFromEnvEventServiceSelection:
         )
 
         env = _get_clean_env()
-        env['FILE_STORE'] = 'google_cloud'
-        env['FILE_STORE_PATH'] = 'test-gcp-bucket'
+        env["FILE_STORE"] = "google_cloud"
+        env["FILE_STORE_PATH"] = "test-gcp-bucket"
 
         with patch.dict(os.environ, env, clear=True):
             config = config_from_env()
 
             assert isinstance(config.event, GoogleCloudEventServiceInjector)
-            assert config.event.bucket_name == 'test-gcp-bucket'
+            assert config.event.bucket_name == "test-gcp-bucket"
 
     def test_uses_gcp_when_provider_gcp(self):
         """Test that GoogleCloudEventServiceInjector is used when SHARED_EVENT_STORAGE_PROVIDER=gcp."""
@@ -74,8 +74,8 @@ class TestConfigFromEnvEventServiceSelection:
         )
 
         env = _get_clean_env()
-        env['SHARED_EVENT_STORAGE_PROVIDER'] = 'gcp'
-        env['FILE_STORE_PATH'] = 'test-gcp-bucket'
+        env["SHARED_EVENT_STORAGE_PROVIDER"] = "gcp"
+        env["FILE_STORE_PATH"] = "test-gcp-bucket"
 
         with patch.dict(os.environ, env, clear=True):
             config = config_from_env()
@@ -89,28 +89,28 @@ class TestConfigFromEnvEventServiceSelection:
         )
 
         env = _get_clean_env()
-        env['SHARED_EVENT_STORAGE_PROVIDER'] = 'aws'
-        env['FILE_STORE_PATH'] = 'test-aws-bucket'
+        env["SHARED_EVENT_STORAGE_PROVIDER"] = "aws"
+        env["FILE_STORE_PATH"] = "test-aws-bucket"
 
         with patch.dict(os.environ, env, clear=True):
             config = config_from_env()
 
             assert isinstance(config.event, AwsEventServiceInjector)
-            assert config.event.bucket_name == 'test-aws-bucket'
+            assert config.event.bucket_name == "test-aws-bucket"
 
     def test_aws_requires_file_store_path(self):
         """Test that AWS provider requires FILE_STORE_PATH to be set."""
         from openhands.app_server.config import config_from_env
 
         env = _get_clean_env()
-        env['SHARED_EVENT_STORAGE_PROVIDER'] = 'aws'
+        env["SHARED_EVENT_STORAGE_PROVIDER"] = "aws"
 
         with patch.dict(os.environ, env, clear=True):
             with pytest.raises(ValueError) as exc_info:
                 config_from_env()
 
-            assert 'FILE_STORE_PATH' in str(exc_info.value)
-            assert 'required' in str(exc_info.value).lower()
+            assert "FILE_STORE_PATH" in str(exc_info.value)
+            assert "required" in str(exc_info.value).lower()
 
     def test_provider_takes_precedence_over_file_store(self):
         """Test that SHARED_EVENT_STORAGE_PROVIDER takes precedence over FILE_STORE."""
@@ -120,9 +120,9 @@ class TestConfigFromEnvEventServiceSelection:
         )
 
         env = _get_clean_env()
-        env['SHARED_EVENT_STORAGE_PROVIDER'] = 'aws'
-        env['FILE_STORE'] = 'google_cloud'
-        env['FILE_STORE_PATH'] = 'test-bucket'
+        env["SHARED_EVENT_STORAGE_PROVIDER"] = "aws"
+        env["FILE_STORE"] = "google_cloud"
+        env["FILE_STORE_PATH"] = "test-bucket"
 
         with patch.dict(os.environ, env, clear=True):
             config = config_from_env()
@@ -138,9 +138,9 @@ class TestConfigFromEnvEventServiceSelection:
         )
 
         env = _get_clean_env()
-        env['SHARED_EVENT_STORAGE_PROVIDER'] = 'gcp'
-        env['FILE_STORE'] = 's3'
-        env['FILE_STORE_PATH'] = 'test-bucket'
+        env["SHARED_EVENT_STORAGE_PROVIDER"] = "gcp"
+        env["FILE_STORE"] = "s3"
+        env["FILE_STORE_PATH"] = "test-bucket"
 
         with patch.dict(os.environ, env, clear=True):
             config = config_from_env()
@@ -156,8 +156,8 @@ class TestConfigFromEnvEventServiceSelection:
         )
 
         env = _get_clean_env()
-        env['SHARED_EVENT_STORAGE_PROVIDER'] = 'AWS'
-        env['FILE_STORE_PATH'] = 'test-bucket'
+        env["SHARED_EVENT_STORAGE_PROVIDER"] = "AWS"
+        env["FILE_STORE_PATH"] = "test-bucket"
 
         with patch.dict(os.environ, env, clear=True):
             config = config_from_env()
@@ -171,8 +171,8 @@ class TestConfigFromEnvEventServiceSelection:
         )
 
         env = _get_clean_env()
-        env['SHARED_EVENT_STORAGE_PROVIDER'] = 'GCP'
-        env['FILE_STORE_PATH'] = 'test-bucket'
+        env["SHARED_EVENT_STORAGE_PROVIDER"] = "GCP"
+        env["FILE_STORE_PATH"] = "test-bucket"
 
         with patch.dict(os.environ, env, clear=True):
             config = config_from_env()

@@ -12,7 +12,7 @@ def is_valid_git_branch_name(branch_name: str) -> bool:
 
     return (
         subprocess.run(
-            ['git', 'check-ref-format', '--branch', branch_name],
+            ["git", "check-ref-format", "--branch", branch_name],
             check=False,
             capture_output=True,
             text=True,
@@ -27,6 +27,6 @@ def ensure_valid_git_branch_name(branch_name: str) -> None:
         return
 
     raise ValueError(
-        f'Invalid git branch name. Common GitHub/GitLab/Bitbucket '
-        f'branch names look like {COMMON_BRANCH_EXAMPLES}.'
+        f"Invalid git branch name. Common GitHub/GitLab/Bitbucket "
+        f"branch names look like {COMMON_BRANCH_EXAMPLES}."
     )

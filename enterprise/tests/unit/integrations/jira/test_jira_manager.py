@@ -21,7 +21,7 @@ class TestJiraManagerInit:
     def test_init(self, mock_token_manager):
         """Test JiraManager initialization."""
         with patch(
-            'integrations.jira.jira_manager.JiraIntegrationStore.get_instance'
+            "integrations.jira.jira_manager.JiraIntegrationStore.get_instance"
         ) as mock_store_class:
             mock_store_class.return_value = MagicMock()
             manager = JiraManager(mock_token_manager)
@@ -45,7 +45,7 @@ class TestGetWorkspaceNameFromPayload:
             sample_comment_webhook_payload
         )
 
-        assert workspace_name == 'test.atlassian.net'
+        assert workspace_name == "test.atlassian.net"
 
     def test_get_workspace_name_from_issue_updated_payload(
         self,
@@ -57,7 +57,7 @@ class TestGetWorkspaceNameFromPayload:
             sample_issue_update_webhook_payload
         )
 
-        assert workspace_name == 'jira.company.com'
+        assert workspace_name == "jira.company.com"
 
     def test_get_workspace_name_from_unknown_event(
         self,
@@ -65,8 +65,8 @@ class TestGetWorkspaceNameFromPayload:
     ):
         """Test extracting workspace name from unknown webhook event."""
         payload = {
-            'webhookEvent': 'unknown_event',
-            'some_data': {'self': 'https://example.atlassian.net/rest/api/2/something'},
+            "webhookEvent": "unknown_event",
+            "some_data": {"self": "https://example.atlassian.net/rest/api/2/something"},
         }
 
         workspace_name = jira_manager.get_workspace_name_from_payload(payload)
@@ -111,15 +111,15 @@ class TestGetActiveWorkspace:
         # Create payload with service account email
         payload = JiraWebhookPayload(
             event_type=JiraEventType.COMMENT_MENTION,
-            raw_event='comment_created',
-            issue_id='12345',
-            issue_key='TEST-123',
-            user_email='service@example.com',  # Same as workspace svc_acc_email
-            display_name='Service Account',
-            account_id='svc123',
-            workspace_name='test.atlassian.net',
-            base_api_url='https://test.atlassian.net',
-            comment_body='@openhands test',
+            raw_event="comment_created",
+            issue_id="12345",
+            issue_key="TEST-123",
+            user_email="service@example.com",  # Same as workspace svc_acc_email
+            display_name="Service Account",
+            account_id="svc123",
+            workspace_name="test.atlassian.net",
+            base_api_url="https://test.atlassian.net",
+            comment_body="@openhands test",
         )
         jira_manager.integration_store.get_workspace_by_name = AsyncMock(
             return_value=sample_jira_workspace
@@ -134,7 +134,7 @@ class TestGetActiveWorkspace:
         self, jira_manager, sample_webhook_payload, sample_jira_workspace
     ):
         """Test inactive workspace."""
-        sample_jira_workspace.status = 'inactive'
+        sample_jira_workspace.status = "inactive"
         jira_manager.integration_store.get_workspace_by_name = AsyncMock(
             return_value=sample_jira_workspace
         )
@@ -164,7 +164,7 @@ class TestAuthenticateUser:
         )
 
         with patch(
-            'integrations.jira.jira_manager.get_user_auth_from_keycloak_id',
+            "integrations.jira.jira_manager.get_user_auth_from_keycloak_id",
             return_value=sample_user_auth,
         ):
             jira_user, user_auth = await jira_manager._authenticate_user(
@@ -198,7 +198,7 @@ class TestStartJob:
     async def test_start_job_success(self, jira_manager, new_conversation_view):
         """Test successful job start."""
         new_conversation_view.create_or_update_conversation = AsyncMock(
-            return_value='conv-123'
+            return_value="conv-123"
         )
         jira_manager._send_comment = AsyncMock()
 
@@ -213,7 +213,7 @@ class TestStartJob:
     ):
         """Test job start with missing settings error."""
         new_conversation_view.create_or_update_conversation = AsyncMock(
-            side_effect=MissingSettingsError('Missing settings')
+            side_effect=MissingSettingsError("Missing settings")
         )
         jira_manager._send_comment = AsyncMock()
 
@@ -221,13 +221,13 @@ class TestStartJob:
 
         jira_manager._send_comment.assert_called_once()
         call_args = jira_manager._send_comment.call_args[0]
-        assert 're-login' in call_args[1]
+        assert "re-login" in call_args[1]
 
     @pytest.mark.asyncio
     async def test_start_job_llm_auth_error(self, jira_manager, new_conversation_view):
         """Test job start with LLM authentication error."""
         new_conversation_view.create_or_update_conversation = AsyncMock(
-            side_effect=LLMAuthenticationError('LLM auth failed')
+            side_effect=LLMAuthenticationError("LLM auth failed")
         )
         jira_manager._send_comment = AsyncMock()
 
@@ -235,7 +235,7 @@ class TestStartJob:
 
         jira_manager._send_comment.assert_called_once()
         call_args = jira_manager._send_comment.call_args[0]
-        assert 'LLM API key' in call_args[1]
+        assert "LLM API key" in call_args[1]
 
     @pytest.mark.asyncio
     async def test_start_job_session_expired_error(
@@ -243,7 +243,7 @@ class TestStartJob:
     ):
         """Test job start with session expired error."""
         new_conversation_view.create_or_update_conversation = AsyncMock(
-            side_effect=SessionExpiredError('Session expired')
+            side_effect=SessionExpiredError("Session expired")
         )
         jira_manager._send_comment = AsyncMock()
 
@@ -251,7 +251,7 @@ class TestStartJob:
 
         jira_manager._send_comment.assert_called_once()
         call_args = jira_manager._send_comment.call_args[0]
-        assert 'expired' in call_args[1]
+        assert "expired" in call_args[1]
 
 
 class TestSendMessage:
@@ -261,23 +261,23 @@ class TestSendMessage:
     async def test_send_message_success(self, jira_manager):
         """Test successful message sending."""
         mock_response = MagicMock()
-        mock_response.json.return_value = {'id': 'comment_id'}
+        mock_response.json.return_value = {"id": "comment_id"}
         mock_response.raise_for_status = MagicMock()
 
-        with patch('httpx.AsyncClient') as mock_client:
+        with patch("httpx.AsyncClient") as mock_client:
             mock_client.return_value.__aenter__.return_value.post = AsyncMock(
                 return_value=mock_response
             )
 
             result = await jira_manager.send_message(
-                'Test message',
-                'PROJ-123',
-                'cloud-123',
-                'service@test.com',
-                'api_key',
+                "Test message",
+                "PROJ-123",
+                "cloud-123",
+                "service@test.com",
+                "api_key",
             )
 
-            assert result == {'id': 'comment_id'}
+            assert result == {"id": "comment_id"}
             mock_response.raise_for_status.assert_called_once()
 
 
@@ -292,7 +292,7 @@ class TestSendErrorFromPayload:
         jira_manager.send_message = AsyncMock()
 
         await jira_manager._send_error_from_payload(
-            sample_webhook_payload, sample_jira_workspace, 'Error message'
+            sample_webhook_payload, sample_jira_workspace, "Error message"
         )
 
         jira_manager.send_message.assert_called_once()
@@ -302,11 +302,11 @@ class TestSendErrorFromPayload:
         self, jira_manager, sample_webhook_payload, sample_jira_workspace
     ):
         """Test error comment sending when send_message fails."""
-        jira_manager.send_message = AsyncMock(side_effect=Exception('Send failed'))
+        jira_manager.send_message = AsyncMock(side_effect=Exception("Send failed"))
 
         # Should not raise exception even if send_message fails
         await jira_manager._send_error_from_payload(
-            sample_webhook_payload, sample_jira_workspace, 'Error message'
+            sample_webhook_payload, sample_jira_workspace, "Error message"
         )
 
 
@@ -318,7 +318,7 @@ class TestSendComment:
         """Test successful comment sending."""
         jira_manager.send_message = AsyncMock()
 
-        await jira_manager._send_comment(new_conversation_view, 'Test comment')
+        await jira_manager._send_comment(new_conversation_view, "Test comment")
 
         jira_manager.send_message.assert_called_once()
 
@@ -327,7 +327,7 @@ class TestSendComment:
         self, jira_manager, new_conversation_view
     ):
         """Test comment sending fails silently."""
-        jira_manager.send_message = AsyncMock(side_effect=Exception('Send failed'))
+        jira_manager.send_message = AsyncMock(side_effect=Exception("Send failed"))
 
         # Should not raise exception
-        await jira_manager._send_comment(new_conversation_view, 'Test comment')
+        await jira_manager._send_comment(new_conversation_view, "Test comment")

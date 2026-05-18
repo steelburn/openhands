@@ -35,9 +35,9 @@ from openhands.app_server.utils.sql_utils import Base
 async def async_engine():
     """Create an async SQLite engine for testing."""
     engine = create_async_engine(
-        'sqlite+aiosqlite:///:memory:',
+        "sqlite+aiosqlite:///:memory:",
         poolclass=StaticPool,
-        connect_args={'check_same_thread': False},
+        connect_args={"check_same_thread": False},
         echo=False,
     )
 
@@ -78,15 +78,15 @@ def service(async_session) -> SQLAppConversationInfoService:
 async def test_save_conversation_with_tags(async_session, service):
     """Save a conversation with tags, load it back, verify tags match."""
     conversation_id = uuid4()
-    tags = {'trigger': 'automation', 'automation_id': 'auto-123', 'run_id': 'run-456'}
+    tags = {"trigger": "automation", "automation_id": "auto-123", "run_id": "run-456"}
 
     # Create and save conversation with tags
     stored = StoredConversationMetadata(
         conversation_id=str(conversation_id),
-        sandbox_id='sandbox_123',
-        title='Test Conversation with Tags',
+        sandbox_id="sandbox_123",
+        title="Test Conversation with Tags",
         tags=tags,
-        conversation_version='V1',
+        conversation_version="V1",
         pr_number=[],
         created_at=datetime.now(timezone.utc),
         last_updated_at=datetime.now(timezone.utc),
@@ -99,9 +99,9 @@ async def test_save_conversation_with_tags(async_session, service):
 
     assert result is not None
     assert result.tags == tags
-    assert result.tags['trigger'] == 'automation'
-    assert result.tags['automation_id'] == 'auto-123'
-    assert result.tags['run_id'] == 'run-456'
+    assert result.tags["trigger"] == "automation"
+    assert result.tags["automation_id"] == "auto-123"
+    assert result.tags["run_id"] == "run-456"
 
 
 @pytest.mark.asyncio
@@ -111,10 +111,10 @@ async def test_save_conversation_with_empty_tags(async_session, service):
 
     stored = StoredConversationMetadata(
         conversation_id=str(conversation_id),
-        sandbox_id='sandbox_123',
-        title='Test Conversation',
+        sandbox_id="sandbox_123",
+        title="Test Conversation",
         tags={},
-        conversation_version='V1',
+        conversation_version="V1",
         pr_number=[],
         created_at=datetime.now(timezone.utc),
         last_updated_at=datetime.now(timezone.utc),
@@ -135,10 +135,10 @@ async def test_save_conversation_with_none_tags(async_session, service):
 
     stored = StoredConversationMetadata(
         conversation_id=str(conversation_id),
-        sandbox_id='sandbox_123',
-        title='Test Conversation',
+        sandbox_id="sandbox_123",
+        title="Test Conversation",
         tags=None,
-        conversation_version='V1',
+        conversation_version="V1",
         pr_number=[],
         created_at=datetime.now(timezone.utc),
         last_updated_at=datetime.now(timezone.utc),
@@ -160,36 +160,36 @@ async def test_save_conversation_with_none_tags(async_session, service):
 
 def test_merge_conversation_tags_incoming_overrides_existing():
     """Test that incoming tags override existing tags with same key."""
-    existing_tags = {'key1': 'original', 'key2': 'keep_this'}
-    incoming_tags = {'key1': 'updated', 'key3': 'new_value'}
+    existing_tags = {"key1": "original", "key2": "keep_this"}
+    incoming_tags = {"key1": "updated", "key3": "new_value"}
 
     merged_tags = merge_conversation_tags(existing_tags, incoming_tags)
 
     assert merged_tags == {
-        'key1': 'updated',  # Overridden
-        'key2': 'keep_this',  # Preserved
-        'key3': 'new_value',  # Added
+        "key1": "updated",  # Overridden
+        "key2": "keep_this",  # Preserved
+        "key3": "new_value",  # Added
     }
 
 
 def test_merge_conversation_tags_with_empty_incoming():
     """Test that empty incoming tags preserves existing tags."""
-    existing_tags = {'existing': 'value'}
+    existing_tags = {"existing": "value"}
     incoming_tags = {}
 
     merged_tags = merge_conversation_tags(existing_tags, incoming_tags)
 
-    assert merged_tags == {'existing': 'value'}
+    assert merged_tags == {"existing": "value"}
 
 
 def test_merge_conversation_tags_with_none_existing():
     """Test merging when existing tags is None."""
     existing_tags = None
-    incoming_tags = {'new': 'value'}
+    incoming_tags = {"new": "value"}
 
     merged_tags = merge_conversation_tags(existing_tags, incoming_tags)
 
-    assert merged_tags == {'new': 'value'}
+    assert merged_tags == {"new": "value"}
 
 
 def test_merge_conversation_tags_with_both_none():
@@ -206,7 +206,7 @@ def test_merge_conversation_tags_with_both_none():
 
 def test_detect_automation_trigger_by_trigger_tag():
     """Test that 'automationtrigger' tag triggers AUTOMATION detection."""
-    merged_tags = {'automationtrigger': 'cron', 'automationid': 'auto-123'}
+    merged_tags = {"automationtrigger": "cron", "automationid": "auto-123"}
 
     trigger = detect_automation_trigger(None, merged_tags)
 
@@ -215,7 +215,7 @@ def test_detect_automation_trigger_by_trigger_tag():
 
 def test_detect_automation_trigger_by_automation_id():
     """Test that 'automationid' tag alone triggers AUTOMATION detection."""
-    merged_tags = {'automationid': 'auto-123'}
+    merged_tags = {"automationid": "auto-123"}
 
     trigger = detect_automation_trigger(None, merged_tags)
 
@@ -224,7 +224,7 @@ def test_detect_automation_trigger_by_automation_id():
 
 def test_detect_automation_trigger_by_automation_run_id():
     """Test that 'automationrunid' tag alone triggers AUTOMATION detection."""
-    merged_tags = {'automationrunid': 'run-123'}
+    merged_tags = {"automationrunid": "run-123"}
 
     trigger = detect_automation_trigger(None, merged_tags)
 
@@ -233,7 +233,7 @@ def test_detect_automation_trigger_by_automation_run_id():
 
 def test_detect_automation_trigger_not_set_without_relevant_tags():
     """Test that trigger is not set without automation-related tags."""
-    merged_tags = {'some_other_key': 'value'}
+    merged_tags = {"some_other_key": "value"}
 
     trigger = detect_automation_trigger(None, merged_tags)
 
@@ -242,7 +242,7 @@ def test_detect_automation_trigger_not_set_without_relevant_tags():
 
 def test_detect_automation_trigger_not_overridden_if_already_set():
     """Test that existing trigger is not overridden."""
-    merged_tags = {'automationtrigger': 'cron', 'automationid': 'auto-123'}
+    merged_tags = {"automationtrigger": "cron", "automationid": "auto-123"}
 
     # Trigger already set (e.g., from previous update)
     trigger = detect_automation_trigger(ConversationTrigger.GUI, merged_tags)
@@ -270,20 +270,20 @@ async def test_full_tag_roundtrip_with_automation_context(async_session, service
 
     # Initial save with automation tags
     initial_tags = {
-        'trigger': 'webhook',
-        'automation_id': 'auto-abc',
-        'automation_name': 'Daily Report',
-        'run_id': 'run-xyz',
-        'plugins': 'https://github.com/OpenHands/skill1,https://github.com/OpenHands/skill2',
+        "trigger": "webhook",
+        "automation_id": "auto-abc",
+        "automation_name": "Daily Report",
+        "run_id": "run-xyz",
+        "plugins": "https://github.com/OpenHands/skill1,https://github.com/OpenHands/skill2",
     }
 
     stored = StoredConversationMetadata(
         conversation_id=str(conversation_id),
-        sandbox_id='sandbox_123',
-        title='Automation Conversation',
+        sandbox_id="sandbox_123",
+        title="Automation Conversation",
         tags=initial_tags,
-        trigger='automation',
-        conversation_version='V1',
+        trigger="automation",
+        conversation_version="V1",
         pr_number=[],
         created_at=datetime.now(timezone.utc),
         last_updated_at=datetime.now(timezone.utc),
@@ -295,18 +295,18 @@ async def test_full_tag_roundtrip_with_automation_context(async_session, service
     result = await service.get_app_conversation_info(conversation_id)
     assert result is not None
     assert result.tags == initial_tags
-    assert result.tags['trigger'] == 'webhook'
-    assert result.tags['automation_id'] == 'auto-abc'
-    assert 'skill1' in result.tags['plugins']
-    assert 'skill2' in result.tags['plugins']
+    assert result.tags["trigger"] == "webhook"
+    assert result.tags["automation_id"] == "auto-abc"
+    assert "skill1" in result.tags["plugins"]
+    assert "skill2" in result.tags["plugins"]
 
     # Update with additional tag
-    result.tags['custom_key'] = 'custom_value'
+    result.tags["custom_key"] = "custom_value"
     stored.tags = result.tags
     await async_session.commit()
 
     # Reload and verify update
     result2 = await service.get_app_conversation_info(conversation_id)
-    assert result2.tags['custom_key'] == 'custom_value'
+    assert result2.tags["custom_key"] == "custom_value"
     # Original tags should still be present
-    assert result2.tags['automation_id'] == 'auto-abc'
+    assert result2.tags["automation_id"] == "auto-abc"

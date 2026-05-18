@@ -8,4 +8,4 @@ from openhands.app_server.server_config.server_config import (
     load_server_config,
 )
 
-__all__ = ['ServerConfig', 'load_server_config']
+__all__ = ["ServerConfig", "load_server_config"]

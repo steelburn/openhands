@@ -22,16 +22,16 @@ def get_default_sandbox_specs():
     return [
         SandboxSpecInfo(
             id=get_agent_server_image(),
-            command=['python', '-m', 'openhands.agent_server'],
+            command=["python", "-m", "openhands.agent_server"],
             initial_env={
                 # Keep tmux sockets on a short path; macOS default temp dirs can
                 # exceed Unix socket path limits once libtmux appends tmux-UID.
-                'TMUX_TMPDIR': '/tmp/openhands-tmux',
+                "TMUX_TMPDIR": "/tmp/openhands-tmux",
                 # VSCode disabled for now
-                'OH_ENABLE_VS_CODE': '0',
+                "OH_ENABLE_VS_CODE": "0",
                 **get_agent_server_env(),
             },
-            working_dir='.',
+            working_dir=".",
         )
     ]
 
@@ -39,7 +39,7 @@ def get_default_sandbox_specs():
 class ProcessSandboxSpecServiceInjector(SandboxSpecServiceInjector):
     specs: list[SandboxSpecInfo] = Field(
         default_factory=get_default_sandbox_specs,
-        description='Preset list of sandbox specs',
+        description="Preset list of sandbox specs",
     )
 
     async def inject(

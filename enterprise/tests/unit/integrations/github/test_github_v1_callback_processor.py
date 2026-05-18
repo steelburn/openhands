@@ -43,9 +43,9 @@ from openhands.sdk.event import ConversationStateUpdateEvent
 def github_callback_processor():
     return GithubV1CallbackProcessor(
         github_view_data={
-            'installation_id': 12345,
-            'full_repo_name': 'test-owner/test-repo',
-            'issue_number': 42,
+            "installation_id": 12345,
+            "full_repo_name": "test-owner/test-repo",
+            "issue_number": 42,
         },
         should_request_summary=True,
         should_extract=True,
@@ -57,10 +57,10 @@ def github_callback_processor():
 def github_callback_processor_inline():
     return GithubV1CallbackProcessor(
         github_view_data={
-            'installation_id': 12345,
-            'full_repo_name': 'test-owner/test-repo',
-            'issue_number': 42,
-            'comment_id': 'comment_123',
+            "installation_id": 12345,
+            "full_repo_name": "test-owner/test-repo",
+            "issue_number": 42,
+            "comment_id": "comment_123",
         },
         should_request_summary=True,
         should_extract=True,
@@ -70,7 +70,7 @@ def github_callback_processor_inline():
 
 @pytest.fixture
 def conversation_state_update_event():
-    return ConversationStateUpdateEvent(key='execution_status', value='finished')
+    return ConversationStateUpdateEvent(key="execution_status", value="finished")
 
 
 @pytest.fixture
@@ -83,7 +83,7 @@ def wrong_event():
 
 @pytest.fixture
 def wrong_state_event():
-    return ConversationStateUpdateEvent(key='execution_status', value='running')
+    return ConversationStateUpdateEvent(key="execution_status", value="running")
 
 
 @pytest.fixture
@@ -92,7 +92,7 @@ def event_callback():
         id=uuid4(),
         conversation_id=uuid4(),
         processor=GithubV1CallbackProcessor(),
-        event_kind='ConversationStateUpdateEvent',
+        event_kind="ConversationStateUpdateEvent",
     )
 
 
@@ -100,22 +100,22 @@ def event_callback():
 def mock_app_conversation_info():
     return AppConversationInfo(
         conversation_id=uuid4(),
-        sandbox_id='sandbox_123',
-        title='Test Conversation',
-        created_by_user_id='test_user_123',
+        sandbox_id="sandbox_123",
+        title="Test Conversation",
+        created_by_user_id="test_user_123",
     )
 
 
 @pytest.fixture
 def mock_sandbox_info():
     return SandboxInfo(
-        id='sandbox_123',
+        id="sandbox_123",
         status=SandboxStatus.RUNNING,
-        session_api_key='test_api_key',
-        created_by_user_id='test_user_123',
-        sandbox_spec_id='spec_123',
+        session_api_key="test_api_key",
+        created_by_user_id="test_user_123",
+        sandbox_spec_id="spec_123",
         exposed_urls=[
-            ExposedUrl(name='AGENT_SERVER', url='http://localhost:8000', port=8000),
+            ExposedUrl(name="AGENT_SERVER", url="http://localhost:8000", port=8000),
         ],
     )
 
@@ -131,7 +131,7 @@ async def _setup_happy_path_services(
     mock_get_httpx_client,
     app_conversation_info,
     sandbox_info,
-    agent_response_text='Test summary from agent',
+    agent_response_text="Test summary from agent",
 ):
     # app_conversation_info_service
     mock_app_conversation_info_service = AsyncMock()
@@ -150,7 +150,7 @@ async def _setup_happy_path_services(
     # httpx_client
     mock_httpx_client = AsyncMock()
     mock_response = MagicMock()
-    mock_response.json.return_value = {'response': agent_response_text}
+    mock_response.json.return_value = {"response": agent_response_text}
     mock_response.raise_for_status.return_value = None
     mock_httpx_client.post.return_value = mock_response
     mock_get_httpx_client.return_value.__aenter__.return_value = mock_httpx_client
@@ -201,20 +201,20 @@ class TestGithubV1CallbackProcessor:
     # ------------------------------------------------------------------ #
 
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID',
-        'test_client_id',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID",
+        "test_client_id",
     )
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY',
-        'test_private_key',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY",
+        "test_private_key",
     )
-    @patch('openhands.app_server.config.get_app_conversation_info_service')
-    @patch('openhands.app_server.config.get_sandbox_service')
-    @patch('openhands.app_server.config.get_httpx_client')
-    @patch('integrations.github.github_v1_callback_processor.get_summary_instruction')
-    @patch('integrations.github.github_v1_callback_processor.Auth')
-    @patch('integrations.github.github_v1_callback_processor.GithubIntegration')
-    @patch('integrations.github.github_v1_callback_processor.Github')
+    @patch("openhands.app_server.config.get_app_conversation_info_service")
+    @patch("openhands.app_server.config.get_sandbox_service")
+    @patch("openhands.app_server.config.get_httpx_client")
+    @patch("integrations.github.github_v1_callback_processor.get_summary_instruction")
+    @patch("integrations.github.github_v1_callback_processor.Auth")
+    @patch("integrations.github.github_v1_callback_processor.GithubIntegration")
+    @patch("integrations.github.github_v1_callback_processor.Github")
     async def test_successful_callback_execution(
         self,
         mock_github,
@@ -241,7 +241,7 @@ class TestGithubV1CallbackProcessor:
             mock_sandbox_info,
         )
 
-        mock_get_summary_instruction.return_value = 'Please provide a summary'
+        mock_get_summary_instruction.return_value = "Please provide a summary"
 
         # Auth.AppAuth and Auth.Token mock
         mock_app_auth_instance = MagicMock()
@@ -251,7 +251,7 @@ class TestGithubV1CallbackProcessor:
 
         # GitHub integration
         mock_token_data = MagicMock()
-        mock_token_data.token = 'test_access_token'
+        mock_token_data.token = "test_access_token"
         mock_integration_instance = MagicMock()
         mock_integration_instance.get_access_token.return_value = mock_token_data
         mock_github_integration.return_value = mock_integration_instance
@@ -275,40 +275,40 @@ class TestGithubV1CallbackProcessor:
         assert result.event_callback_id == event_callback.id
         assert result.event_id == conversation_state_update_event.id
         assert result.conversation_id == conversation_id
-        assert result.detail == 'Test summary from agent'
+        assert result.detail == "Test summary from agent"
         assert github_callback_processor.should_request_summary is False
 
-        mock_auth.AppAuth.assert_called_once_with('test_client_id', 'test_private_key')
+        mock_auth.AppAuth.assert_called_once_with("test_client_id", "test_private_key")
         mock_github_integration.assert_called_once_with(auth=mock_app_auth_instance)
         mock_integration_instance.get_access_token.assert_called_once_with(12345)
 
-        mock_auth.Token.assert_called_once_with('test_access_token')
+        mock_auth.Token.assert_called_once_with("test_access_token")
         mock_github.assert_called_once_with(auth=mock_token_auth_instance)
-        mock_github_client.get_repo.assert_called_once_with('test-owner/test-repo')
+        mock_github_client.get_repo.assert_called_once_with("test-owner/test-repo")
         mock_repo.get_issue.assert_called_once_with(number=42)
-        mock_issue.create_comment.assert_called_once_with('Test summary from agent')
+        mock_issue.create_comment.assert_called_once_with("Test summary from agent")
 
         mock_httpx_client.post.assert_called_once()
         url_arg, kwargs = mock_httpx_client.post.call_args
-        url = url_arg[0] if url_arg else kwargs['url']
-        assert 'ask_agent' in url
-        assert kwargs['headers']['X-Session-API-Key'] == 'test_api_key'
-        assert kwargs['json']['question'] == 'Please provide a summary'
+        url = url_arg[0] if url_arg else kwargs["url"]
+        assert "ask_agent" in url
+        assert kwargs["headers"]["X-Session-API-Key"] == "test_api_key"
+        assert kwargs["json"]["question"] == "Please provide a summary"
 
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID',
-        'test_client_id',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID",
+        "test_client_id",
     )
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY',
-        'test_private_key',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY",
+        "test_private_key",
     )
-    @patch('openhands.app_server.config.get_app_conversation_info_service')
-    @patch('openhands.app_server.config.get_sandbox_service')
-    @patch('openhands.app_server.config.get_httpx_client')
-    @patch('integrations.github.github_v1_callback_processor.get_summary_instruction')
-    @patch('integrations.github.github_v1_callback_processor.GithubIntegration')
-    @patch('integrations.github.github_v1_callback_processor.Github')
+    @patch("openhands.app_server.config.get_app_conversation_info_service")
+    @patch("openhands.app_server.config.get_sandbox_service")
+    @patch("openhands.app_server.config.get_httpx_client")
+    @patch("integrations.github.github_v1_callback_processor.get_summary_instruction")
+    @patch("integrations.github.github_v1_callback_processor.GithubIntegration")
+    @patch("integrations.github.github_v1_callback_processor.Github")
     async def test_successful_inline_pr_comment(
         self,
         mock_github,
@@ -333,10 +333,10 @@ class TestGithubV1CallbackProcessor:
             mock_sandbox_info,
         )
 
-        mock_get_summary_instruction.return_value = 'Please provide a summary'
+        mock_get_summary_instruction.return_value = "Please provide a summary"
 
         mock_token_data = MagicMock()
-        mock_token_data.token = 'test_access_token'
+        mock_token_data.token = "test_access_token"
         mock_integration_instance = MagicMock()
         mock_integration_instance.get_access_token.return_value = mock_token_data
         mock_github_integration.return_value = mock_integration_instance
@@ -359,17 +359,17 @@ class TestGithubV1CallbackProcessor:
 
         mock_repo.get_pull.assert_called_once_with(42)
         mock_pr.create_review_comment_reply.assert_called_once_with(
-            comment_id='comment_123', body='Test summary from agent'
+            comment_id="comment_123", body="Test summary from agent"
         )
 
     # ------------------------------------------------------------------ #
     # Error paths
     # ------------------------------------------------------------------ #
 
-    @patch('integrations.github.github_v1_callback_processor.get_summary_instruction')
-    @patch('openhands.app_server.config.get_httpx_client')
-    @patch('openhands.app_server.config.get_sandbox_service')
-    @patch('openhands.app_server.config.get_app_conversation_info_service')
+    @patch("integrations.github.github_v1_callback_processor.get_summary_instruction")
+    @patch("openhands.app_server.config.get_httpx_client")
+    @patch("openhands.app_server.config.get_sandbox_service")
+    @patch("openhands.app_server.config.get_app_conversation_info_service")
     async def test_missing_installation_id(
         self,
         mock_get_app_conversation_info_service,
@@ -394,7 +394,7 @@ class TestGithubV1CallbackProcessor:
             mock_sandbox_info,
         )
 
-        mock_get_summary_instruction.return_value = 'Please provide a summary'
+        mock_get_summary_instruction.return_value = "Please provide a summary"
 
         result = await processor(
             conversation_id=conversation_id,
@@ -404,20 +404,20 @@ class TestGithubV1CallbackProcessor:
 
         assert result is not None
         assert result.status == EventCallbackResultStatus.ERROR
-        assert 'Missing installation ID' in result.detail
+        assert "Missing installation ID" in result.detail
 
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID',
-        '',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID",
+        "",
     )
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY',
-        '',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY",
+        "",
     )
-    @patch('integrations.github.github_v1_callback_processor.get_summary_instruction')
-    @patch('openhands.app_server.config.get_httpx_client')
-    @patch('openhands.app_server.config.get_sandbox_service')
-    @patch('openhands.app_server.config.get_app_conversation_info_service')
+    @patch("integrations.github.github_v1_callback_processor.get_summary_instruction")
+    @patch("openhands.app_server.config.get_httpx_client")
+    @patch("openhands.app_server.config.get_sandbox_service")
+    @patch("openhands.app_server.config.get_app_conversation_info_service")
     async def test_missing_github_credentials(
         self,
         mock_get_app_conversation_info_service,
@@ -440,7 +440,7 @@ class TestGithubV1CallbackProcessor:
             mock_sandbox_info,
         )
 
-        mock_get_summary_instruction.return_value = 'Please provide a summary'
+        mock_get_summary_instruction.return_value = "Please provide a summary"
 
         result = await github_callback_processor(
             conversation_id=conversation_id,
@@ -450,18 +450,18 @@ class TestGithubV1CallbackProcessor:
 
         assert result is not None
         assert result.status == EventCallbackResultStatus.ERROR
-        assert 'GitHub App credentials are not configured' in result.detail
+        assert "GitHub App credentials are not configured" in result.detail
 
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID',
-        'test_client_id',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID",
+        "test_client_id",
     )
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY',
-        'test_private_key',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY",
+        "test_private_key",
     )
-    @patch('openhands.app_server.config.get_app_conversation_info_service')
-    @patch('openhands.app_server.config.get_sandbox_service')
+    @patch("openhands.app_server.config.get_app_conversation_info_service")
+    @patch("openhands.app_server.config.get_sandbox_service")
     async def test_sandbox_not_running(
         self,
         mock_get_sandbox_service,
@@ -482,11 +482,11 @@ class TestGithubV1CallbackProcessor:
         )
 
         non_running_sandbox = SandboxInfo(
-            id='sandbox_123',
+            id="sandbox_123",
             status=SandboxStatus.PAUSED,
-            session_api_key='test_api_key',
-            created_by_user_id='test_user_123',
-            sandbox_spec_id='spec_123',
+            session_api_key="test_api_key",
+            created_by_user_id="test_user_123",
+            sandbox_spec_id="spec_123",
         )
         mock_sandbox_service = AsyncMock()
         mock_sandbox_service.get_sandbox.return_value = non_running_sandbox
@@ -502,20 +502,20 @@ class TestGithubV1CallbackProcessor:
 
         assert result is not None
         assert result.status == EventCallbackResultStatus.ERROR
-        assert 'Sandbox not running' in result.detail
+        assert "Sandbox not running" in result.detail
 
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID',
-        'test_client_id',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID",
+        "test_client_id",
     )
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY',
-        'test_private_key',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY",
+        "test_private_key",
     )
-    @patch('openhands.app_server.config.get_app_conversation_info_service')
-    @patch('openhands.app_server.config.get_sandbox_service')
-    @patch('openhands.app_server.config.get_httpx_client')
-    @patch('integrations.github.github_v1_callback_processor.get_summary_instruction')
+    @patch("openhands.app_server.config.get_app_conversation_info_service")
+    @patch("openhands.app_server.config.get_sandbox_service")
+    @patch("openhands.app_server.config.get_httpx_client")
+    @patch("integrations.github.github_v1_callback_processor.get_summary_instruction")
     async def test_agent_server_http_error(
         self,
         mock_get_summary_instruction,
@@ -539,15 +539,15 @@ class TestGithubV1CallbackProcessor:
             mock_sandbox_info,
         )
 
-        mock_get_summary_instruction.return_value = 'Please provide a summary'
+        mock_get_summary_instruction.return_value = "Please provide a summary"
 
         mock_httpx_client = mock_get_httpx_client.return_value.__aenter__.return_value
         mock_response = MagicMock()
         mock_response.status_code = 500
-        mock_response.text = 'Internal Server Error'
+        mock_response.text = "Internal Server Error"
         mock_response.headers = {}
         mock_error = httpx.HTTPStatusError(
-            'HTTP 500 error', request=MagicMock(), response=mock_response
+            "HTTP 500 error", request=MagicMock(), response=mock_response
         )
         mock_httpx_client.post.side_effect = mock_error
 
@@ -559,20 +559,20 @@ class TestGithubV1CallbackProcessor:
 
         assert result is not None
         assert result.status == EventCallbackResultStatus.ERROR
-        assert 'Failed to send message to agent server' in result.detail
+        assert "Failed to send message to agent server" in result.detail
 
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID',
-        'test_client_id',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID",
+        "test_client_id",
     )
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY',
-        'test_private_key',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY",
+        "test_private_key",
     )
-    @patch('openhands.app_server.config.get_app_conversation_info_service')
-    @patch('openhands.app_server.config.get_sandbox_service')
-    @patch('openhands.app_server.config.get_httpx_client')
-    @patch('integrations.github.github_v1_callback_processor.get_summary_instruction')
+    @patch("openhands.app_server.config.get_app_conversation_info_service")
+    @patch("openhands.app_server.config.get_sandbox_service")
+    @patch("openhands.app_server.config.get_httpx_client")
+    @patch("integrations.github.github_v1_callback_processor.get_summary_instruction")
     async def test_agent_server_timeout(
         self,
         mock_get_summary_instruction,
@@ -595,10 +595,10 @@ class TestGithubV1CallbackProcessor:
             mock_sandbox_info,
         )
 
-        mock_get_summary_instruction.return_value = 'Please provide a summary'
+        mock_get_summary_instruction.return_value = "Please provide a summary"
 
         mock_httpx_client = mock_get_httpx_client.return_value.__aenter__.return_value
-        mock_httpx_client.post.side_effect = httpx.TimeoutException('Request timeout')
+        mock_httpx_client.post.side_effect = httpx.TimeoutException("Request timeout")
 
         result = await github_callback_processor(
             conversation_id=conversation_id,
@@ -608,7 +608,7 @@ class TestGithubV1CallbackProcessor:
 
         assert result is not None
         assert result.status == EventCallbackResultStatus.ERROR
-        assert 'Request timeout after 30 seconds' in result.detail
+        assert "Request timeout after 30 seconds" in result.detail
 
     # ------------------------------------------------------------------ #
     # Low-level helper tests
@@ -617,35 +617,35 @@ class TestGithubV1CallbackProcessor:
     def test_get_installation_access_token_missing_id(self):
         processor = GithubV1CallbackProcessor(github_view_data={})
 
-        with pytest.raises(ValueError, match='Missing installation ID'):
+        with pytest.raises(ValueError, match="Missing installation ID"):
             processor._get_installation_access_token()
 
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID',
-        '',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID",
+        "",
     )
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY',
-        '',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY",
+        "",
     )
     def test_get_installation_access_token_missing_credentials(
         self, github_callback_processor
     ):
         with pytest.raises(
-            ValueError, match='GitHub App credentials are not configured'
+            ValueError, match="GitHub App credentials are not configured"
         ):
             github_callback_processor._get_installation_access_token()
 
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID',
-        'test_client_id',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID",
+        "test_client_id",
     )
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY',
-        'test_private_key\nwith_newlines',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY",
+        "test_private_key\nwith_newlines",
     )
-    @patch('integrations.github.github_v1_callback_processor.Auth')
-    @patch('integrations.github.github_v1_callback_processor.GithubIntegration')
+    @patch("integrations.github.github_v1_callback_processor.Auth")
+    @patch("integrations.github.github_v1_callback_processor.GithubIntegration")
     def test_get_installation_access_token_success(
         self, mock_github_integration, mock_auth, github_callback_processor
     ):
@@ -654,22 +654,22 @@ class TestGithubV1CallbackProcessor:
         mock_auth.AppAuth.return_value = mock_app_auth_instance
 
         mock_token_data = MagicMock()
-        mock_token_data.token = 'test_access_token'
+        mock_token_data.token = "test_access_token"
         mock_integration_instance = MagicMock()
         mock_integration_instance.get_access_token.return_value = mock_token_data
         mock_github_integration.return_value = mock_integration_instance
 
         token = github_callback_processor._get_installation_access_token()
 
-        assert token == 'test_access_token'
+        assert token == "test_access_token"
         mock_auth.AppAuth.assert_called_once_with(
-            'test_client_id', 'test_private_key\nwith_newlines'
+            "test_client_id", "test_private_key\nwith_newlines"
         )
         mock_github_integration.assert_called_once_with(auth=mock_app_auth_instance)
         mock_integration_instance.get_access_token.assert_called_once_with(12345)
 
-    @patch('integrations.github.github_v1_callback_processor.Auth')
-    @patch('integrations.github.github_v1_callback_processor.Github')
+    @patch("integrations.github.github_v1_callback_processor.Auth")
+    @patch("integrations.github.github_v1_callback_processor.Github")
     async def test_post_summary_to_github_issue_comment(
         self, mock_github, mock_auth, github_callback_processor
     ):
@@ -685,19 +685,19 @@ class TestGithubV1CallbackProcessor:
 
         with patch.object(
             github_callback_processor,
-            '_get_installation_access_token',
-            return_value='test_token',
+            "_get_installation_access_token",
+            return_value="test_token",
         ):
-            await github_callback_processor._post_summary_to_github('Test summary')
+            await github_callback_processor._post_summary_to_github("Test summary")
 
-        mock_auth.Token.assert_called_once_with('test_token')
+        mock_auth.Token.assert_called_once_with("test_token")
         mock_github.assert_called_once_with(auth=mock_token_auth)
-        mock_github_client.get_repo.assert_called_once_with('test-owner/test-repo')
+        mock_github_client.get_repo.assert_called_once_with("test-owner/test-repo")
         mock_repo.get_issue.assert_called_once_with(number=42)
-        mock_issue.create_comment.assert_called_once_with('Test summary')
+        mock_issue.create_comment.assert_called_once_with("Test summary")
 
-    @patch('integrations.github.github_v1_callback_processor.Auth')
-    @patch('integrations.github.github_v1_callback_processor.Github')
+    @patch("integrations.github.github_v1_callback_processor.Auth")
+    @patch("integrations.github.github_v1_callback_processor.Github")
     async def test_post_summary_to_github_pr_comment(
         self, mock_github, mock_auth, github_callback_processor_inline
     ):
@@ -713,32 +713,32 @@ class TestGithubV1CallbackProcessor:
 
         with patch.object(
             github_callback_processor_inline,
-            '_get_installation_access_token',
-            return_value='test_token',
+            "_get_installation_access_token",
+            return_value="test_token",
         ):
             await github_callback_processor_inline._post_summary_to_github(
-                'Test summary'
+                "Test summary"
             )
 
-        mock_auth.Token.assert_called_once_with('test_token')
+        mock_auth.Token.assert_called_once_with("test_token")
         mock_github.assert_called_once_with(auth=mock_token_auth)
-        mock_github_client.get_repo.assert_called_once_with('test-owner/test-repo')
+        mock_github_client.get_repo.assert_called_once_with("test-owner/test-repo")
         mock_repo.get_pull.assert_called_once_with(42)
         mock_pr.create_review_comment_reply.assert_called_once_with(
-            comment_id='comment_123', body='Test summary'
+            comment_id="comment_123", body="Test summary"
         )
 
     async def test_post_summary_to_github_missing_token(
         self, github_callback_processor
     ):
         with patch.object(
-            github_callback_processor, '_get_installation_access_token', return_value=''
+            github_callback_processor, "_get_installation_access_token", return_value=""
         ):
-            with pytest.raises(RuntimeError, match='Missing GitHub credentials'):
-                await github_callback_processor._post_summary_to_github('Test summary')
+            with pytest.raises(RuntimeError, match="Missing GitHub credentials"):
+                await github_callback_processor._post_summary_to_github("Test summary")
 
-    @patch('integrations.github.github_v1_callback_processor.Auth')
-    @patch('integrations.github.github_v1_callback_processor.Github')
+    @patch("integrations.github.github_v1_callback_processor.Auth")
+    @patch("integrations.github.github_v1_callback_processor.Github")
     async def test_post_summary_to_github_deleted_issue_does_not_raise(
         self, mock_github, mock_auth, github_callback_processor
     ):
@@ -747,7 +747,7 @@ class TestGithubV1CallbackProcessor:
         mock_repo = MagicMock()
         mock_repo.get_issue.side_effect = GithubException(
             status=410,
-            data={'message': 'This issue was deleted'},
+            data={"message": "This issue was deleted"},
             headers={},
         )
         mock_github_client.get_repo.return_value = mock_repo
@@ -758,24 +758,24 @@ class TestGithubV1CallbackProcessor:
 
         with patch.object(
             github_callback_processor,
-            '_get_installation_access_token',
-            return_value='test_token',
+            "_get_installation_access_token",
+            return_value="test_token",
         ):
             # Should not raise - 410 errors are handled gracefully
-            await github_callback_processor._post_summary_to_github('Test summary')
+            await github_callback_processor._post_summary_to_github("Test summary")
 
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID',
-        'test_client_id',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID",
+        "test_client_id",
     )
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY',
-        'test_private_key',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY",
+        "test_private_key",
     )
-    @patch('integrations.github.github_v1_callback_processor.get_summary_instruction')
-    @patch('openhands.app_server.config.get_httpx_client')
-    @patch('openhands.app_server.config.get_sandbox_service')
-    @patch('openhands.app_server.config.get_app_conversation_info_service')
+    @patch("integrations.github.github_v1_callback_processor.get_summary_instruction")
+    @patch("openhands.app_server.config.get_httpx_client")
+    @patch("openhands.app_server.config.get_sandbox_service")
+    @patch("openhands.app_server.config.get_app_conversation_info_service")
     async def test_exception_handling_posts_error_to_github(
         self,
         mock_get_app_conversation_info_service,
@@ -798,20 +798,20 @@ class TestGithubV1CallbackProcessor:
             mock_app_conversation_info,
             mock_sandbox_info,
         )
-        mock_httpx_client.post.side_effect = Exception('Simulated agent server error')
-        mock_get_summary_instruction.return_value = 'Please provide a summary'
+        mock_httpx_client.post.side_effect = Exception("Simulated agent server error")
+        mock_get_summary_instruction.return_value = "Please provide a summary"
 
         with (
             patch(
-                'integrations.github.github_v1_callback_processor.GithubIntegration'
+                "integrations.github.github_v1_callback_processor.GithubIntegration"
             ) as mock_github_integration,
             patch(
-                'integrations.github.github_v1_callback_processor.Github'
+                "integrations.github.github_v1_callback_processor.Github"
             ) as mock_github,
         ):
             mock_integration = MagicMock()
             mock_github_integration.return_value = mock_integration
-            mock_integration.get_access_token.return_value.token = 'test_token'
+            mock_integration.get_access_token.return_value.token = "test_token"
 
             mock_gh = MagicMock()
             mock_github.return_value.__enter__.return_value = mock_gh
@@ -828,31 +828,31 @@ class TestGithubV1CallbackProcessor:
 
         assert result is not None
         assert result.status == EventCallbackResultStatus.ERROR
-        assert 'Simulated agent server error' in result.detail
+        assert "Simulated agent server error" in result.detail
 
         mock_issue.create_comment.assert_called_once()
         call_args = mock_issue.create_comment.call_args
-        error_comment = call_args[1].get('body') or call_args[0][0]
+        error_comment = call_args[1].get("body") or call_args[0][0]
         assert (
-            'OpenHands encountered an error: **Simulated agent server error**'
+            "OpenHands encountered an error: **Simulated agent server error**"
             in error_comment
         )
-        assert f'conversations/{conversation_id}' in error_comment
-        assert 'for more information.' in error_comment
+        assert f"conversations/{conversation_id}" in error_comment
+        assert "for more information." in error_comment
 
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID',
-        'test_client_id',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_CLIENT_ID",
+        "test_client_id",
     )
     @patch(
-        'integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY',
-        'test_private_key',
+        "integrations.github.github_v1_callback_processor.GITHUB_APP_PRIVATE_KEY",
+        "test_private_key",
     )
-    @patch('integrations.github.github_v1_callback_processor.get_summary_instruction')
-    @patch('openhands.app_server.config.get_httpx_client')
-    @patch('openhands.app_server.config.get_sandbox_service')
-    @patch('openhands.app_server.config.get_app_conversation_info_service')
-    @patch('integrations.github.github_v1_callback_processor._logger')
+    @patch("integrations.github.github_v1_callback_processor.get_summary_instruction")
+    @patch("openhands.app_server.config.get_httpx_client")
+    @patch("openhands.app_server.config.get_sandbox_service")
+    @patch("openhands.app_server.config.get_app_conversation_info_service")
+    @patch("integrations.github.github_v1_callback_processor._logger")
     async def test_budget_exceeded_error_logs_info_and_sends_friendly_message(
         self,
         mock_logger,
@@ -883,19 +883,19 @@ class TestGithubV1CallbackProcessor:
             'Budget has been exceeded! Current cost: 12.65, Max budget: 12.62"}'
         )
         mock_httpx_client.post.side_effect = Exception(budget_error_msg)
-        mock_get_summary_instruction.return_value = 'Please provide a summary'
+        mock_get_summary_instruction.return_value = "Please provide a summary"
 
         with (
             patch(
-                'integrations.github.github_v1_callback_processor.GithubIntegration'
+                "integrations.github.github_v1_callback_processor.GithubIntegration"
             ) as mock_github_integration,
             patch(
-                'integrations.github.github_v1_callback_processor.Github'
+                "integrations.github.github_v1_callback_processor.Github"
             ) as mock_github,
         ):
             mock_integration = MagicMock()
             mock_github_integration.return_value = mock_integration
-            mock_integration.get_access_token.return_value.token = 'test_token'
+            mock_integration.get_access_token.return_value.token = "test_token"
 
             mock_gh = MagicMock()
             mock_github.return_value.__enter__.return_value = mock_gh
@@ -918,15 +918,15 @@ class TestGithubV1CallbackProcessor:
 
         # Verify budget exceeded info log was called
         info_calls = [str(call) for call in mock_logger.info.call_args_list]
-        budget_log_found = any('Budget exceeded' in call for call in info_calls)
-        assert budget_log_found, f'Expected budget exceeded log, got: {info_calls}'
+        budget_log_found = any("Budget exceeded" in call for call in info_calls)
+        assert budget_log_found, f"Expected budget exceeded log, got: {info_calls}"
 
         # Verify user-friendly message was posted to GitHub
         mock_issue.create_comment.assert_called_once()
         call_args = mock_issue.create_comment.call_args
-        posted_comment = call_args[1].get('body') or call_args[0][0]
-        assert 'OpenHands encountered an error' in posted_comment
-        assert 'LLM budget has been exceeded' in posted_comment
-        assert 'please re-fill' in posted_comment
+        posted_comment = call_args[1].get("body") or call_args[0][0]
+        assert "OpenHands encountered an error" in posted_comment
+        assert "LLM budget has been exceeded" in posted_comment
+        assert "please re-fill" in posted_comment
         # Should NOT contain the raw error message
-        assert 'litellm.BadRequestError' not in posted_comment
+        assert "litellm.BadRequestError" not in posted_comment

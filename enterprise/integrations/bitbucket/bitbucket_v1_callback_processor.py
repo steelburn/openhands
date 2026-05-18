@@ -45,12 +45,12 @@ class BitbucketV1CallbackProcessor(EventCallbackProcessor):
     ) -> EventCallbackResult | None:
         if not isinstance(event, ConversationStateUpdateEvent):
             return None
-        if event.key != 'execution_status':
+        if event.key != "execution_status":
             return None
 
-        _logger.info('[Bitbucket V1] Callback agent state was %s', event)
+        _logger.info("[Bitbucket V1] Callback agent state was %s", event)
 
-        if event.value != 'finished':
+        if event.value != "finished":
             return None
         if not self.should_request_summary:
             return None
@@ -67,11 +67,11 @@ class BitbucketV1CallbackProcessor(EventCallbackProcessor):
                 detail=summary,
             )
         except Exception as e:
-            can_post_error = bool(self.bitbucket_view_data.get('keycloak_user_id'))
+            can_post_error = bool(self.bitbucket_view_data.get("keycloak_user_id"))
             await handle_callback_error(
                 error=e,
                 conversation_id=conversation_id,
-                service_name='Bitbucket',
+                service_name="Bitbucket",
                 service_logger=_logger,
                 can_post_error=can_post_error,
                 post_error_func=self._post_summary_to_bitbucket,
@@ -87,17 +87,17 @@ class BitbucketV1CallbackProcessor(EventCallbackProcessor):
     async def _post_summary_to_bitbucket(self, summary: str) -> None:
         from integrations.bitbucket.bitbucket_service import SaaSBitBucketService
 
-        keycloak_user_id = self.bitbucket_view_data.get('keycloak_user_id')
+        keycloak_user_id = self.bitbucket_view_data.get("keycloak_user_id")
         if not keycloak_user_id:
-            raise RuntimeError('Missing keycloak user ID for Bitbucket')
+            raise RuntimeError("Missing keycloak user ID for Bitbucket")
 
         bitbucket_service = SaaSBitBucketService(external_auth_id=keycloak_user_id)
         await bitbucket_service.reply_to_pr_comment(
-            workspace=self.bitbucket_view_data['workspace'],
-            repo_slug=self.bitbucket_view_data['repo_slug'],
-            pr_id=self.bitbucket_view_data['pr_id'],
+            workspace=self.bitbucket_view_data["workspace"],
+            repo_slug=self.bitbucket_view_data["repo_slug"],
+            pr_id=self.bitbucket_view_data["pr_id"],
             body=summary,
-            parent_comment_id=self.bitbucket_view_data.get('parent_comment_id'),
+            parent_comment_id=self.bitbucket_view_data.get("parent_comment_id"),
         )
 
     async def _ask_question(
@@ -111,9 +111,9 @@ class BitbucketV1CallbackProcessor(EventCallbackProcessor):
         send_message_request = AskAgentRequest(question=message_content)
         url = (
             f"{agent_server_url.rstrip('/')}"
-            f'/api/conversations/{conversation_id}/ask_agent'
+            f"/api/conversations/{conversation_id}/ask_agent"
         )
-        headers = {'X-Session-API-Key': session_api_key}
+        headers = {"X-Session-API-Key": session_api_key}
         payload = send_message_request.model_dump()
 
         try:
@@ -123,18 +123,18 @@ class BitbucketV1CallbackProcessor(EventCallbackProcessor):
             response.raise_for_status()
             return AskAgentResponse.model_validate(response.json()).response
         except httpx.HTTPStatusError as e:
-            error_detail = f'HTTP {e.response.status_code} error'
+            error_detail = f"HTTP {e.response.status_code} error"
             try:
                 if e.response.text:
-                    error_detail += f': {e.response.text}'
+                    error_detail += f": {e.response.text}"
             except Exception:  # noqa: BLE001
                 pass
-            _logger.error('[Bitbucket V1] HTTP error: %s', error_detail, exc_info=True)
-            raise Exception(f'Failed to send message to agent server: {error_detail}')
+            _logger.error("[Bitbucket V1] HTTP error: %s", error_detail, exc_info=True)
+            raise Exception(f"Failed to send message to agent server: {error_detail}")
         except httpx.TimeoutException:
-            raise Exception(f'Request timeout after 30 seconds to {url}')
+            raise Exception(f"Request timeout after 30 seconds to {url}")
         except httpx.RequestError as e:
-            raise Exception(f'Request error to {url}: {e}')
+            raise Exception(f"Request error to {url}: {e}")
 
     async def _request_summary(self, conversation_id: UUID) -> str:
         from openhands.app_server.config import (

@@ -15,9 +15,9 @@ def test_public_conversation_creation():
 
     conversation = SharedConversation(
         id=conversation_id,
-        created_by_user_id='test_user',
-        sandbox_id='test_sandbox',
-        title='Test Conversation',
+        created_by_user_id="test_user",
+        sandbox_id="test_sandbox",
+        title="Test Conversation",
         created_at=now,
         updated_at=now,
         selected_repository=None,
@@ -25,9 +25,9 @@ def test_public_conversation_creation():
     )
 
     assert conversation.id == conversation_id
-    assert conversation.title == 'Test Conversation'
-    assert conversation.created_by_user_id == 'test_user'
-    assert conversation.sandbox_id == 'test_sandbox'
+    assert conversation.title == "Test Conversation"
+    assert conversation.created_by_user_id == "test_user"
+    assert conversation.sandbox_id == "test_sandbox"
 
 
 def test_public_conversation_optional_fields():
@@ -38,16 +38,16 @@ def test_public_conversation_optional_fields():
 
     conversation = SharedConversation(
         id=conversation_id,
-        created_by_user_id='test_user',
-        sandbox_id='test_sandbox',
-        title='Test Conversation',
+        created_by_user_id="test_user",
+        sandbox_id="test_sandbox",
+        title="Test Conversation",
         created_at=now,
         updated_at=now,
-        selected_repository='owner/repo',
+        selected_repository="owner/repo",
         parent_conversation_id=parent_id,
-        llm_model='gpt-4',
+        llm_model="gpt-4",
     )
 
-    assert conversation.selected_repository == 'owner/repo'
+    assert conversation.selected_repository == "owner/repo"
     assert conversation.parent_conversation_id == parent_id
-    assert conversation.llm_model == 'gpt-4'
+    assert conversation.llm_model == "gpt-4"

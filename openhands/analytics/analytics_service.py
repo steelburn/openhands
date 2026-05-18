@@ -94,7 +94,7 @@ class AnalyticsService:
                 properties=merged,
             )
         except Exception:
-            logger.exception('AnalyticsService.capture failed for event=%s', event)
+            logger.exception("AnalyticsService.capture failed for event=%s", event)
 
     def set_person_properties(
         self,
@@ -116,7 +116,7 @@ class AnalyticsService:
                 properties=properties,
             )
         except Exception:
-            logger.exception('AnalyticsService.set_person_properties failed')
+            logger.exception("AnalyticsService.set_person_properties failed")
 
     def group_identify(
         self,
@@ -142,7 +142,7 @@ class AnalyticsService:
                 distinct_id=self._distinct_id(ctx.user_id),
             )
         except Exception:
-            logger.exception('AnalyticsService.group_identify failed')
+            logger.exception("AnalyticsService.group_identify failed")
 
     # ------------------------------------------------------------------
     # Typed event methods
@@ -153,7 +153,7 @@ class AnalyticsService:
         ctx: AnalyticsContext,
         *,
         email_domain: str | None = None,
-        invitation_source: str = 'self_signup',
+        invitation_source: str = "self_signup",
         session_id: str | None = None,
     ) -> None:
         """Track 'user signed up' event.
@@ -164,8 +164,8 @@ class AnalyticsService:
             ctx=ctx,
             event=USER_SIGNED_UP,
             properties={
-                'email_domain': email_domain,
-                'invitation_source': invitation_source,
+                "email_domain": email_domain,
+                "invitation_source": invitation_source,
             },
             session_id=session_id,
         )
@@ -185,7 +185,7 @@ class AnalyticsService:
             ctx=ctx,
             event=USER_LOGGED_IN,
             properties={
-                'idp': idp,
+                "idp": idp,
             },
             session_id=session_id,
         )
@@ -197,7 +197,7 @@ class AnalyticsService:
         conversation_id: str,
         trigger: str | None = None,
         llm_model: str | None = None,
-        agent_type: str = 'default',
+        agent_type: str = "default",
         has_repository: bool = False,
         session_id: str | None = None,
     ) -> None:
@@ -209,11 +209,11 @@ class AnalyticsService:
             ctx=ctx,
             event=CONVERSATION_CREATED,
             properties={
-                'conversation_id': conversation_id,
-                'trigger': trigger,
-                'llm_model': llm_model,
-                'agent_type': agent_type,
-                'has_repository': has_repository,
+                "conversation_id": conversation_id,
+                "trigger": trigger,
+                "llm_model": llm_model,
+                "agent_type": agent_type,
+                "has_repository": has_repository,
             },
             session_id=session_id,
         )
@@ -240,14 +240,14 @@ class AnalyticsService:
             ctx=ctx,
             event=CONVERSATION_FINISHED,
             properties={
-                'conversation_id': conversation_id,
-                'terminal_state': terminal_state,
-                'turn_count': turn_count,
-                'accumulated_cost_usd': accumulated_cost_usd,
-                'prompt_tokens': prompt_tokens,
-                'completion_tokens': completion_tokens,
-                'llm_model': llm_model,
-                'trigger': trigger,
+                "conversation_id": conversation_id,
+                "terminal_state": terminal_state,
+                "turn_count": turn_count,
+                "accumulated_cost_usd": accumulated_cost_usd,
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "llm_model": llm_model,
+                "trigger": trigger,
             },
             session_id=session_id,
         )
@@ -272,12 +272,12 @@ class AnalyticsService:
             ctx=ctx,
             event=CONVERSATION_ERRORED,
             properties={
-                'conversation_id': conversation_id,
-                'error_type': error_type,
-                'error_message': error_message,
-                'llm_model': llm_model,
-                'turn_count': turn_count,
-                'terminal_state': terminal_state,
+                "conversation_id": conversation_id,
+                "error_type": error_type,
+                "error_message": error_message,
+                "llm_model": llm_model,
+                "turn_count": turn_count,
+                "terminal_state": terminal_state,
             },
             session_id=session_id,
         )
@@ -297,7 +297,7 @@ class AnalyticsService:
             ctx=ctx,
             event=CONVERSATION_DELETED,
             properties={
-                'conversation_id': conversation_id,
+                "conversation_id": conversation_id,
             },
             session_id=session_id,
         )
@@ -319,9 +319,9 @@ class AnalyticsService:
             ctx=ctx,
             event=CREDIT_PURCHASED,
             properties={
-                'amount_usd': amount_usd,
-                'credit_balance_before': credit_balance_before,
-                'credit_balance_after': credit_balance_after,
+                "amount_usd": amount_usd,
+                "credit_balance_before": credit_balance_before,
+                "credit_balance_after": credit_balance_after,
             },
             session_id=session_id,
         )
@@ -343,9 +343,9 @@ class AnalyticsService:
             ctx=ctx,
             event=CREDIT_LIMIT_REACHED,
             properties={
-                'conversation_id': conversation_id,
-                'credit_balance': credit_balance,
-                'llm_model': llm_model,
+                "conversation_id": conversation_id,
+                "credit_balance": credit_balance,
+                "llm_model": llm_model,
             },
             session_id=session_id,
         )
@@ -365,7 +365,7 @@ class AnalyticsService:
             ctx=ctx,
             event=GIT_PROVIDER_CONNECTED,
             properties={
-                'provider_type': provider_type,
+                "provider_type": provider_type,
             },
             session_id=session_id,
         )
@@ -409,7 +409,7 @@ class AnalyticsService:
             ctx=ctx,
             event=SETTINGS_SAVED,
             properties={
-                'settings_changed': settings_changed,
+                "settings_changed": settings_changed,
             },
             session_id=session_id,
         )
@@ -429,7 +429,7 @@ class AnalyticsService:
             ctx=ctx,
             event=TRAJECTORY_DOWNLOADED,
             properties={
-                'conversation_id': conversation_id,
+                "conversation_id": conversation_id,
             },
             session_id=session_id,
         )
@@ -452,10 +452,10 @@ class AnalyticsService:
             ctx=ctx,
             event=TEAM_MEMBERS_INVITED,
             properties={
-                'invited_count': invited_count,
-                'successful_count': successful_count,
-                'failed_count': failed_count,
-                'role': role,
+                "invited_count": invited_count,
+                "successful_count": successful_count,
+                "failed_count": failed_count,
+                "role": role,
             },
             session_id=session_id,
         )
@@ -497,12 +497,12 @@ class AnalyticsService:
             self.set_person_properties(
                 ctx=ctx,
                 properties={
-                    'email': email,
-                    'org_id': ctx.org_id,
-                    'org_name': org_name,
-                    'plan_tier': None,
-                    'idp': idp,
-                    'last_login_at': datetime.now(timezone.utc).isoformat(),
+                    "email": email,
+                    "org_id": ctx.org_id,
+                    "org_name": org_name,
+                    "plan_tier": None,
+                    "idp": idp,
+                    "last_login_at": datetime.now(timezone.utc).isoformat(),
                 },
             )
 
@@ -511,17 +511,17 @@ class AnalyticsService:
                 for org in orgs:
                     self.group_identify(
                         ctx=ctx,
-                        group_type='org',
-                        group_key=org['id'],
+                        group_type="org",
+                        group_key=org["id"],
                         properties={
-                            'org_name': org.get('name'),
-                            'plan_tier': None,
-                            'created_at': None,
-                            'member_count': org.get('member_count'),
+                            "org_name": org.get("name"),
+                            "plan_tier": None,
+                            "created_at": None,
+                            "member_count": org.get("member_count"),
                         },
                     )
         except Exception:
-            logger.exception('AnalyticsService.identify_user failed')
+            logger.exception("AnalyticsService.identify_user failed")
 
     def shutdown(self) -> None:
         """Flush and shut down the PostHog client.
@@ -531,7 +531,7 @@ class AnalyticsService:
         try:
             self._client.shutdown()
         except Exception:
-            logger.exception('AnalyticsService.shutdown failed')
+            logger.exception("AnalyticsService.shutdown failed")
 
     # ------------------------------------------------------------------
     # Private helpers
@@ -544,7 +544,7 @@ class AnalyticsService:
         test traffic separate from production profiles.
         """
         if self._is_feature_env:
-            return f'FEATURE_{user_id}'
+            return f"FEATURE_{user_id}"
         return user_id
 
     def _common_properties(
@@ -554,18 +554,18 @@ class AnalyticsService:
     ) -> dict[str, Any]:
         """Build the base property dict included on every event."""
         props: dict[str, Any] = {
-            'app_mode': self._app_mode.value,
-            'is_feature_env': self._is_feature_env,
+            "app_mode": self._app_mode.value,
+            "is_feature_env": self._is_feature_env,
         }
 
         if org_id is not None:
-            props['org_id'] = org_id
+            props["org_id"] = org_id
 
         if session_id is not None:
-            props['$session_id'] = session_id
+            props["$session_id"] = session_id
 
         # PostHog person profiles are not useful in OSS mode (no user accounts)
         if self._app_mode != AppMode.SAAS:
-            props['$process_person_profile'] = False
+            props["$process_person_profile"] = False
 
         return props

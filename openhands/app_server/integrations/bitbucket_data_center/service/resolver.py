@@ -25,11 +25,11 @@ class BitbucketDCResolverMixin(BitbucketDCMixinBase):
             A tuple of (title, body)
         """
         url = (
-            f'{self.BASE_URL}/projects/{owner}/repos/{repo_slug}/pull-requests/{pr_id}'
+            f"{self.BASE_URL}/projects/{owner}/repos/{repo_slug}/pull-requests/{pr_id}"
         )
         response, _ = await self._make_request(url)
-        title = response.get('title') or ''
-        body = response.get('description') or ''
+        title = response.get("title") or ""
+        body = response.get("description") or ""
         return title, body
 
     async def get_pr_comments(
@@ -49,25 +49,25 @@ class BitbucketDCResolverMixin(BitbucketDCMixinBase):
         Returns:
             List of Comment objects ordered by creation date
         """
-        url = f'{self.BASE_URL}/projects/{owner}/repos/{repo_slug}/pull-requests/{pr_id}/activities'
+        url = f"{self.BASE_URL}/projects/{owner}/repos/{repo_slug}/pull-requests/{pr_id}/activities"
         all_raw: list[dict] = []
 
-        params: dict = {'limit': 100, 'start': 0}
+        params: dict = {"limit": 100, "start": 0}
         while len(all_raw) < max_comments:
             response, _ = await self._make_request(url, params)
-            for activity in response.get('values', []):
-                if activity.get('action') == 'COMMENTED':
-                    comment = activity.get('comment', {})
+            for activity in response.get("values", []):
+                if activity.get("action") == "COMMENTED":
+                    comment = activity.get("comment", {})
                     if comment:
                         all_raw.append(comment)
 
-            if response.get('isLastPage', True):
+            if response.get("isLastPage", True):
                 break
 
-            next_start = response.get('nextPageStart')
+            next_start = response.get("nextPageStart")
             if next_start is None:
                 break
-            params = {'limit': 100, 'start': next_start}
+            params = {"limit": 100, "start": next_start}
 
         return self._process_raw_comments(all_raw, max_comments)
 
@@ -78,8 +78,8 @@ class BitbucketDCResolverMixin(BitbucketDCMixinBase):
         all_comments: list[Comment] = []
         for comment_data in comments:
             # Bitbucket DC activities use epoch milliseconds for createdDate/updatedDate
-            created_ms = comment_data.get('createdDate')
-            updated_ms = comment_data.get('updatedDate')
+            created_ms = comment_data.get("createdDate")
+            updated_ms = comment_data.get("updatedDate")
 
             created_at = (
                 datetime.fromtimestamp(created_ms / 1000, tz=timezone.utc)
@@ -93,15 +93,15 @@ class BitbucketDCResolverMixin(BitbucketDCMixinBase):
             )
 
             author = (
-                comment_data.get('author', {}).get('slug')
-                or comment_data.get('author', {}).get('name')
-                or 'unknown'
+                comment_data.get("author", {}).get("slug")
+                or comment_data.get("author", {}).get("name")
+                or "unknown"
             )
 
             all_comments.append(
                 Comment(
-                    id=str(comment_data.get('id', 'unknown')),
-                    body=self._truncate_comment(comment_data.get('text', '')),
+                    id=str(comment_data.get("id", "unknown")),
+                    body=self._truncate_comment(comment_data.get("text", "")),
                     author=author,
                     created_at=created_at,
                     updated_at=updated_at,
@@ -130,14 +130,14 @@ class BitbucketDCResolverMixin(BitbucketDCMixinBase):
         ``{path, line, lineType: 'ADDED'|'CONTEXT'|'REMOVED', fileType: 'TO'|'FROM'}``.
         """
         url = (
-            f'{self.BASE_URL}/projects/{owner}/repos/{repo_slug}'
-            f'/pull-requests/{pr_id}/comments'
+            f"{self.BASE_URL}/projects/{owner}/repos/{repo_slug}"
+            f"/pull-requests/{pr_id}/comments"
         )
-        payload: dict = {'text': body}
+        payload: dict = {"text": body}
         if parent_comment_id is not None:
-            payload['parent'] = {'id': parent_comment_id}
+            payload["parent"] = {"id": parent_comment_id}
         if anchor is not None:
-            payload['anchor'] = anchor
+            payload["anchor"] = anchor
 
         await self._make_request(url, params=payload, method=RequestMethod.POST)
 
@@ -149,7 +149,7 @@ class BitbucketDCResolverMixin(BitbucketDCMixinBase):
         """
         user = await self.get_user()
         slug = user.login or self.user_id
-        return await self.user_has_write_access_for(owner, repo_slug, slug or '')
+        return await self.user_has_write_access_for(owner, repo_slug, slug or "")
 
     async def user_has_write_access_for(
         self, owner: str, repo_slug: str, selected_user: str

@@ -48,7 +48,7 @@ class DefaultUserAuth(UserAuth):
         user_id = await self.get_user_id()
         settings_store = await shared.SettingsStoreImpl.get_instance(user_id)
         if settings_store is None:
-            raise ValueError('Failed to get settings store instance')
+            raise ValueError("Failed to get settings store instance")
         self._settings_store = settings_store
         return settings_store
 
@@ -68,7 +68,7 @@ class DefaultUserAuth(UserAuth):
         user_id = await self.get_user_id()
         secret_store = await shared.SecretsStoreImpl.get_instance(user_id)
         if secret_store is None:
-            raise ValueError('Failed to get secrets store instance')
+            raise ValueError("Failed to get secrets store instance")
         self._secrets_store = secret_store
         return secret_store
 
@@ -97,5 +97,5 @@ class DefaultUserAuth(UserAuth):
 
     @classmethod
     async def get_for_user(cls, user_id: str) -> UserAuth:
-        assert user_id == 'root'
+        assert user_id == "root"
         return DefaultUserAuth()

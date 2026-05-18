@@ -44,21 +44,21 @@ class GoogleCloudEventService(EventServiceBase):
         """Get the event at the path given."""
         blob: Blob = self.bucket.blob(str(path))
         try:
-            with blob.open('r') as f:
+            with blob.open("r") as f:
                 json_data = f.read()
             event = Event.model_validate_json(json_data)
             return event
         except NotFound:
             return None
         except Exception:
-            _logger.exception(f'Error reading event from {path}')
+            _logger.exception(f"Error reading event from {path}")
             return None
 
     def _store_event(self, path: Path, event: Event):
         """Store the event given at the path given."""
         blob: Blob = self.bucket.blob(str(path))
-        data = event.model_dump(mode='json')
-        with blob.open('w') as f:
+        data = event.model_dump(mode="json")
+        with blob.open("w") as f:
             f.write(json.dumps(data, indent=2))
 
     def _search_paths(self, prefix: Path, page_id: str | None = None) -> list[Path]:
@@ -72,7 +72,7 @@ class GoogleCloudEventService(EventServiceBase):
 
 class GoogleCloudEventServiceInjector(EventServiceInjector):
     bucket_name: str
-    prefix: Path = Path('users')
+    prefix: Path = Path("users")
 
     async def inject(
         self, state: InjectorState, request: Request | None = None

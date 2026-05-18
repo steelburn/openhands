@@ -11,8 +11,7 @@ from server.constants import (
     LITE_LLM_API_URL,
     ORG_SETTINGS_VERSION,
     PERSONAL_WORKSPACE_VERSION_TO_MODEL,
-    get_default_llm_base_url,
-    get_default_llm_model,
+    get_default_litellm_model,
 )
 from server.logger import logger
 from sqlalchemy import select, text
@@ -38,7 +37,7 @@ _REDIS_CREATE_TIMEOUT_SECONDS = 30
 # The delay to wait for another process to finish creating a user before trying to load again
 _RETRY_LOAD_DELAY_SECONDS = 2
 # Redis key prefix for user creation locks
-_REDIS_USER_CREATION_KEY_PREFIX = 'create_user:'
+_REDIS_USER_CREATION_KEY_PREFIX = "create_user:"
 
 
 class UserStore:
@@ -55,10 +54,10 @@ class UserStore:
             # create personal org
             org = Org(
                 id=uuid.UUID(user_id),
-                name=f'user_{user_id}_org',
+                name=f"user_{user_id}_org",
                 contact_name=resolve_display_name(user_info)
-                or user_info.get('preferred_username', ''),
-                contact_email=user_info['email'],
+                or user_info.get("preferred_username", ""),
+                contact_email=user_info["email"],
                 v1_enabled=True,
             )
             session.add(org)
@@ -84,13 +83,13 @@ class UserStore:
                 role_id=role_id,
                 **user_kwargs,
             )
-            user.email = user_info.get('email')
-            user.email_verified = user_info.get('email_verified')
+            user.email = user_info.get("email")
+            user.email_verified = user_info.get("email_verified")
             session.add(user)
 
-            role = await RoleStore.get_role_by_name('owner')
+            role = await RoleStore.get_role_by_name("owner")
             if role is None:
-                raise ValueError('Owner role not found in database')
+                raise ValueError("Owner role not found in database")
 
             from storage.org_member_store import OrgMemberStore
 
@@ -99,13 +98,13 @@ class UserStore:
                 org_id=org.id,
                 user_id=user.id,
                 role_id=role.id,  # owner of your own org.
-                status='active',
+                status="active",
                 **org_member_kwargs,
             )
             session.add(org_member)
             await session.commit()
             await session.refresh(user)
-            await session.refresh(user, ['org_members'])  # load org_members
+            await session.refresh(user, ["org_members"])  # load org_members
             return user
 
     @staticmethod
@@ -126,15 +125,15 @@ class UserStore:
 
         redis_client = UserStore._get_redis_client()
         try:
-            user_key = f'{_REDIS_USER_CREATION_KEY_PREFIX}{user_id}'
+            user_key = f"{_REDIS_USER_CREATION_KEY_PREFIX}{user_id}"
             lock_acquired = await redis_client.set(
                 user_key, 1, nx=True, ex=_REDIS_CREATE_TIMEOUT_SECONDS
             )
             return bool(lock_acquired)
         except redis_exceptions.RedisError:
             logger.warning(
-                'user_store:_acquire_user_creation_lock:redis_error',
-                extra={'user_id': user_id},
+                "user_store:_acquire_user_creation_lock:redis_error",
+                extra={"user_id": user_id},
             )
             return True  # Proceed without locking on error
 
@@ -149,13 +148,13 @@ class UserStore:
 
         redis_client = UserStore._get_redis_client()
         try:
-            user_key = f'{_REDIS_USER_CREATION_KEY_PREFIX}{user_id}'
+            user_key = f"{_REDIS_USER_CREATION_KEY_PREFIX}{user_id}"
             deleted = await redis_client.delete(user_key)
             return bool(deleted)
         except redis_exceptions.RedisError:
             logger.warning(
-                'user_store:_release_user_creation_lock:redis_error',
-                extra={'user_id': user_id},
+                "user_store:_release_user_creation_lock:redis_error",
+                extra={"user_id": user_id},
             )
             return True  # Proceed without locking on error
 
@@ -167,10 +166,10 @@ class UserStore:
     ) -> User | None:
         kwargs = decrypt_legacy_model(
             [
-                'llm_api_key',
-                'llm_api_key_for_byor',
-                'search_api_key',
-                'sandbox_api_key',
+                "llm_api_key",
+                "llm_api_key_for_byor",
+                "search_api_key",
+                "sandbox_api_key",
             ],
             user_settings,
         )
@@ -182,7 +181,7 @@ class UserStore:
             result = await session.execute(
                 select(BillingSession).filter(
                     BillingSession.user_id == user_id,
-                    BillingSession.status == 'completed',
+                    BillingSession.status == "completed",
                 )
             )
             has_completed_billing = result.scalars().first() is not None
@@ -190,11 +189,11 @@ class UserStore:
             # create personal org
             org = Org(
                 id=uuid.UUID(user_id),
-                name=f'user_{user_id}_org',
+                name=f"user_{user_id}_org",
                 org_version=user_settings.user_version,
                 contact_name=resolve_display_name(user_info)
-                or user_info.get('username', ''),
-                contact_email=user_info['email'],
+                or user_info.get("username", ""),
+                contact_email=user_info["email"],
                 byor_export_enabled=has_completed_billing,
             )
             session.add(org)
@@ -202,8 +201,8 @@ class UserStore:
             from storage.lite_llm_manager import LiteLlmManager
 
             logger.debug(
-                'user_store:migrate_user:calling_litellm_migrate_entries',
-                extra={'user_id': user_id},
+                "user_store:migrate_user:calling_litellm_migrate_entries",
+                extra={"user_id": user_id},
             )
             await LiteLlmManager.migrate_entries(
                 str(org.id),
@@ -212,8 +211,8 @@ class UserStore:
             )
 
             logger.debug(
-                'user_store:migrate_user:done_litellm_migrate_entries',
-                extra={'user_id': user_id},
+                "user_store:migrate_user:done_litellm_migrate_entries",
+                extra={"user_id": user_id},
             )
             custom_settings = UserStore._has_custom_settings(
                 decrypted_user_settings, user_settings.user_version
@@ -224,13 +223,13 @@ class UserStore:
             from integrations.stripe_service import migrate_customer
 
             logger.debug(
-                'user_store:migrate_user:calling_stripe_migrate_customer',
-                extra={'user_id': user_id},
+                "user_store:migrate_user:calling_stripe_migrate_customer",
+                extra={"user_id": user_id},
             )
             await migrate_customer(session, user_id, org)
             logger.debug(
-                'user_store:migrate_user:done_stripe_migrate_customer',
-                extra={'user_id': user_id},
+                "user_store:migrate_user:done_stripe_migrate_customer",
+                extra={"user_id": user_id},
             )
 
             from storage.org_store import OrgStore
@@ -251,7 +250,7 @@ class UserStore:
             user_kwargs = UserStore.get_kwargs_from_user_settings(
                 decrypted_user_settings
             )
-            user_kwargs.pop('id', None)
+            user_kwargs.pop("id", None)
             user = User(
                 id=uuid.UUID(user_id),
                 current_org_id=org.id,
@@ -261,16 +260,16 @@ class UserStore:
             session.add(user)
 
             logger.debug(
-                'user_store:migrate_user:calling_get_role_by_name',
-                extra={'user_id': user_id},
+                "user_store:migrate_user:calling_get_role_by_name",
+                extra={"user_id": user_id},
             )
-            role = await RoleStore.get_role_by_name('owner')
+            role = await RoleStore.get_role_by_name("owner")
             logger.debug(
-                'user_store:migrate_user:done_get_role_by_name',
-                extra={'user_id': user_id},
+                "user_store:migrate_user:done_get_role_by_name",
+                extra={"user_id": user_id},
             )
             if role is None:
-                raise ValueError('Owner role not found in database')
+                raise ValueError("Owner role not found in database")
 
             from storage.org_member_store import OrgMemberStore
 
@@ -278,15 +277,15 @@ class UserStore:
                 decrypted_user_settings
             )
             if not custom_settings:
-                org_member_kwargs['agent_settings_diff'] = (
-                    OrgStore.get_agent_settings_from_org(org).model_dump(mode='json')
+                org_member_kwargs["agent_settings_diff"] = (
+                    OrgStore.get_agent_settings_from_org(org).model_dump(mode="json")
                 )
 
             org_member = OrgMember(
                 org_id=org.id,
                 user_id=user.id,
                 role_id=role.id,  # owner of your own org.
-                status='active',
+                status="active",
                 **org_member_kwargs,
             )
             session.add(org_member)
@@ -296,8 +295,8 @@ class UserStore:
             await session.merge(user_settings)
             await session.flush()
             logger.debug(
-                'user_store:migrate_user:session_flush_complete',
-                extra={'user_id': user_id},
+                "user_store:migrate_user:session_flush_complete",
+                extra={"user_id": user_id},
             )
 
             user_uuid = uuid.UUID(user_id)
@@ -313,61 +312,61 @@ class UserStore:
                     FROM conversation_metadata
                     WHERE user_id = :user_id_text
                 """),
-                {'user_uuid': user_uuid, 'user_id_text': user_id},
+                {"user_uuid": user_uuid, "user_id_text": user_id},
             )
 
             # Update stripe_customers
             await session.execute(
                 text(
-                    'UPDATE stripe_customers SET org_id = :org_id WHERE keycloak_user_id = :user_id'
+                    "UPDATE stripe_customers SET org_id = :org_id WHERE keycloak_user_id = :user_id"
                 ),
-                {'org_id': user_uuid, 'user_id': user_id},
+                {"org_id": user_uuid, "user_id": user_id},
             )
 
             # Update slack_users
             await session.execute(
                 text(
-                    'UPDATE slack_users SET org_id = :org_id WHERE keycloak_user_id = :user_id'
+                    "UPDATE slack_users SET org_id = :org_id WHERE keycloak_user_id = :user_id"
                 ),
-                {'org_id': user_uuid, 'user_id': user_id},
+                {"org_id": user_uuid, "user_id": user_id},
             )
 
             # Update slack_conversation
             await session.execute(
                 text(
-                    'UPDATE slack_conversation SET org_id = :org_id WHERE keycloak_user_id = :user_id'
+                    "UPDATE slack_conversation SET org_id = :org_id WHERE keycloak_user_id = :user_id"
                 ),
-                {'org_id': user_uuid, 'user_id': user_id},
+                {"org_id": user_uuid, "user_id": user_id},
             )
 
             # Update api_keys
             await session.execute(
-                text('UPDATE api_keys SET org_id = :org_id WHERE user_id = :user_id'),
-                {'org_id': user_uuid, 'user_id': user_id},
+                text("UPDATE api_keys SET org_id = :org_id WHERE user_id = :user_id"),
+                {"org_id": user_uuid, "user_id": user_id},
             )
 
             # Update custom_secrets
             await session.execute(
                 text(
-                    'UPDATE custom_secrets SET org_id = :org_id WHERE keycloak_user_id = :user_id'
+                    "UPDATE custom_secrets SET org_id = :org_id WHERE keycloak_user_id = :user_id"
                 ),
-                {'org_id': user_uuid, 'user_id': user_id},
+                {"org_id": user_uuid, "user_id": user_id},
             )
 
             # Update billing_sessions
             await session.execute(
                 text(
-                    'UPDATE billing_sessions SET org_id = :org_id WHERE user_id = :user_id'
+                    "UPDATE billing_sessions SET org_id = :org_id WHERE user_id = :user_id"
                 ),
-                {'org_id': user_uuid, 'user_id': user_id},
+                {"org_id": user_uuid, "user_id": user_id},
             )
 
             await session.commit()
             await session.refresh(user)
-            await session.refresh(user, ['org_members'])  # load org_members
+            await session.refresh(user, ["org_members"])  # load org_members
             logger.debug(
-                'user_store:migrate_user:session_committed',
-                extra={'user_id': user_id},
+                "user_store:migrate_user:session_committed",
+                extra={"user_id": user_id},
             )
             return user
 
@@ -400,8 +399,8 @@ class UserStore:
             Returns None if the org has multiple members (not a personal org).
         """
         logger.info(
-            'user_store:downgrade_user:start',
-            extra={'user_id': user_id},
+            "user_store:downgrade_user:start",
+            extra={"user_id": user_id},
         )
 
         async with a_session_maker() as session:
@@ -414,8 +413,8 @@ class UserStore:
             user = result.scalars().first()
             if not user:
                 logger.warning(
-                    'user_store:downgrade_user:user_not_found',
-                    extra={'user_id': user_id},
+                    "user_store:downgrade_user:user_not_found",
+                    extra={"user_id": user_id},
                 )
                 return None
 
@@ -426,8 +425,8 @@ class UserStore:
             org = result.scalars().first()
             if not org:
                 logger.warning(
-                    'user_store:downgrade_user:org_not_found',
-                    extra={'user_id': user_id},
+                    "user_store:downgrade_user:org_not_found",
+                    extra={"user_id": user_id},
                 )
                 return None
 
@@ -439,11 +438,11 @@ class UserStore:
 
             if len(org_members) != 1:
                 logger.error(
-                    'user_store:downgrade_user:unexpected_org_members_count',
+                    "user_store:downgrade_user:unexpected_org_members_count",
                     extra={
-                        'user_id': user_id,
-                        'org_id': str(org.id),
-                        'org_members_count': len(org_members),
+                        "user_id": user_id,
+                        "org_id": str(org.id),
+                        "org_members_count": len(org_members),
                     },
                 )
                 return None
@@ -474,8 +473,8 @@ class UserStore:
                         org_member.llm_api_key_for_byor.get_secret_value()
                     )
                 logger.info(
-                    'user_store:downgrade_user:updated_user_settings_from_org_member',
-                    extra={'user_id': user_id},
+                    "user_store:downgrade_user:updated_user_settings_from_org_member",
+                    extra={"user_id": user_id},
                 )
             else:
                 # Create a new user_settings entry from OrgMember, User, and Org data
@@ -485,8 +484,8 @@ class UserStore:
                 )
                 session.add(user_settings)
                 logger.info(
-                    'user_store:downgrade_user:created_user_settings_from_org_member',
-                    extra={'user_id': user_id},
+                    "user_store:downgrade_user:created_user_settings_from_org_member",
+                    extra={"user_id": user_id},
                 )
             await session.flush()
 
@@ -494,15 +493,15 @@ class UserStore:
             from storage.lite_llm_manager import LiteLlmManager
 
             logger.debug(
-                'user_store:downgrade_user:calling_litellm_downgrade_entries',
-                extra={'user_id': user_id},
+                "user_store:downgrade_user:calling_litellm_downgrade_entries",
+                extra={"user_id": user_id},
             )
 
             encrypted_fields = [
-                'llm_api_key',
-                'llm_api_key_for_byor',
-                'search_api_key',
-                'sandbox_api_key',
+                "llm_api_key",
+                "llm_api_key_for_byor",
+                "search_api_key",
+                "sandbox_api_key",
             ]
             for field in encrypted_fields:
                 value = getattr(user_settings, field, None)
@@ -519,8 +518,8 @@ class UserStore:
                 user_settings,
             )
             logger.debug(
-                'user_store:downgrade_user:done_litellm_downgrade_entries',
-                extra={'user_id': user_id},
+                "user_store:downgrade_user:done_litellm_downgrade_entries",
+                extra={"user_id": user_id},
             )
 
             user_uuid = uuid.UUID(user_id)
@@ -538,74 +537,74 @@ class UserStore:
                         WHERE user_id = :user_uuid
                     )
                 """),
-                {'user_id': user_id, 'user_uuid': user_uuid},
+                {"user_id": user_id, "user_uuid": user_uuid},
             )
 
             # Step 4: Delete conversation_metadata_saas entries
             await session.execute(
-                text('DELETE FROM conversation_metadata_saas WHERE user_id = :user_id'),
-                {'user_id': user_uuid},
+                text("DELETE FROM conversation_metadata_saas WHERE user_id = :user_id"),
+                {"user_id": user_uuid},
             )
 
             # Step 5: Reset org_id columns in related tables
             # Reset stripe_customers
             await session.execute(
                 text(
-                    'UPDATE stripe_customers SET org_id = NULL WHERE org_id = :org_id'
+                    "UPDATE stripe_customers SET org_id = NULL WHERE org_id = :org_id"
                 ),
-                {'org_id': user_uuid},
+                {"org_id": user_uuid},
             )
 
             # Reset slack_users
             await session.execute(
-                text('UPDATE slack_users SET org_id = NULL WHERE org_id = :org_id'),
-                {'org_id': user_uuid},
+                text("UPDATE slack_users SET org_id = NULL WHERE org_id = :org_id"),
+                {"org_id": user_uuid},
             )
 
             # Reset slack_conversation
             await session.execute(
                 text(
-                    'UPDATE slack_conversation SET org_id = NULL WHERE org_id = :org_id'
+                    "UPDATE slack_conversation SET org_id = NULL WHERE org_id = :org_id"
                 ),
-                {'org_id': user_uuid},
+                {"org_id": user_uuid},
             )
 
             # Reset api_keys
             await session.execute(
-                text('UPDATE api_keys SET org_id = NULL WHERE org_id = :org_id'),
-                {'org_id': user_uuid},
+                text("UPDATE api_keys SET org_id = NULL WHERE org_id = :org_id"),
+                {"org_id": user_uuid},
             )
 
             # Reset custom_secrets
             await session.execute(
-                text('UPDATE custom_secrets SET org_id = NULL WHERE org_id = :org_id'),
-                {'org_id': user_uuid},
+                text("UPDATE custom_secrets SET org_id = NULL WHERE org_id = :org_id"),
+                {"org_id": user_uuid},
             )
 
             # Reset billing_sessions
             await session.execute(
                 text(
-                    'UPDATE billing_sessions SET org_id = NULL WHERE org_id = :org_id'
+                    "UPDATE billing_sessions SET org_id = NULL WHERE org_id = :org_id"
                 ),
-                {'org_id': user_uuid},
+                {"org_id": user_uuid},
             )
 
             # Step 6: Delete org_member entries for this org
             await session.execute(
-                text('DELETE FROM org_member WHERE org_id = :org_id'),
-                {'org_id': user_uuid},
+                text("DELETE FROM org_member WHERE org_id = :org_id"),
+                {"org_id": user_uuid},
             )
 
             # Step 7: Delete the user entry
             await session.execute(
                 text('DELETE FROM "user" WHERE id = :user_id'),
-                {'user_id': user_uuid},
+                {"user_id": user_uuid},
             )
 
             # Delete the org entry
             await session.execute(
-                text('DELETE FROM org WHERE id = :org_id'),
-                {'org_id': user_uuid},
+                text("DELETE FROM org WHERE id = :org_id"),
+                {"org_id": user_uuid},
             )
 
             # Step 8: Set already_migrated=False on user_settings and encrypt fields
@@ -613,10 +612,10 @@ class UserStore:
 
             # Re-encrypt the sensitive fields before storing in the DB
             encrypt_keys = [
-                'llm_api_key',
-                'llm_api_key_for_byor',
-                'search_api_key',
-                'sandbox_api_key',
+                "llm_api_key",
+                "llm_api_key_for_byor",
+                "search_api_key",
+                "sandbox_api_key",
             ]
             for key in encrypt_keys:
                 value = getattr(user_settings, key, None)
@@ -628,8 +627,8 @@ class UserStore:
             await session.commit()
 
             logger.info(
-                'user_store:downgrade_user:complete',
-                extra={'user_id': user_id},
+                "user_store:downgrade_user:complete",
+                extra={"user_id": user_id},
             )
             return user_settings
 
@@ -650,8 +649,8 @@ class UserStore:
             while not await UserStore._acquire_user_creation_lock(user_id):
                 # The user is already being created in another thread / process
                 logger.info(
-                    'user_store:create_default_settings:waiting_for_lock',
-                    extra={'user_id': user_id},
+                    "user_store:create_default_settings:waiting_for_lock",
+                    extra={"user_id": user_id},
                 )
                 await asyncio.sleep(_RETRY_LOAD_DELAY_SECONDS)
 
@@ -678,8 +677,8 @@ class UserStore:
                     user_info = await token_manager.get_user_info_from_user_id(user_id)
                     if not user_info:
                         logger.warning(
-                            'user_store:get_user_by_id:failed_to_get_user_info',
-                            extra={'user_id': user_id},
+                            "user_store:get_user_by_id:failed_to_get_user_info",
+                            extra={"user_id": user_id},
                         )
                         return None
                     user = await UserStore.migrate_user(
@@ -765,8 +764,8 @@ class UserStore:
             user = result.scalars().first()
             if not user:
                 logger.warning(
-                    'mark_onboarding_completed:user_not_found',
-                    extra={'user_id': user_id},
+                    "mark_onboarding_completed:user_not_found",
+                    extra={"user_id": user_id},
                 )
                 return None
 
@@ -774,8 +773,8 @@ class UserStore:
             await session.commit()
             await session.refresh(user)
             logger.info(
-                'mark_onboarding_completed:success',
-                extra={'user_id': user_id},
+                "mark_onboarding_completed:success",
+                extra={"user_id": user_id},
             )
             return user
 
@@ -799,7 +798,7 @@ class UserStore:
                 .join(Role, Role.id == OrgMember.role_id)
                 .filter(
                     OrgMember.org_id == org_id,
-                    Role.name == 'owner',
+                    Role.name == "owner",
                     User.accepted_tos.isnot(None),
                 )
                 .order_by(User.accepted_tos.asc())
@@ -818,13 +817,13 @@ class UserStore:
         real_name = resolve_display_name(user_info)
         if not real_name:
             logger.debug(
-                'backfill_contact_name:no_real_name',
-                extra={'user_id': user_id},
+                "backfill_contact_name:no_real_name",
+                extra={"user_id": user_id},
             )
             return
 
-        preferred_username = user_info.get('preferred_username', '')
-        username = user_info.get('username', '')
+        preferred_username = user_info.get("preferred_username", "")
+        username = user_info.get("username", "")
 
         async with a_session_maker() as session:
             result = await session.execute(
@@ -833,18 +832,18 @@ class UserStore:
             org = result.scalars().first()
             if not org:
                 logger.debug(
-                    'backfill_contact_name:org_not_found',
-                    extra={'user_id': user_id},
+                    "backfill_contact_name:org_not_found",
+                    extra={"user_id": user_id},
                 )
                 return
 
             if org.contact_name in (preferred_username, username):
                 logger.info(
-                    'backfill_contact_name:updated',
+                    "backfill_contact_name:updated",
                     extra={
-                        'user_id': user_id,
-                        'old': org.contact_name,
-                        'new': real_name,
+                        "user_id": user_id,
+                        "old": org.contact_name,
+                        "new": real_name,
                     },
                 )
                 org.contact_name = real_name
@@ -872,8 +871,8 @@ class UserStore:
             user = result.scalars().first()
             if not user:
                 logger.warning(
-                    'update_user_email:user_not_found',
-                    extra={'user_id': user_id},
+                    "update_user_email:user_not_found",
+                    extra={"user_id": user_id},
                 )
                 return
 
@@ -883,11 +882,11 @@ class UserStore:
                 user.email_verified = email_verified
 
             logger.info(
-                'update_user_email:updated',
+                "update_user_email:updated",
                 extra={
-                    'user_id': user_id,
-                    'email_set': email is not None,
-                    'email_verified_set': email_verified is not None,
+                    "user_id": user_id,
+                    "email_set": email is not None,
+                    "email_verified_set": email_verified is not None,
                 },
             )
             await session.commit()
@@ -907,27 +906,27 @@ class UserStore:
             user = result.scalars().first()
             if not user:
                 logger.debug(
-                    'backfill_user_email:user_not_found',
-                    extra={'user_id': user_id},
+                    "backfill_user_email:user_not_found",
+                    extra={"user_id": user_id},
                 )
                 return
 
             updated = False
             if user.email is None:
-                user.email = user_info.get('email')
+                user.email = user_info.get("email")
                 updated = True
 
             if user.email_verified is None:
-                user.email_verified = user_info.get('email_verified', False)
+                user.email_verified = user_info.get("email_verified", False)
                 updated = True
 
             if updated:
                 logger.info(
-                    'backfill_user_email:updated',
+                    "backfill_user_email:updated",
                     extra={
-                        'user_id': user_id,
-                        'email_set': user.email is not None,
-                        'email_verified_set': user.email_verified is not None,
+                        "user_id": user_id,
+                        "email_set": user.email is not None,
+                        "email_verified_set": user.email_verified is not None,
                     },
                 )
                 await session.commit()
@@ -941,10 +940,10 @@ class UserStore:
     @staticmethod
     async def create_default_settings(
         org_id: str, user_id: str, create_user: bool = True
-    ) -> Optional['Settings']:
+    ) -> Optional["Settings"]:
         logger.info(
-            'UserStore:create_default_settings:start',
-            extra={'org_id': org_id, 'user_id': user_id},
+            "UserStore:create_default_settings:start",
+            extra={"org_id": org_id, "user_id": user_id},
         )
         # You must log in before you get default settings
         if not org_id:
@@ -953,7 +952,7 @@ class UserStore:
         from openhands.app_server.settings.settings_models import Settings
 
         default_settings = Settings(
-            language='en', enable_proactive_conversation_starters=True
+            language="en", enable_proactive_conversation_starters=True
         )
 
         default_settings.v1_enabled = DEFAULT_V1_ENABLED
@@ -965,19 +964,19 @@ class UserStore:
         )
         if not settings:
             logger.info(
-                'UserStore:create_default_settings:litellm_create_failed',
-                extra={'org_id': org_id},
+                "UserStore:create_default_settings:litellm_create_failed",
+                extra={"org_id": org_id},
             )
             return None
 
         return settings
 
     @staticmethod
-    def get_kwargs_from_settings(settings: 'Settings'):
+    def get_kwargs_from_settings(settings: "Settings"):
         kwargs = {
             normalized: getattr(settings, normalized)
             for c in User.__table__.columns
-            if (normalized := c.name.lstrip('_')) and hasattr(settings, normalized)
+            if (normalized := c.name.lstrip("_")) and hasattr(settings, normalized)
         }
         return kwargs
 
@@ -986,7 +985,7 @@ class UserStore:
         kwargs = {
             normalized: getattr(user_settings, normalized)
             for c in User.__table__.columns
-            if (normalized := c.name.lstrip('_')) and hasattr(user_settings, normalized)
+            if (normalized := c.name.lstrip("_")) and hasattr(user_settings, normalized)
         }
         return kwargs
 
@@ -1014,14 +1013,14 @@ class UserStore:
         member_agent_settings_diff = dict(org_member.agent_settings_diff)
         org_agent_settings = OrgStore.get_agent_settings_from_org(org)
         agent_settings = {
-            **org_agent_settings.model_dump(mode='json'),
+            **org_agent_settings.model_dump(mode="json"),
             **member_agent_settings_diff,
         }
 
         member_conversation_settings_diff = dict(org_member.conversation_settings_diff)
         org_conversation_settings = OrgStore.get_conversation_settings_from_org(org)
         conversation_settings = {
-            **org_conversation_settings.model_dump(mode='json'),
+            **org_conversation_settings.model_dump(mode="json"),
             **member_conversation_settings_diff,
         }
 
@@ -1068,15 +1067,15 @@ class UserStore:
         from storage.org_store import OrgStore
 
         org_kwargs = OrgStore.get_kwargs_from_user_settings(user_settings)
-        org_kwargs.pop('id', None)
-        org_kwargs['org_version'] = ORG_SETTINGS_VERSION
+        org_kwargs.pop("id", None)
+        org_kwargs["org_version"] = ORG_SETTINGS_VERSION
 
         if custom_settings:
-            org_kwargs['agent_settings'] = {
-                'schema_version': AGENT_SETTINGS_SCHEMA_VERSION,
-                'llm': {
-                    'model': get_default_llm_model(),
-                    'base_url': get_default_llm_base_url(),
+            org_kwargs["agent_settings"] = {
+                "schema_version": AGENT_SETTINGS_SCHEMA_VERSION,
+                "llm": {
+                    "model": get_default_litellm_model(),
+                    "base_url": LITE_LLM_API_URL,
                 },
             }
 
@@ -1097,10 +1096,10 @@ class UserStore:
             True if user has custom settings, False if using old defaults
         """
         persisted_agent_settings = user_settings.agent_settings or {}
-        llm_settings = persisted_agent_settings.get('llm', {})
+        llm_settings = persisted_agent_settings.get("llm", {})
         if isinstance(llm_settings, dict):
-            user_model = llm_settings.get('model')
-            user_base_url = llm_settings.get('base_url')
+            user_model = llm_settings.get("model")
+            user_base_url = llm_settings.get("base_url")
         else:
             user_model = None
             user_base_url = None
@@ -1123,7 +1122,7 @@ class UserStore:
             and old_user_version in PERSONAL_WORKSPACE_VERSION_TO_MODEL
         ):
             old_default_base = PERSONAL_WORKSPACE_VERSION_TO_MODEL[old_user_version]
-            user_model_base = user_model.split('/')[-1]
+            user_model_base = user_model.split("/")[-1]
             if user_model_base == old_default_base:
                 return False  # Matches old default
 

@@ -19,7 +19,7 @@ class PendingMessage(BaseModel):
 
     id: str = Field(default_factory=lambda: str(uuid4()))
     conversation_id: str  # Can be task-{uuid} or real conversation UUID
-    role: str = 'user'
+    role: str = "user"
     content: list[TextContent | ImageContent]
     created_at: datetime = Field(default_factory=utc_now)
 
@@ -29,4 +29,4 @@ class PendingMessageResponse(BaseModel):
 
     id: str
     queued: bool
-    position: int = Field(description='Position in the queue (1-based)')
+    position: int = Field(description="Position in the queue (1-based)")

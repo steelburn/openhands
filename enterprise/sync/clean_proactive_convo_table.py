@@ -13,10 +13,10 @@ OLDER_THAN = 30  # 30 minutes
 
 
 async def main():
-    openhands_logger.info('clean_proactive_convo_table')
+    openhands_logger.info("clean_proactive_convo_table")
     convo_store = ProactiveConversationStore()
     await convo_store.clean_old_convos(older_than_minutes=OLDER_THAN)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

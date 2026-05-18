@@ -19,40 +19,40 @@ class TestGitlabOrgRouting(TestCase):
 
     def setUp(self):
         self.user_data = UserData(
-            user_id=123, username='testuser', keycloak_user_id='test-keycloak-id'
+            user_id=123, username="testuser", keycloak_user_id="test-keycloak-id"
         )
         self.raw_payload = Message(
             source=SourceType.GITLAB,
             message={
-                'payload': {
-                    'object_kind': 'issue',
-                    'object_attributes': {'action': 'open', 'iid': 42},
+                "payload": {
+                    "object_kind": "issue",
+                    "object_attributes": {"action": "open", "iid": 42},
                 }
             },
         )
-        self.resolved_org_id = UUID('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')
+        self.resolved_org_id = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 
     def _create_gitlab_issue(self):
         return GitlabIssue(
             user_info=self.user_data,
-            full_repo_name='ClaimedOrg/repo',
+            full_repo_name="ClaimedOrg/repo",
             issue_number=42,
             project_id=100,
-            installation_id='install-123',
-            conversation_id='',
+            installation_id="install-123",
+            conversation_id="",
             should_extract=True,
             send_summary_instruction=False,
             is_public_repo=True,
             raw_payload=self.raw_payload,
-            title='',
-            description='',
+            title="",
+            description="",
             previous_comments=[],
             is_mr=False,
         )
 
     @pytest.mark.asyncio
-    @patch('integrations.gitlab.gitlab_view.get_app_conversation_service')
-    @patch('integrations.gitlab.gitlab_view.resolve_org_for_repo')
+    @patch("integrations.gitlab.gitlab_view.get_app_conversation_service")
+    @patch("integrations.gitlab.gitlab_view.resolve_org_for_repo")
     async def test_v1_passes_resolver_org_id_to_resolver_user_context(
         self, mock_resolve_org, mock_get_service
     ):
@@ -69,8 +69,8 @@ class TestGitlabOrgRouting(TestCase):
         assert gitlab_issue.resolved_org_id == self.resolved_org_id
 
     @pytest.mark.asyncio
-    @patch('integrations.gitlab.gitlab_view.get_app_conversation_service')
-    @patch('integrations.gitlab.gitlab_view.resolve_org_for_repo')
+    @patch("integrations.gitlab.gitlab_view.get_app_conversation_service")
+    @patch("integrations.gitlab.gitlab_view.resolve_org_for_repo")
     async def test_no_claim_passes_none_resolver_org_id(
         self, mock_resolve_org, mock_get_service
     ):

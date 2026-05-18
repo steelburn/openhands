@@ -51,7 +51,7 @@ async def validate_session_key(session_api_key: str | None) -> SandboxInfo:
     if not session_api_key:
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,
-            detail='X-Session-API-Key header is required',
+            detail="X-Session-API-Key header is required",
         )
 
     # The sandbox service is scoped to users. To look up a sandbox by session
@@ -67,7 +67,7 @@ async def validate_session_key(session_api_key: str | None) -> SandboxInfo:
 
     if sandbox_info is None:
         raise HTTPException(
-            status.HTTP_401_UNAUTHORIZED, detail='Invalid session API key'
+            status.HTTP_401_UNAUTHORIZED, detail="Invalid session API key"
         )
 
     # Security: Reject session keys for non-running sandboxes.
@@ -75,26 +75,26 @@ async def validate_session_key(session_api_key: str | None) -> SandboxInfo:
     # the sandbox has been paused, stopped, or deleted.
     if sandbox_info.status != SandboxStatus.RUNNING:
         _logger.warning(
-            'Session key rejected for non-running sandbox',
+            "Session key rejected for non-running sandbox",
             extra={
-                'sandbox_id': sandbox_info.id,
-                'status': sandbox_info.status.value,
+                "sandbox_id": sandbox_info.id,
+                "status": sandbox_info.status.value,
             },
         )
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,
-            detail='Sandbox is not running',
+            detail="Sandbox is not running",
         )
 
     if not sandbox_info.created_by_user_id:
         if get_global_config().app_mode == AppMode.SAAS:
             _logger.error(
-                'Sandbox had no user specified',
-                extra={'sandbox_id': sandbox_info.id},
+                "Sandbox had no user specified",
+                extra={"sandbox_id": sandbox_info.id},
             )
             raise HTTPException(
                 status.HTTP_401_UNAUTHORIZED,
-                detail='Sandbox had no user specified',
+                detail="Sandbox had no user specified",
             )
 
     return sandbox_info
@@ -124,16 +124,16 @@ async def validate_session_key_ownership(
     if not caller_id:
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,
-            detail='Cannot determine authenticated user',
+            detail="Cannot determine authenticated user",
         )
 
     if sandbox_info.created_by_user_id != caller_id:
         _logger.warning(
-            'Session key user mismatch: sandbox owner=%s, caller=%s',
+            "Session key user mismatch: sandbox owner=%s, caller=%s",
             sandbox_info.created_by_user_id,
             caller_id,
         )
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
-            detail='Session API key does not belong to the authenticated user',
+            detail="Session API key does not belong to the authenticated user",
         )

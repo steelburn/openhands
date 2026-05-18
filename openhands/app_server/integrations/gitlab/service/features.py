@@ -63,33 +63,33 @@ class GitLabFeaturesMixin(GitLabMixinBase):
 
             # Get merge requests using GraphQL
             response = await self.execute_graphql_query(query)
-            data = response.get('currentUser', {})
+            data = response.get("currentUser", {})
 
             # Process merge requests
-            merge_requests = data.get('authoredMergeRequests', {}).get('nodes', [])
+            merge_requests = data.get("authoredMergeRequests", {}).get("nodes", [])
             for mr in merge_requests:
-                repo_name = mr.get('project', {}).get('fullPath', '')
-                mr_number = mr.get('iid')
-                title = mr.get('title', '')
+                repo_name = mr.get("project", {}).get("fullPath", "")
+                mr_number = mr.get("iid")
+                title = mr.get("title", "")
 
                 # Start with default task type
                 task_type = TaskType.OPEN_PR
 
                 # Check for specific states
-                if mr.get('conflicts'):
+                if mr.get("conflicts"):
                     task_type = TaskType.MERGE_CONFLICTS
                 elif (
-                    mr.get('pipelines', {}).get('nodes', [])
-                    and mr.get('pipelines', {}).get('nodes', [])[0].get('status')
-                    == 'FAILED'
+                    mr.get("pipelines", {}).get("nodes", [])
+                    and mr.get("pipelines", {}).get("nodes", [])[0].get("status")
+                    == "FAILED"
                 ):
                     task_type = TaskType.FAILING_CHECKS
                 else:
                     # Check for unresolved comments
                     has_unresolved_comments = False
-                    for discussion in mr.get('discussions', {}).get('nodes', []):
-                        for note in discussion.get('notes', {}).get('nodes', []):
-                            if note.get('resolvable') and not note.get('resolved'):
+                    for discussion in mr.get("discussions", {}).get("nodes", []):
+                        for note in discussion.get("notes", {}).get("nodes", []):
+                            if note.get("resolvable") and not note.get("resolved"):
                                 has_unresolved_comments = True
                                 break
                         if has_unresolved_comments:
@@ -111,11 +111,11 @@ class GitLabFeaturesMixin(GitLabMixinBase):
                     )
 
             # Get assigned issues using REST API
-            url = f'{self.BASE_URL}/issues'
+            url = f"{self.BASE_URL}/issues"
             params = {
-                'assignee_username': username,
-                'state': 'opened',
-                'scope': 'assigned_to_me',
+                "assignee_username": username,
+                "state": "opened",
+                "scope": "assigned_to_me",
             }
 
             issues_response, _ = await self._make_request(
@@ -125,10 +125,10 @@ class GitLabFeaturesMixin(GitLabMixinBase):
             # Process issues
             for issue in issues_response:
                 repo_name = (
-                    issue.get('references', {}).get('full', '').split('#')[0].strip()
+                    issue.get("references", {}).get("full", "").split("#")[0].strip()
                 )
-                issue_number = issue.get('iid')
-                title = issue.get('title', '')
+                issue_number = issue.get("iid")
+                title = issue.get("title", "")
 
                 tasks.append(
                     SuggestedTask(

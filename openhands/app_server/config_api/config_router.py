@@ -18,33 +18,33 @@ llm_model_service_dependency = depends_llm_model_service()
 # We use the get_dependencies method here to signal to the OpenAPI docs that this endpoint
 # is protected. The actual protection is provided by SetAuthCookieMiddleware
 router = APIRouter(
-    prefix='/config',
-    tags=['Config'],
+    prefix="/config",
+    tags=["Config"],
     dependencies=get_dependencies(),
 )
 
 
-@router.get('/models/search')
+@router.get("/models/search")
 async def search_models(
     page_id: Annotated[
         str | None,
-        Query(title='Optional next_page_id from the previously returned page'),
+        Query(title="Optional next_page_id from the previously returned page"),
     ] = None,
     limit: Annotated[
         int,
-        Query(title='The max number of results in the page', gt=0, le=100),
+        Query(title="The max number of results in the page", gt=0, le=100),
     ] = 50,
     query: Annotated[
         str | None,
-        Query(title='Filter models by name (case-insensitive substring match)'),
+        Query(title="Filter models by name (case-insensitive substring match)"),
     ] = None,
     verified__eq: Annotated[
         bool | None,
-        Query(title='Filter by verified status (true/false, omit for all)'),
+        Query(title="Filter by verified status (true/false, omit for all)"),
     ] = None,
     provider__eq: Annotated[
         str | None,
-        Query(title='Filter by provider name (exact match)'),
+        Query(title="Filter by provider name (exact match)"),
     ] = None,
     llm_model_service: LLMModelService = llm_model_service_dependency,
 ) -> LLMModelPage:
@@ -62,23 +62,23 @@ async def search_models(
     )
 
 
-@router.get('/providers/search')
+@router.get("/providers/search")
 async def search_providers(
     page_id: Annotated[
         str | None,
-        Query(title='Optional next_page_id from the previously returned page'),
+        Query(title="Optional next_page_id from the previously returned page"),
     ] = None,
     limit: Annotated[
         int,
-        Query(title='The max number of results in the page', gt=0, le=100),
+        Query(title="The max number of results in the page", gt=0, le=100),
     ] = 50,
     query: Annotated[
         str | None,
-        Query(title='Filter providers by name (case-insensitive substring match)'),
+        Query(title="Filter providers by name (case-insensitive substring match)"),
     ] = None,
     verified__eq: Annotated[
         bool | None,
-        Query(title='Filter by verified status (true/false, omit for all)'),
+        Query(title="Filter by verified status (true/false, omit for all)"),
     ] = None,
     llm_model_service: LLMModelService = llm_model_service_dependency,
 ) -> ProviderPage:

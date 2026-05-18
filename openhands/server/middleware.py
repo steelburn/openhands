@@ -11,8 +11,8 @@ from openhands.app_server.middleware import (
 )
 
 __all__ = [
-    'LocalhostCORSMiddleware',
-    'CacheControlMiddleware',
-    'InMemoryRateLimiter',
-    'RateLimitMiddleware',
+    "LocalhostCORSMiddleware",
+    "CacheControlMiddleware",
+    "InMemoryRateLimiter",
+    "RateLimitMiddleware",
 ]

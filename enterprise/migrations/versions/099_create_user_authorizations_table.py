@@ -13,8 +13,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '099'
-down_revision: Union[str, None] = '098'
+revision: str = "099"
+down_revision: Union[str, None] = "098"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -31,13 +31,13 @@ def _seed_from_environment() -> None:
     blacklisted or whitelisted. (For example, you could blacklist everything with
     `%`, and then whitelist certain email accounts.)
     """
-    blacklist_patterns = os.environ.get('EMAIL_PATTERN_BLACKLIST', '').strip()
-    whitelist_patterns = os.environ.get('EMAIL_PATTERN_WHITELIST', '').strip()
+    blacklist_patterns = os.environ.get("EMAIL_PATTERN_BLACKLIST", "").strip()
+    whitelist_patterns = os.environ.get("EMAIL_PATTERN_WHITELIST", "").strip()
 
     connection = op.get_bind()
 
     if blacklist_patterns:
-        for pattern in blacklist_patterns.split(','):
+        for pattern in blacklist_patterns.split(","):
             pattern = pattern.strip()
             if pattern:
                 connection.execute(
@@ -47,11 +47,11 @@ def _seed_from_environment() -> None:
                         VALUES
                             (:pattern, NULL, 'blacklist')
                     """),
-                    {'pattern': pattern},
+                    {"pattern": pattern},
                 )
 
     if whitelist_patterns:
-        for pattern in whitelist_patterns.split(','):
+        for pattern in whitelist_patterns.split(","):
             pattern = pattern.strip()
             if pattern:
                 connection.execute(
@@ -61,7 +61,7 @@ def _seed_from_environment() -> None:
                         VALUES
                             (:pattern, NULL, 'whitelist')
                     """),
-                    {'pattern': pattern},
+                    {"pattern": pattern},
                 )
 
 
@@ -69,38 +69,38 @@ def upgrade() -> None:
     """Create user_authorizations table, migrate data, and drop blocked_email_domains."""
     # Create user_authorizations table
     op.create_table(
-        'user_authorizations',
-        sa.Column('id', sa.Integer(), sa.Identity(), nullable=False, primary_key=True),
-        sa.Column('email_pattern', sa.String(), nullable=True),
-        sa.Column('provider_type', sa.String(), nullable=True),
-        sa.Column('type', sa.String(), nullable=False),
+        "user_authorizations",
+        sa.Column("id", sa.Integer(), sa.Identity(), nullable=False, primary_key=True),
+        sa.Column("email_pattern", sa.String(), nullable=True),
+        sa.Column("provider_type", sa.String(), nullable=True),
+        sa.Column("type", sa.String(), nullable=False),
         sa.Column(
-            'created_at',
+            "created_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text('CURRENT_TIMESTAMP'),
+            server_default=sa.text("CURRENT_TIMESTAMP"),
         ),
         sa.Column(
-            'updated_at',
+            "updated_at",
             sa.DateTime(timezone=True),
             nullable=False,
-            server_default=sa.text('CURRENT_TIMESTAMP'),
+            server_default=sa.text("CURRENT_TIMESTAMP"),
         ),
-        sa.PrimaryKeyConstraint('id'),
+        sa.PrimaryKeyConstraint("id"),
     )
 
     # Create index on email_pattern for efficient LIKE queries
     op.create_index(
-        'ix_user_authorizations_email_pattern',
-        'user_authorizations',
-        ['email_pattern'],
+        "ix_user_authorizations_email_pattern",
+        "user_authorizations",
+        ["email_pattern"],
     )
 
     # Create index on type for efficient filtering
     op.create_index(
-        'ix_user_authorizations_type',
-        'user_authorizations',
-        ['type'],
+        "ix_user_authorizations_type",
+        "user_authorizations",
+        ["type"],
     )
 
     # Migrate existing blocked_email_domains to user_authorizations as blacklist entries
@@ -129,8 +129,8 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Recreate blocked_email_domains table and migrate data back."""
     # Drop user_authorizations table
-    op.drop_index('ix_user_authorizations_type', table_name='user_authorizations')
+    op.drop_index("ix_user_authorizations_type", table_name="user_authorizations")
     op.drop_index(
-        'ix_user_authorizations_email_pattern', table_name='user_authorizations'
+        "ix_user_authorizations_email_pattern", table_name="user_authorizations"
     )
-    op.drop_table('user_authorizations')
+    op.drop_table("user_authorizations")

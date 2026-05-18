@@ -18,13 +18,13 @@ class DeviceCodeStore:
     def generate_user_code(self) -> str:
         """Generate a human-readable user code (8 characters, uppercase letters and digits)."""
         # Use a mix of uppercase letters and digits, avoiding confusing characters
-        alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'  # No I, O, 0, 1
-        return ''.join(secrets.choice(alphabet) for _ in range(8))
+        alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"  # No I, O, 0, 1
+        return "".join(secrets.choice(alphabet) for _ in range(8))
 
     def generate_device_code(self) -> str:
         """Generate a secure device code (128 characters)."""
         alphabet = string.ascii_letters + string.digits
-        return ''.join(secrets.choice(alphabet) for _ in range(128))
+        return "".join(secrets.choice(alphabet) for _ in range(128))
 
     async def create_device_code(
         self,
@@ -69,7 +69,7 @@ class DeviceCodeStore:
                 continue
 
         raise RuntimeError(
-            f'Failed to generate unique device codes after {max_attempts} attempts'
+            f"Failed to generate unique device codes after {max_attempts} attempts"
         )
 
     async def get_by_device_code(self, device_code: str) -> DeviceCode | None:

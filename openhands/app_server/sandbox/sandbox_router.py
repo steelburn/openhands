@@ -30,7 +30,7 @@ _logger = logging.getLogger(__name__)
 # We use the get_dependencies method here to signal to the OpenAPI docs that this endpoint
 # is protected. The actual protection is provided by SetAuthCookieMiddleware
 router = APIRouter(
-    prefix='/sandboxes', tags=['Sandbox'], dependencies=get_dependencies()
+    prefix="/sandboxes", tags=["Sandbox"], dependencies=get_dependencies()
 )
 sandbox_service_dependency = depends_sandbox_service()
 user_context_dependency = depends_user_context()
@@ -38,15 +38,15 @@ user_context_dependency = depends_user_context()
 # Read methods
 
 
-@router.get('/search')
+@router.get("/search")
 async def search_sandboxes(
     page_id: Annotated[
         str | None,
-        Query(title='Optional next_page_id from the previously returned page'),
+        Query(title="Optional next_page_id from the previously returned page"),
     ] = None,
     limit: Annotated[
         int,
-        Query(title='The max number of results in the page', gt=0, le=100),
+        Query(title="The max number of results in the page", gt=0, le=100),
     ] = 100,
     sandbox_service: SandboxService = sandbox_service_dependency,
 ) -> SandboxPage:
@@ -54,7 +54,7 @@ async def search_sandboxes(
     return await sandbox_service.search_sandboxes(page_id=page_id, limit=limit)
 
 
-@router.get('')
+@router.get("")
 async def batch_get_sandboxes(
     id: Annotated[list[str], Query()],
     sandbox_service: SandboxService = sandbox_service_dependency,
@@ -63,7 +63,7 @@ async def batch_get_sandboxes(
     if len(id) > 100:
         raise HTTPException(
             status_code=400,
-            detail=f'Cannot request more than 100 sandboxes at once, got {len(id)}',
+            detail=f"Cannot request more than 100 sandboxes at once, got {len(id)}",
         )
     sandboxes = await sandbox_service.batch_get_sandboxes(id)
     return sandboxes
@@ -72,7 +72,7 @@ async def batch_get_sandboxes(
 # Write Methods
 
 
-@router.post('')
+@router.post("")
 async def start_sandbox(
     sandbox_spec_id: str | None = None,
     sandbox_service: SandboxService = sandbox_service_dependency,
@@ -81,7 +81,7 @@ async def start_sandbox(
     return info
 
 
-@router.post('/{sandbox_id}/pause', responses={404: {'description': 'Item not found'}})
+@router.post("/{sandbox_id}/pause", responses={404: {"description": "Item not found"}})
 async def pause_sandbox(
     sandbox_id: str,
     sandbox_service: SandboxService = sandbox_service_dependency,
@@ -92,7 +92,7 @@ async def pause_sandbox(
     return Success()
 
 
-@router.post('/{sandbox_id}/resume', responses={404: {'description': 'Item not found'}})
+@router.post("/{sandbox_id}/resume", responses={404: {"description": "Item not found"}})
 async def resume_sandbox(
     sandbox_id: str,
     user_context: UserContext = user_context_dependency,
@@ -105,7 +105,7 @@ async def resume_sandbox(
     return Success()
 
 
-@router.delete('/{id}', responses={404: {'description': 'Item not found'}})
+@router.delete("/{id}", responses={404: {"description": "Item not found"}})
 async def delete_sandbox(
     sandbox_id: str,
     sandbox_service: SandboxService = sandbox_service_dependency,
@@ -125,7 +125,7 @@ async def _valid_sandbox_from_session_key(
     request: Request,
     sandbox_id: str,
     session_api_key: str = Depends(
-        APIKeyHeader(name='X-Session-API-Key', auto_error=False)
+        APIKeyHeader(name="X-Session-API-Key", auto_error=False)
     ),
 ) -> SandboxInfo:
     """Authenticate via ``X-Session-API-Key`` and verify sandbox ownership."""
@@ -134,7 +134,7 @@ async def _valid_sandbox_from_session_key(
     if sandbox_info.id != sandbox_id:
         raise HTTPException(
             status.HTTP_403_FORBIDDEN,
-            detail='Session API key does not match sandbox',
+            detail="Session API key does not match sandbox",
         )
 
     return sandbox_info
@@ -145,13 +145,13 @@ async def _get_user_context(sandbox_info: SandboxInfo) -> AuthUserContext:
     if not sandbox_info.created_by_user_id:
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,
-            detail='Sandbox has no associated user',
+            detail="Sandbox has no associated user",
         )
     user_auth = await get_user_auth_for_user(sandbox_info.created_by_user_id)
     return AuthUserContext(user_auth=user_auth)
 
 
-@router.get('/{sandbox_id}/settings/secrets')
+@router.get("/{sandbox_id}/settings/secrets")
 async def list_secret_names(
     sandbox_info: SandboxInfo = Depends(_valid_sandbox_from_session_key),
 ) -> SecretNamesResponse:
@@ -176,13 +176,13 @@ async def list_secret_names(
     if provider_env_vars:
         for env_key in provider_env_vars:
             items.append(
-                SecretNameItem(name=env_key, description=f'{env_key} provider token')
+                SecretNameItem(name=env_key, description=f"{env_key} provider token")
             )
 
     return SecretNamesResponse(secrets=items)
 
 
-@router.get('/{sandbox_id}/settings/secrets/{secret_name}')
+@router.get("/{sandbox_id}/settings/secrets/{secret_name}")
 async def get_secret_value(
     secret_name: str,
     sandbox_info: SandboxInfo = Depends(_valid_sandbox_from_session_key),
@@ -201,8 +201,8 @@ async def get_secret_value(
     if source is not None:
         value = source.get_value()
         if value is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, detail='Secret has no value')
-        return Response(content=value, media_type='text/plain')
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Secret has no value")
+        return Response(content=value, media_type="text/plain")
 
     # Fall back to provider tokens (resolved fresh per request)
     provider_env_vars = cast(
@@ -212,6 +212,6 @@ async def get_secret_value(
     if provider_env_vars:
         token_value = provider_env_vars.get(secret_name)
         if token_value is not None:
-            return Response(content=token_value, media_type='text/plain')
+            return Response(content=token_value, media_type="text/plain")
 
-    raise HTTPException(status.HTTP_404_NOT_FOUND, detail='Secret not found')
+    raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Secret not found")

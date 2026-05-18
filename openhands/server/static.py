@@ -5,4 +5,4 @@
 
 from openhands.app_server.static import SPAStaticFiles
 
-__all__ = ['SPAStaticFiles']
+__all__ = ["SPAStaticFiles"]

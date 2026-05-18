@@ -52,7 +52,7 @@ logger = logging.getLogger(__name__)
 
 
 class StoredAppConversationStartTask(Base):
-    __tablename__ = 'app_conversation_start_task'
+    __tablename__ = "app_conversation_start_task"
 
     id: Mapped[UUID] = mapped_column(primary_key=True)
     created_by_user_id: Mapped[str] = mapped_column(String, index=True)

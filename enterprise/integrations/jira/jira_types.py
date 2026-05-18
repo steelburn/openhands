@@ -21,7 +21,7 @@ class JiraViewInterface(ABC):
     """
 
     # Core data - view holds these references
-    payload: 'JiraWebhookPayload'
+    payload: "JiraWebhookPayload"
     saas_user_auth: UserAuth
     jira_user: JiraUser
     jira_workspace: JiraWorkspace

@@ -13,7 +13,7 @@ from storage.gitlab_webhook_store import GitlabWebhookStore
 _test_engine = None
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def event_loop():
     """Create an instance of the default event loop for each test case."""
     import asyncio
@@ -23,7 +23,7 @@ def event_loop():
     loop.close()
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 async def async_engine(event_loop):
     """Create an async SQLite engine for testing.
 
@@ -32,9 +32,9 @@ async def async_engine(event_loop):
     """
     global _test_engine
     engine = create_async_engine(
-        'sqlite+aiosqlite:///:memory:',
+        "sqlite+aiosqlite:///:memory:",
         poolclass=StaticPool,
-        connect_args={'check_same_thread': False},
+        connect_args={"check_same_thread": False},
         echo=False,
     )
     _test_engine = engine
@@ -48,7 +48,7 @@ async def async_engine(event_loop):
     await engine.dispose()
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 async def async_session_maker(async_engine):
     """Create an async session maker for testing."""
     return async_sessionmaker(async_engine, class_=AsyncSession, expire_on_commit=False)
@@ -79,42 +79,42 @@ async def sample_webhooks(async_session_maker):
     async with async_session_maker() as session:
         # Create webhooks for user_1
         webhook1 = GitlabWebhook(
-            project_id='project-1',
+            project_id="project-1",
             group_id=None,
-            user_id='user_1',
+            user_id="user_1",
             webhook_exists=True,
-            webhook_url='https://example.com/webhook',
-            webhook_secret='secret-1',
-            webhook_uuid='uuid-1',
+            webhook_url="https://example.com/webhook",
+            webhook_secret="secret-1",
+            webhook_uuid="uuid-1",
         )
         webhook2 = GitlabWebhook(
-            project_id='project-2',
+            project_id="project-2",
             group_id=None,
-            user_id='user_1',
+            user_id="user_1",
             webhook_exists=True,
-            webhook_url='https://example.com/webhook',
-            webhook_secret='secret-2',
-            webhook_uuid='uuid-2',
+            webhook_url="https://example.com/webhook",
+            webhook_secret="secret-2",
+            webhook_uuid="uuid-2",
         )
         webhook3 = GitlabWebhook(
             project_id=None,
-            group_id='group-1',
-            user_id='user_1',
+            group_id="group-1",
+            user_id="user_1",
             webhook_exists=False,  # Already marked for reinstallation
-            webhook_url='https://example.com/webhook',
-            webhook_secret='secret-3',
-            webhook_uuid='uuid-3',
+            webhook_url="https://example.com/webhook",
+            webhook_secret="secret-3",
+            webhook_uuid="uuid-3",
         )
 
         # Create webhook for user_2
         webhook4 = GitlabWebhook(
-            project_id='project-3',
+            project_id="project-3",
             group_id=None,
-            user_id='user_2',
+            user_id="user_2",
             webhook_exists=True,
-            webhook_url='https://example.com/webhook',
-            webhook_secret='secret-4',
-            webhook_uuid='uuid-4',
+            webhook_url="https://example.com/webhook",
+            webhook_secret="secret-4",
+            webhook_uuid="uuid-4",
         )
 
         session.add_all([webhook1, webhook2, webhook3, webhook4])
@@ -139,7 +139,7 @@ class TestGetWebhookByResourceOnly:
         """Test getting a project webhook by resource ID without user_id filter."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = 'project-1'
+        resource_id = "project-1"
 
         # Act
         webhook = await webhook_store.get_webhook_by_resource_only(
@@ -149,7 +149,7 @@ class TestGetWebhookByResourceOnly:
         # Assert
         assert webhook is not None
         assert webhook.project_id == resource_id
-        assert webhook.user_id == 'user_1'
+        assert webhook.user_id == "user_1"
 
     @pytest.mark.asyncio
     async def test_get_group_webhook_by_resource_only(
@@ -158,7 +158,7 @@ class TestGetWebhookByResourceOnly:
         """Test getting a group webhook by resource ID without user_id filter."""
         # Arrange
         resource_type = GitLabResourceType.GROUP
-        resource_id = 'group-1'
+        resource_id = "group-1"
 
         # Act
         webhook = await webhook_store.get_webhook_by_resource_only(
@@ -168,7 +168,7 @@ class TestGetWebhookByResourceOnly:
         # Assert
         assert webhook is not None
         assert webhook.group_id == resource_id
-        assert webhook.user_id == 'user_1'
+        assert webhook.user_id == "user_1"
 
     @pytest.mark.asyncio
     async def test_get_webhook_by_resource_only_not_found(
@@ -177,7 +177,7 @@ class TestGetWebhookByResourceOnly:
         """Test getting a webhook that doesn't exist."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = 'non-existent-project'
+        resource_id = "non-existent-project"
 
         # Act
         webhook = await webhook_store.get_webhook_by_resource_only(
@@ -194,7 +194,7 @@ class TestGetWebhookByResourceOnly:
         """Test that webhook lookup works regardless of which user originally created it."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = 'project-3'  # Created by user_2
+        resource_id = "project-3"  # Created by user_2
 
         # Act
         webhook = await webhook_store.get_webhook_by_resource_only(
@@ -205,7 +205,7 @@ class TestGetWebhookByResourceOnly:
         assert webhook is not None
         assert webhook.project_id == resource_id
         # Should find webhook even though it was created by a different user
-        assert webhook.user_id == 'user_2'
+        assert webhook.user_id == "user_2"
 
 
 class TestResetWebhookForReinstallationByResource:
@@ -218,8 +218,8 @@ class TestResetWebhookForReinstallationByResource:
         """Test resetting a project webhook by resource without user_id filter."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = 'project-1'
-        updating_user_id = 'user_2'  # Different user can reset it
+        resource_id = "project-1"
+        updating_user_id = "user_2"  # Different user can reset it
 
         # Act
         result = await webhook_store.reset_webhook_for_reinstallation_by_resource(
@@ -248,8 +248,8 @@ class TestResetWebhookForReinstallationByResource:
         """Test resetting a group webhook by resource without user_id filter."""
         # Arrange
         resource_type = GitLabResourceType.GROUP
-        resource_id = 'group-1'
-        updating_user_id = 'user_2'
+        resource_id = "group-1"
+        updating_user_id = "user_2"
 
         # Act
         result = await webhook_store.reset_webhook_for_reinstallation_by_resource(
@@ -276,8 +276,8 @@ class TestResetWebhookForReinstallationByResource:
         """Test resetting a webhook that doesn't exist."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = 'non-existent-project'
-        updating_user_id = 'user_1'
+        resource_id = "non-existent-project"
+        updating_user_id = "user_1"
 
         # Act
         result = await webhook_store.reset_webhook_for_reinstallation_by_resource(
@@ -294,8 +294,8 @@ class TestResetWebhookForReinstallationByResource:
         """Test that any user can reset a webhook regardless of original creator."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = 'project-3'  # Created by user_2
-        updating_user_id = 'user_1'  # Different user resetting it
+        resource_id = "project-3"  # Created by user_2
+        updating_user_id = "user_1"  # Different user resetting it
 
         # Act
         result = await webhook_store.reset_webhook_for_reinstallation_by_resource(
@@ -324,7 +324,7 @@ class TestGetWebhooksByResources:
     ):
         """Test bulk fetching webhooks for multiple projects."""
         # Arrange
-        project_ids = ['project-1', 'project-2', 'project-3']
+        project_ids = ["project-1", "project-2", "project-3"]
         group_ids: list[str] = []
 
         # Act
@@ -334,9 +334,9 @@ class TestGetWebhooksByResources:
 
         # Assert
         assert len(project_map) == 3
-        assert 'project-1' in project_map
-        assert 'project-2' in project_map
-        assert 'project-3' in project_map
+        assert "project-1" in project_map
+        assert "project-2" in project_map
+        assert "project-3" in project_map
         assert len(group_map) == 0
 
     @pytest.mark.asyncio
@@ -346,7 +346,7 @@ class TestGetWebhooksByResources:
         """Test bulk fetching webhooks for multiple groups."""
         # Arrange
         project_ids: list[str] = []
-        group_ids = ['group-1']
+        group_ids = ["group-1"]
 
         # Act
         project_map, group_map = await webhook_store.get_webhooks_by_resources(
@@ -356,7 +356,7 @@ class TestGetWebhooksByResources:
         # Assert
         assert len(project_map) == 0
         assert len(group_map) == 1
-        assert 'group-1' in group_map
+        assert "group-1" in group_map
 
     @pytest.mark.asyncio
     async def test_get_webhooks_by_resources_mixed(
@@ -364,8 +364,8 @@ class TestGetWebhooksByResources:
     ):
         """Test bulk fetching webhooks for both projects and groups."""
         # Arrange
-        project_ids = ['project-1', 'project-2']
-        group_ids = ['group-1']
+        project_ids = ["project-1", "project-2"]
+        group_ids = ["group-1"]
 
         # Act
         project_map, group_map = await webhook_store.get_webhooks_by_resources(
@@ -375,9 +375,9 @@ class TestGetWebhooksByResources:
         # Assert
         assert len(project_map) == 2
         assert len(group_map) == 1
-        assert 'project-1' in project_map
-        assert 'project-2' in project_map
-        assert 'group-1' in group_map
+        assert "project-1" in project_map
+        assert "project-2" in project_map
+        assert "group-1" in group_map
 
     @pytest.mark.asyncio
     async def test_get_webhooks_by_resources_empty_lists(
@@ -403,8 +403,8 @@ class TestGetWebhooksByResources:
     ):
         """Test bulk fetching when some IDs don't exist."""
         # Arrange
-        project_ids = ['project-1', 'non-existent-project']
-        group_ids = ['group-1', 'non-existent-group']
+        project_ids = ["project-1", "non-existent-project"]
+        group_ids = ["group-1", "non-existent-group"]
 
         # Act
         project_map, group_map = await webhook_store.get_webhooks_by_resources(
@@ -413,8 +413,8 @@ class TestGetWebhooksByResources:
 
         # Assert
         assert len(project_map) == 1
-        assert 'project-1' in project_map
-        assert 'non-existent-project' not in project_map
+        assert "project-1" in project_map
+        assert "non-existent-project" not in project_map
         assert len(group_map) == 1
-        assert 'group-1' in group_map
-        assert 'non-existent-group' not in group_map
+        assert "group-1" in group_map
+        assert "non-existent-group" not in group_map

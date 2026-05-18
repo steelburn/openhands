@@ -56,7 +56,7 @@ async def test_iterate_empty():
 
 @pytest.mark.asyncio
 async def test_iterate_single_page():
-    items = [MockItem(id='item1'), MockItem(id='item2')]
+    items = [MockItem(id="item1"), MockItem(id="item2")]
 
     async def mock_search(page_id=None, limit=20):
         return MockResultSet(results=items, next_page_id=None)
@@ -66,14 +66,14 @@ async def test_iterate_single_page():
         results.append(result)
 
     assert len(results) == 2
-    assert results[0].id == 'item1'
-    assert results[1].id == 'item2'
+    assert results[0].id == "item1"
+    assert results[1].id == "item2"
 
 
 @pytest.mark.asyncio
 async def test_iterate_multiple_pages():
     # Create test data with 5 items split across pages
-    all_items = [MockItem(id=f'item{i}') for i in range(1, 6)]
+    all_items = [MockItem(id=f"item{i}") for i in range(1, 6)]
 
     async def mock_search(page_id=None, limit=2):
         offset = page_id_to_offset(page_id)
@@ -88,4 +88,4 @@ async def test_iterate_multiple_pages():
         results.append(result)
 
     assert len(results) == 5
-    assert [r.id for r in results] == ['item1', 'item2', 'item3', 'item4', 'item5']
+    assert [r.id for r in results] == ["item1", "item2", "item3", "item4", "item5"]

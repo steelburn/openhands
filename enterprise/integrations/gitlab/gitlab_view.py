@@ -31,8 +31,8 @@ from openhands.app_server.utils.logger import openhands_logger as logger
 from openhands.sdk import TextContent
 
 OH_LABEL, INLINE_OH_LABEL = get_oh_labels(HOST)
-CONFIDENTIAL_NOTE = 'confidential_note'
-NOTE_TYPES = ['note', CONFIDENTIAL_NOTE]
+CONFIDENTIAL_NOTE = "confidential_note"
+NOTE_TYPES = ["note", CONFIDENTIAL_NOTE]
 
 
 # =================================================
@@ -58,7 +58,7 @@ class GitlabIssue(ResolverViewInterface):
     is_mr: bool
 
     def _get_branch_name(self) -> str | None:
-        return getattr(self, 'branch_name', None)
+        return getattr(self, "branch_name", None)
 
     async def _load_resolver_context(self):
         gitlab_service = GitLabServiceImpl(
@@ -77,7 +77,7 @@ class GitlabIssue(ResolverViewInterface):
         )
 
     async def _get_instructions(self, jinja_env: Environment) -> tuple[str, str]:
-        user_instructions_template = jinja_env.get_template('issue_prompt.j2')
+        user_instructions_template = jinja_env.get_template("issue_prompt.j2")
         await self._load_resolver_context()
 
         user_instructions = user_instructions_template.render(
@@ -85,7 +85,7 @@ class GitlabIssue(ResolverViewInterface):
         )
 
         conversation_instructions_template = jinja_env.get_template(
-            'issue_conversation_instructions.j2'
+            "issue_conversation_instructions.j2"
         )
         conversation_instructions = conversation_instructions_template.render(
             issue_title=self.title,
@@ -106,7 +106,7 @@ class GitlabIssue(ResolverViewInterface):
     async def initialize_new_conversation(self) -> UUID:
         # Resolve target org based on claimed git organizations
         self.resolved_org_id = await resolve_org_for_repo(
-            provider='gitlab',
+            provider="gitlab",
             full_repo_name=self.full_repo_name,
             keycloak_user_id=self.user_info.keycloak_user_id,
         )
@@ -133,7 +133,7 @@ class GitlabIssue(ResolverViewInterface):
         conversation_id: UUID,
     ):
         """Create conversation using the new V1 app conversation system."""
-        logger.info('[GitLab V1]: Creating V1 conversation')
+        logger.info("[GitLab V1]: Creating V1 conversation")
 
         user_instructions, conversation_instructions = await self._get_instructions(
             jinja_env
@@ -141,7 +141,7 @@ class GitlabIssue(ResolverViewInterface):
 
         # Create the initial message request
         initial_message = SendMessageRequest(
-            role='user', content=[TextContent(text=user_instructions)]
+            role="user", content=[TextContent(text=user_instructions)]
         )
 
         # Create the GitLab V1 callback processor
@@ -151,8 +151,8 @@ class GitlabIssue(ResolverViewInterface):
         injector_state = InjectorState()
 
         # Determine the title based on whether it's an MR or issue
-        title_prefix = 'GitLab MR' if self.is_mr else 'GitLab Issue'
-        title = f'{title_prefix} #{self.issue_number}: {self.title}'
+        title_prefix = "GitLab MR" if self.is_mr else "GitLab Issue"
+        title = f"{title_prefix} #{self.issue_number}: {self.title}"
 
         # Create the V1 conversation start request with the callback processor
         start_request = AppConversationStartRequest(
@@ -183,9 +183,9 @@ class GitlabIssue(ResolverViewInterface):
                 start_request
             ):
                 if task.status == AppConversationStartTaskStatus.ERROR:
-                    logger.error(f'Failed to start V1 conversation: {task.detail}')
+                    logger.error(f"Failed to start V1 conversation: {task.detail}")
                     raise RuntimeError(
-                        f'Failed to start V1 conversation: {task.detail}'
+                        f"Failed to start V1 conversation: {task.detail}"
                     )
 
     def _create_gitlab_v1_callback_processor(self):
@@ -197,13 +197,13 @@ class GitlabIssue(ResolverViewInterface):
         # Create and return the GitLab V1 callback processor
         return GitlabV1CallbackProcessor(
             gitlab_view_data={
-                'issue_number': self.issue_number,
-                'project_id': self.project_id,
-                'full_repo_name': self.full_repo_name,
-                'installation_id': self.installation_id,
-                'keycloak_user_id': self.user_info.keycloak_user_id,
-                'is_mr': self.is_mr,
-                'discussion_id': getattr(self, 'discussion_id', None),
+                "issue_number": self.issue_number,
+                "project_id": self.project_id,
+                "full_repo_name": self.full_repo_name,
+                "installation_id": self.installation_id,
+                "keycloak_user_id": self.user_info.keycloak_user_id,
+                "is_mr": self.is_mr,
+                "discussion_id": getattr(self, "discussion_id", None),
             },
             should_request_summary=self.send_summary_instruction,
         )
@@ -216,7 +216,7 @@ class GitlabIssueComment(GitlabIssue):
     confidential: bool
 
     async def _get_instructions(self, jinja_env: Environment) -> tuple[str, str]:
-        user_instructions_template = jinja_env.get_template('issue_prompt.j2')
+        user_instructions_template = jinja_env.get_template("issue_prompt.j2")
         await self._load_resolver_context()
 
         user_instructions = user_instructions_template.render(
@@ -224,7 +224,7 @@ class GitlabIssueComment(GitlabIssue):
         )
 
         conversation_instructions_template = jinja_env.get_template(
-            'issue_conversation_instructions.j2'
+            "issue_conversation_instructions.j2"
         )
 
         conversation_instructions = conversation_instructions_template.render(
@@ -245,7 +245,7 @@ class GitlabMRComment(GitlabIssueComment):
         return self.branch_name
 
     async def _get_instructions(self, jinja_env: Environment) -> tuple[str, str]:
-        user_instructions_template = jinja_env.get_template('mr_update_prompt.j2')
+        user_instructions_template = jinja_env.get_template("mr_update_prompt.j2")
         await self._load_resolver_context()
 
         user_instructions = user_instructions_template.render(
@@ -253,7 +253,7 @@ class GitlabMRComment(GitlabIssueComment):
         )
 
         conversation_instructions_template = jinja_env.get_template(
-            'mr_update_conversation_instructions.j2'
+            "mr_update_conversation_instructions.j2"
         )
         conversation_instructions = conversation_instructions_template.render(
             mr_number=self.issue_number,
@@ -288,7 +288,7 @@ class GitlabInlineMRComment(GitlabMRComment):
         )
 
     async def _get_instructions(self, jinja_env: Environment) -> tuple[str, str]:
-        user_instructions_template = jinja_env.get_template('mr_update_prompt.j2')
+        user_instructions_template = jinja_env.get_template("mr_update_prompt.j2")
         await self._load_resolver_context()
 
         user_instructions = user_instructions_template.render(
@@ -296,7 +296,7 @@ class GitlabInlineMRComment(GitlabMRComment):
         )
 
         conversation_instructions_template = jinja_env.get_template(
-            'mr_update_conversation_instructions.j2'
+            "mr_update_conversation_instructions.j2"
         )
 
         conversation_instructions = conversation_instructions_template.render(
@@ -320,18 +320,18 @@ GitlabViewType = (
 class GitlabFactory:
     @staticmethod
     def is_labeled_issue(message: Message) -> bool:
-        payload = message.message['payload']
-        object_kind = payload.get('object_kind')
-        event_type = payload.get('event_type')
+        payload = message.message["payload"]
+        object_kind = payload.get("object_kind")
+        event_type = payload.get("event_type")
 
-        if object_kind == 'issue' and event_type == 'issue':
-            changes = payload.get('changes', {})
-            labels = changes.get('labels', {})
-            previous = labels.get('previous', [])
-            current = labels.get('current', [])
+        if object_kind == "issue" and event_type == "issue":
+            changes = payload.get("changes", {})
+            labels = changes.get("labels", {})
+            previous = labels.get("previous", [])
+            current = labels.get("current", [])
 
-            previous_labels = [obj['title'] for obj in previous]
-            current_labels = [obj['title'] for obj in current]
+            previous_labels = [obj["title"] for obj in previous]
+            current_labels = [obj["title"] for obj in current]
 
             if OH_LABEL not in previous_labels and OH_LABEL in current_labels:
                 return True
@@ -340,43 +340,43 @@ class GitlabFactory:
 
     @staticmethod
     def is_issue_comment(message: Message) -> bool:
-        payload = message.message['payload']
-        object_kind = payload.get('object_kind')
-        event_type = payload.get('event_type')
-        issue = payload.get('issue')
+        payload = message.message["payload"]
+        object_kind = payload.get("object_kind")
+        event_type = payload.get("event_type")
+        issue = payload.get("issue")
 
-        if object_kind == 'note' and event_type in NOTE_TYPES and issue:
-            comment_body = payload.get('object_attributes', {}).get('note', '')
+        if object_kind == "note" and event_type in NOTE_TYPES and issue:
+            comment_body = payload.get("object_attributes", {}).get("note", "")
             return has_exact_mention(comment_body, INLINE_OH_LABEL)
 
         return False
 
     @staticmethod
     def is_mr_comment(message: Message, inline=False) -> bool:
-        payload = message.message['payload']
-        object_kind = payload.get('object_kind')
-        event_type = payload.get('event_type')
-        merge_request = payload.get('merge_request')
+        payload = message.message["payload"]
+        object_kind = payload.get("object_kind")
+        event_type = payload.get("event_type")
+        merge_request = payload.get("merge_request")
 
-        if not (object_kind == 'note' and event_type in NOTE_TYPES and merge_request):
+        if not (object_kind == "note" and event_type in NOTE_TYPES and merge_request):
             return False
 
         # Check whether not belongs to MR
-        object_attributes = payload.get('object_attributes', {})
-        noteable_type = object_attributes.get('noteable_type')
+        object_attributes = payload.get("object_attributes", {})
+        noteable_type = object_attributes.get("noteable_type")
 
-        if noteable_type != 'MergeRequest':
+        if noteable_type != "MergeRequest":
             return False
 
         # Check whether comment is inline
-        change_position = object_attributes.get('change_position')
+        change_position = object_attributes.get("change_position")
         if inline and not change_position:
             return False
         if not inline and change_position:
             return False
 
         # Check body
-        comment_body = object_attributes.get('note', '')
+        comment_body = object_attributes.get("note", "")
         return has_exact_mention(comment_body, INLINE_OH_LABEL)
 
     @staticmethod
@@ -387,15 +387,15 @@ class GitlabFactory:
     async def create_gitlab_view_from_payload(
         message: Message, token_manager: TokenManager
     ) -> GitlabViewType:
-        payload = message.message['payload']
-        installation_id = message.message['installation_id']
-        user = payload['user']
-        user_id = user['id']
-        username = user['username']
-        repo_obj = payload['project']
-        selected_project = repo_obj['path_with_namespace']
-        is_public_repo = repo_obj['visibility_level'] == 0
-        project_id = payload['object_attributes']['project_id']
+        payload = message.message["payload"]
+        installation_id = message.message["installation_id"]
+        user = payload["user"]
+        user_id = user["id"]
+        username = user["username"]
+        repo_obj = payload["project"]
+        selected_project = repo_obj["path_with_namespace"]
+        is_public_repo = repo_obj["visibility_level"] == 0
+        project_id = payload["object_attributes"]["project_id"]
 
         keycloak_user_id = await token_manager.get_user_id_from_idp_user_id(
             user_id, ProviderType.GITLAB
@@ -406,10 +406,10 @@ class GitlabFactory:
         )
 
         if GitlabFactory.is_labeled_issue(message):
-            issue_iid = payload['object_attributes']['iid']
+            issue_iid = payload["object_attributes"]["iid"]
 
             logger.info(
-                f'[GitLab] Creating view for labeled issue from {username} in {selected_project}#{issue_iid}'
+                f"[GitLab] Creating view for labeled issue from {username} in {selected_project}#{issue_iid}"
             )
             return GitlabIssue(
                 installation_id=installation_id,
@@ -419,23 +419,23 @@ class GitlabFactory:
                 is_public_repo=is_public_repo,
                 user_info=user_info,
                 raw_payload=message,
-                conversation_id='',
+                conversation_id="",
                 should_extract=True,
                 send_summary_instruction=True,
-                title='',
-                description='',
+                title="",
+                description="",
                 previous_comments=[],
                 is_mr=False,
             )
 
         elif GitlabFactory.is_issue_comment(message):
-            event_type = payload['event_type']
-            issue_iid = payload['issue']['iid']
-            object_attributes = payload['object_attributes']
-            discussion_id = object_attributes['discussion_id']
-            comment_body = object_attributes['note']
+            event_type = payload["event_type"]
+            issue_iid = payload["issue"]["iid"]
+            object_attributes = payload["object_attributes"]
+            discussion_id = object_attributes["discussion_id"]
+            comment_body = object_attributes["note"]
             logger.info(
-                f'[GitLab] Creating view for issue comment from {username} in {selected_project}#{issue_iid}'
+                f"[GitLab] Creating view for issue comment from {username} in {selected_project}#{issue_iid}"
             )
 
             return GitlabIssueComment(
@@ -449,24 +449,24 @@ class GitlabFactory:
                 is_public_repo=is_public_repo,
                 user_info=user_info,
                 raw_payload=message,
-                conversation_id='',
+                conversation_id="",
                 should_extract=True,
                 send_summary_instruction=True,
-                title='',
-                description='',
+                title="",
+                description="",
                 previous_comments=[],
                 is_mr=False,
             )
 
         elif GitlabFactory.is_mr_comment(message):
-            event_type = payload['event_type']
-            merge_request_iid = payload['merge_request']['iid']
-            branch_name = payload['merge_request']['source_branch']
-            object_attributes = payload['object_attributes']
-            discussion_id = object_attributes['discussion_id']
-            comment_body = object_attributes['note']
+            event_type = payload["event_type"]
+            merge_request_iid = payload["merge_request"]["iid"]
+            branch_name = payload["merge_request"]["source_branch"]
+            object_attributes = payload["object_attributes"]
+            discussion_id = object_attributes["discussion_id"]
+            comment_body = object_attributes["note"]
             logger.info(
-                f'[GitLab] Creating view for merge request comment from {username} in {selected_project}#{merge_request_iid}'
+                f"[GitLab] Creating view for merge request comment from {username} in {selected_project}#{merge_request_iid}"
             )
 
             return GitlabMRComment(
@@ -479,32 +479,32 @@ class GitlabFactory:
                 is_public_repo=is_public_repo,
                 user_info=user_info,
                 raw_payload=message,
-                conversation_id='',
+                conversation_id="",
                 should_extract=True,
                 send_summary_instruction=True,
                 confidential=GitlabFactory.determine_if_confidential(event_type),
                 branch_name=branch_name,
-                title='',
-                description='',
+                title="",
+                description="",
                 previous_comments=[],
                 is_mr=True,
             )
 
         elif GitlabFactory.is_mr_comment(message, inline=True):
-            event_type = payload['event_type']
-            merge_request_iid = payload['merge_request']['iid']
-            branch_name = payload['merge_request']['source_branch']
-            object_attributes = payload['object_attributes']
-            comment_body = object_attributes['note']
-            position_info = object_attributes['position']
-            discussion_id = object_attributes['discussion_id']
-            file_location = object_attributes['position']['new_path']
+            event_type = payload["event_type"]
+            merge_request_iid = payload["merge_request"]["iid"]
+            branch_name = payload["merge_request"]["source_branch"]
+            object_attributes = payload["object_attributes"]
+            comment_body = object_attributes["note"]
+            position_info = object_attributes["position"]
+            discussion_id = object_attributes["discussion_id"]
+            file_location = object_attributes["position"]["new_path"]
             line_number = (
-                position_info.get('new_line') or position_info.get('old_line') or 0
+                position_info.get("new_line") or position_info.get("old_line") or 0
             )
 
             logger.info(
-                f'[GitLab] Creating view for inline merge request comment from {username} in {selected_project}#{merge_request_iid}'
+                f"[GitLab] Creating view for inline merge request comment from {username} in {selected_project}#{merge_request_iid}"
             )
 
             return GitlabInlineMRComment(
@@ -516,7 +516,7 @@ class GitlabFactory:
                 is_public_repo=is_public_repo,
                 user_info=user_info,
                 raw_payload=message,
-                conversation_id='',
+                conversation_id="",
                 should_extract=True,
                 send_summary_instruction=True,
                 confidential=GitlabFactory.determine_if_confidential(event_type),
@@ -524,10 +524,10 @@ class GitlabFactory:
                 file_location=file_location,
                 line_number=line_number,
                 comment_body=comment_body,
-                title='',
-                description='',
+                title="",
+                description="",
                 previous_comments=[],
                 is_mr=True,
             )
 
-        raise ValueError(f'Unhandled GitLab webhook event: {message}')
+        raise ValueError(f"Unhandled GitLab webhook event: {message}")

@@ -16,7 +16,7 @@ from storage.org_invitation import OrgInvitation
 from openhands.app_server.utils.logger import openhands_logger as logger
 
 # Invitation token configuration
-INVITATION_TOKEN_PREFIX = 'inv-'
+INVITATION_TOKEN_PREFIX = "inv-"
 INVITATION_TOKEN_LENGTH = 48  # Total length will be 52 with prefix
 DEFAULT_EXPIRATION_DAYS = 7
 
@@ -38,8 +38,8 @@ class OrgInvitationStore:
             str: Token with prefix (e.g., 'inv-aBcDeF123...')
         """
         alphabet = string.ascii_letters + string.digits
-        random_part = ''.join(secrets.choice(alphabet) for _ in range(length))
-        return f'{INVITATION_TOKEN_PREFIX}{random_part}'
+        random_part = "".join(secrets.choice(alphabet) for _ in range(length))
+        return f"{INVITATION_TOKEN_PREFIX}{random_part}"
 
     @staticmethod
     async def create_invitation(
@@ -87,13 +87,13 @@ class OrgInvitationStore:
             invitation = result.scalars().first()
 
             logger.info(
-                'Created organization invitation',
+                "Created organization invitation",
                 extra={
-                    'invitation_id': invitation.id,
-                    'org_id': str(org_id),
-                    'email': email,
-                    'inviter_id': str(inviter_id),
-                    'expires_at': expires_at.isoformat(),
+                    "invitation_id": invitation.id,
+                    "org_id": str(org_id),
+                    "email": email,
+                    "inviter_id": str(inviter_id),
+                    "expires_at": expires_at.isoformat(),
                 },
             )
 
@@ -179,12 +179,12 @@ class OrgInvitationStore:
             await session.refresh(invitation)
 
             logger.info(
-                'Updated invitation status',
+                "Updated invitation status",
                 extra={
-                    'invitation_id': invitation_id,
-                    'old_status': old_status,
-                    'new_status': status,
-                    'accepted_by_user_id': (
+                    "invitation_id": invitation_id,
+                    "old_status": old_status,
+                    "new_status": status,
+                    "accepted_by_user_id": (
                         str(accepted_by_user_id) if accepted_by_user_id else None
                     ),
                 },

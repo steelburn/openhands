@@ -19,29 +19,29 @@ from integrations.jira.jira_payload import (
 @pytest.fixture
 def parser():
     """Create a JiraPayloadParser with standard OpenHands labels."""
-    return JiraPayloadParser(oh_label='openhands', inline_oh_label='@openhands')
+    return JiraPayloadParser(oh_label="openhands", inline_oh_label="@openhands")
 
 
 @pytest.fixture
 def valid_label_payload():
     """Create a valid jira:issue_updated payload with OpenHands label."""
     return {
-        'webhookEvent': 'jira:issue_updated',
-        'issue': {
-            'id': '12345',
-            'key': 'TEST-123',
-            'self': 'https://test.atlassian.net/rest/api/2/issue/12345',
+        "webhookEvent": "jira:issue_updated",
+        "issue": {
+            "id": "12345",
+            "key": "TEST-123",
+            "self": "https://test.atlassian.net/rest/api/2/issue/12345",
         },
-        'user': {
-            'displayName': 'Test User',
-            'accountId': 'account-123',
-            'emailAddress': 'test@example.com',
+        "user": {
+            "displayName": "Test User",
+            "accountId": "account-123",
+            "emailAddress": "test@example.com",
         },
-        'changelog': {
-            'items': [
+        "changelog": {
+            "items": [
                 {
-                    'field': 'labels',
-                    'toString': 'openhands',
+                    "field": "labels",
+                    "toString": "openhands",
                 }
             ]
         },
@@ -52,18 +52,18 @@ def valid_label_payload():
 def valid_comment_payload():
     """Create a valid comment_created payload with OpenHands mention."""
     return {
-        'webhookEvent': 'comment_created',
-        'issue': {
-            'id': '12345',
-            'key': 'TEST-123',
-            'self': 'https://test.atlassian.net/rest/api/2/issue/12345',
+        "webhookEvent": "comment_created",
+        "issue": {
+            "id": "12345",
+            "key": "TEST-123",
+            "self": "https://test.atlassian.net/rest/api/2/issue/12345",
         },
-        'comment': {
-            'body': '@openhands please fix this bug',
-            'author': {
-                'displayName': 'Test User',
-                'accountId': 'account-123',
-                'emailAddress': 'test@example.com',
+        "comment": {
+            "body": "@openhands please fix this bug",
+            "author": {
+                "displayName": "Test User",
+                "accountId": "account-123",
+                "emailAddress": "test@example.com",
             },
         },
     }
@@ -81,32 +81,32 @@ class TestUserEmailOptional:
     ):
         """Verify label event parsing succeeds when emailAddress is missing."""
         # Arrange - remove emailAddress from user data
-        del valid_label_payload['user']['emailAddress']
+        del valid_label_payload["user"]["emailAddress"]
 
         # Act
         result = parser.parse(valid_label_payload)
 
         # Assert
         assert isinstance(result, JiraPayloadSuccess)
-        assert result.payload.user_email == ''
-        assert result.payload.display_name == 'Test User'
-        assert result.payload.account_id == 'account-123'
+        assert result.payload.user_email == ""
+        assert result.payload.display_name == "Test User"
+        assert result.payload.account_id == "account-123"
 
     def test_comment_event_succeeds_without_email_address(
         self, parser, valid_comment_payload
     ):
         """Verify comment event parsing succeeds when emailAddress is missing."""
         # Arrange - remove emailAddress from author data
-        del valid_comment_payload['comment']['author']['emailAddress']
+        del valid_comment_payload["comment"]["author"]["emailAddress"]
 
         # Act
         result = parser.parse(valid_comment_payload)
 
         # Assert
         assert isinstance(result, JiraPayloadSuccess)
-        assert result.payload.user_email == ''
-        assert result.payload.display_name == 'Test User'
-        assert result.payload.account_id == 'account-123'
+        assert result.payload.user_email == ""
+        assert result.payload.display_name == "Test User"
+        assert result.payload.account_id == "account-123"
 
     def test_user_email_preserved_when_present(self, parser, valid_label_payload):
         """Verify user_email is captured when emailAddress is present."""
@@ -115,7 +115,7 @@ class TestUserEmailOptional:
 
         # Assert
         assert isinstance(result, JiraPayloadSuccess)
-        assert result.payload.user_email == 'test@example.com'
+        assert result.payload.user_email == "test@example.com"
 
 
 class TestRequiredFieldValidation:
@@ -124,62 +124,62 @@ class TestRequiredFieldValidation:
     def test_missing_issue_id_returns_error(self, parser, valid_label_payload):
         """Verify parsing fails when issue.id is missing."""
         # Arrange
-        del valid_label_payload['issue']['id']
+        del valid_label_payload["issue"]["id"]
 
         # Act
         result = parser.parse(valid_label_payload)
 
         # Assert
         assert isinstance(result, JiraPayloadError)
-        assert 'issue.id' in result.error
+        assert "issue.id" in result.error
 
     def test_missing_issue_key_returns_error(self, parser, valid_label_payload):
         """Verify parsing fails when issue.key is missing."""
         # Arrange
-        del valid_label_payload['issue']['key']
+        del valid_label_payload["issue"]["key"]
 
         # Act
         result = parser.parse(valid_label_payload)
 
         # Assert
         assert isinstance(result, JiraPayloadError)
-        assert 'issue.key' in result.error
+        assert "issue.key" in result.error
 
     def test_missing_display_name_returns_error(self, parser, valid_label_payload):
         """Verify parsing fails when user.displayName is missing."""
         # Arrange
-        del valid_label_payload['user']['displayName']
+        del valid_label_payload["user"]["displayName"]
 
         # Act
         result = parser.parse(valid_label_payload)
 
         # Assert
         assert isinstance(result, JiraPayloadError)
-        assert 'displayName' in result.error
+        assert "displayName" in result.error
 
     def test_missing_account_id_returns_error(self, parser, valid_label_payload):
         """Verify parsing fails when user.accountId is missing."""
         # Arrange
-        del valid_label_payload['user']['accountId']
+        del valid_label_payload["user"]["accountId"]
 
         # Act
         result = parser.parse(valid_label_payload)
 
         # Assert
         assert isinstance(result, JiraPayloadError)
-        assert 'accountId' in result.error
+        assert "accountId" in result.error
 
     def test_missing_issue_self_url_returns_error(self, parser, valid_label_payload):
         """Verify parsing fails when issue.self URL is missing."""
         # Arrange
-        del valid_label_payload['issue']['self']
+        del valid_label_payload["issue"]["self"]
 
         # Act
         result = parser.parse(valid_label_payload)
 
         # Assert
         assert isinstance(result, JiraPayloadError)
-        assert 'workspace_name' in result.error or 'base_api_url' in result.error
+        assert "workspace_name" in result.error or "base_api_url" in result.error
 
 
 class TestEventTypeDetection:
@@ -210,14 +210,14 @@ class TestEventTypeDetection:
     def test_unhandled_event_type_returns_skipped(self, parser):
         """Verify unknown event types are skipped."""
         # Arrange
-        payload = {'webhookEvent': 'jira:issue_deleted'}
+        payload = {"webhookEvent": "jira:issue_deleted"}
 
         # Act
         result = parser.parse(payload)
 
         # Assert
         assert isinstance(result, JiraPayloadSkipped)
-        assert 'Unhandled' in result.skip_reason
+        assert "Unhandled" in result.skip_reason
 
 
 class TestLabelFiltering:
@@ -228,14 +228,14 @@ class TestLabelFiltering:
     ):
         """Verify label events without OpenHands label are skipped."""
         # Arrange - change label to something else
-        valid_label_payload['changelog']['items'][0]['toString'] = 'other-label'
+        valid_label_payload["changelog"]["items"][0]["toString"] = "other-label"
 
         # Act
         result = parser.parse(valid_label_payload)
 
         # Assert
         assert isinstance(result, JiraPayloadSkipped)
-        assert 'openhands' in result.skip_reason
+        assert "openhands" in result.skip_reason
 
 
 class TestCommentFiltering:
@@ -244,14 +244,14 @@ class TestCommentFiltering:
     def test_comment_without_mention_skipped(self, parser, valid_comment_payload):
         """Verify comments without OpenHands mention are skipped."""
         # Arrange - remove mention from comment body
-        valid_comment_payload['comment']['body'] = 'Please fix this bug'
+        valid_comment_payload["comment"]["body"] = "Please fix this bug"
 
         # Act
         result = parser.parse(valid_comment_payload)
 
         # Assert
         assert isinstance(result, JiraPayloadSkipped)
-        assert '@openhands' in result.skip_reason
+        assert "@openhands" in result.skip_reason
 
 
 class TestWorkspaceExtraction:
@@ -264,5 +264,5 @@ class TestWorkspaceExtraction:
 
         # Assert
         assert isinstance(result, JiraPayloadSuccess)
-        assert result.payload.workspace_name == 'test.atlassian.net'
-        assert result.payload.base_api_url == 'https://test.atlassian.net'
+        assert result.payload.workspace_name == "test.atlassian.net"
+        assert result.payload.base_api_url == "https://test.atlassian.net"

@@ -39,17 +39,17 @@ class BitbucketDCPRsMixin(BitbucketDCMixinBase):
 
         payload: dict[str, Any]
 
-        url = f'{repo_base}/pull-requests'
+        url = f"{repo_base}/pull-requests"
         payload = {
-            'title': title,
-            'description': body or '',
-            'fromRef': {
-                'id': f'refs/heads/{source_branch}',
-                'repository': {'slug': repo, 'project': {'key': owner}},
+            "title": title,
+            "description": body or "",
+            "fromRef": {
+                "id": f"refs/heads/{source_branch}",
+                "repository": {"slug": repo, "project": {"key": owner}},
             },
-            'toRef': {
-                'id': f'refs/heads/{target_branch}',
-                'repository': {'slug': repo, 'project': {'key': owner}},
+            "toRef": {
+                "id": f"refs/heads/{target_branch}",
+                "repository": {"slug": repo, "project": {"key": owner}},
             },
         }
 
@@ -58,29 +58,29 @@ class BitbucketDCPRsMixin(BitbucketDCMixinBase):
         )
 
         # Return the URL to the pull request
-        links = data.get('links', {}) if isinstance(data, dict) else {}
+        links = data.get("links", {}) if isinstance(data, dict) else {}
 
         if isinstance(links, dict):
-            html_link = links.get('html')
+            html_link = links.get("html")
             if isinstance(html_link, dict):
-                href = html_link.get('href')
+                href = html_link.get("href")
                 if href:
                     return href
             if isinstance(html_link, list) and html_link:
-                href = html_link[0].get('href')
+                href = html_link[0].get("href")
                 if href:
                     return href
-            self_link = links.get('self')
+            self_link = links.get("self")
             if isinstance(self_link, dict):
-                href = self_link.get('href')
+                href = self_link.get("href")
                 if href:
                     return href
             if isinstance(self_link, list) and self_link:
-                href = self_link[0].get('href')
+                href = self_link[0].get("href")
                 if href:
                     return href
 
-        return ''
+        return ""
 
     async def get_pr_details(self, repository: str, pr_number: int) -> dict:
         """Get detailed information about a specific pull request
@@ -94,7 +94,7 @@ class BitbucketDCPRsMixin(BitbucketDCMixinBase):
         """
         owner, repo = self._extract_owner_and_repo(repository)
         repo_base = self._repo_api_base(owner, repo)
-        url = f'{repo_base}/pull-requests/{pr_number}'
+        url = f"{repo_base}/pull-requests/{pr_number}"
 
         pr_data, _ = await self._make_request(url)
 
@@ -114,21 +114,21 @@ class BitbucketDCPRsMixin(BitbucketDCMixinBase):
             pr_details = await self.get_pr_details(repository, pr_number)
 
             # Bitbucket data center API response structure
-            if 'state' in pr_details:
+            if "state" in pr_details:
                 # Bitbucket data center state values: OPEN, MERGED, DECLINED, SUPERSEDED
-                return pr_details['state'] == 'OPEN'
+                return pr_details["state"] == "OPEN"
 
             # If we can't determine the state, assume it's active (safer default)
             logger.warning(
-                f'Could not determine Bitbucket PR status for {repository}#{pr_number}. '
-                f'Response keys: {list(pr_details.keys())}. Assuming PR is active.'
+                f"Could not determine Bitbucket PR status for {repository}#{pr_number}. "
+                f"Response keys: {list(pr_details.keys())}. Assuming PR is active."
             )
             return True
 
         except Exception as e:
             logger.warning(
-                f'Could not determine Bitbucket PR status for {repository}#{pr_number}: {e}. '
-                f'Including conversation to be safe.'
+                f"Could not determine Bitbucket PR status for {repository}#{pr_number}: {e}. "
+                f"Including conversation to be safe."
             )
             # If we can't determine the PR status, include the conversation to be safe
             return True
