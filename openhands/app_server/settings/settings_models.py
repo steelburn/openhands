@@ -142,6 +142,7 @@ class Settings(BaseModel):
             'See ``LLMProfiles`` for the profile-management API.'
         ),
     )
+    saved_agent_configs: dict[str, Any] = Field(default_factory=dict)
 
     model_config = ConfigDict(populate_by_name=True)
 
@@ -221,10 +222,21 @@ class Settings(BaseModel):
                 # ``OpenHandsAgentSettings | ACPAgentSettings``. Deep-merging
                 # the incoming kind's fields onto the outgoing kind's dump
                 # produces a mongrel (``llm`` plus ``acp_command``) that
-                # fails validation. Start from a fresh base for the new
-                # kind. Cross-kind config preservation tracked in
-                # OpenHands/OpenHands#14370.
-                base: dict[str, Any] = {'agent_kind': new_kind}
+                # fails validation. Start from a fresh base for the new kind,
+                # then restore from snapshot if available (OpenHands/OpenHands#14370).
+                new_saved = dict(self.saved_agent_configs)
+                if current_kind is not None:
+                    # Snapshot the outgoing kind's config
+                    new_saved[current_kind] = self.agent_settings.model_dump(
+                        mode='json', context={'expose_secrets': True}
+                    )
+                # Restore snapshot for new kind if available; else start fresh
+                base: dict[str, Any] = dict(
+                    new_saved.get(new_kind, {'agent_kind': new_kind})
+                )
+                # Ensure agent_kind is set correctly in the base
+                base['agent_kind'] = new_kind
+                object.__setattr__(self, 'saved_agent_configs', new_saved)
             else:
                 base = self.agent_settings.model_dump(
                     mode='json', context={'expose_secrets': True}

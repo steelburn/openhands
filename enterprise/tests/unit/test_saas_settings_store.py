@@ -940,3 +940,62 @@ async def test_llm_profiles_are_encrypted_at_rest(
         ).scalar_one()
     assert user.llm_profiles is not None
     assert user.llm_profiles['profiles']['work']['api_key'] == 'super-secret-byok'
+
+
+@pytest.mark.asyncio
+async def test_store_and_load_saved_agent_configs_round_trip(
+    async_session_maker, org_with_multiple_members_fixture
+):
+    """saved_agent_configs must persist on the User row and round-trip through
+    store → load. Without the user.saved_agent_configs column the field is
+    silently dropped on store() and always defaults to empty on load(), so
+    switching back to a previous agent kind loses the user's previous config."""
+    fixture = org_with_multiple_members_fixture
+    admin_user_id = str(fixture['admin_user_id'])
+    admin_store = SaasSettingsStore(admin_user_id)
+
+    settings = DataSettings()
+    # Set an OH model, then switch to ACP — this populates saved_agent_configs
+    settings.update(
+        {
+            'agent_settings_diff': {
+                'llm': {
+                    'model': 'anthropic/claude-sonnet-4-5-20250929',
+                    'base_url': 'https://api.anthropic.com/v1',
+                    'api_key': 'active-key',
+                },
+            },
+        }
+    )
+    settings.update(
+        {
+            'agent_settings_diff': {
+                'agent_kind': 'acp',
+                'acp_command': ['npx', '-y', '@agentclientprotocol/claude-agent-acp'],
+                'acp_args': [],
+            },
+        }
+    )
+    # After switch, openhands config should be snapshotted
+    assert 'openhands' in settings.saved_agent_configs
+    assert (
+        settings.saved_agent_configs['openhands']['llm']['model']
+        == 'anthropic/claude-sonnet-4-5-20250929'
+    )
+
+    with patch('storage.saas_settings_store.a_session_maker', async_session_maker):
+        await admin_store.store(settings)
+
+    with (
+        patch('storage.saas_settings_store.a_session_maker', async_session_maker),
+        patch('storage.user_store.a_session_maker', async_session_maker),
+        patch('storage.org_store.a_session_maker', async_session_maker),
+    ):
+        loaded = await admin_store.load()
+
+    assert loaded is not None
+    assert 'openhands' in loaded.saved_agent_configs
+    assert (
+        loaded.saved_agent_configs['openhands']['llm']['model']
+        == 'anthropic/claude-sonnet-4-5-20250929'
+    )

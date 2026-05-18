@@ -168,6 +168,10 @@ class SaasSettingsStore(SettingsStore):
         # non-nullable, so let the default_factory take over.
         if kwargs.get('llm_profiles') is None:
             kwargs.pop('llm_profiles', None)
+        # Pre-migration rows read back as None; Settings.saved_agent_configs
+        # has default_factory=dict, so let the factory take over.
+        if kwargs.get('saved_agent_configs') is None:
+            kwargs.pop('saved_agent_configs', None)
 
         return Settings(**kwargs)
 

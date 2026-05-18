@@ -43,6 +43,9 @@ class User(Base):
     llm_profiles: Mapped[dict[str, Any] | None] = mapped_column(
         EncryptedJSON, nullable=True
     )
+    saved_agent_configs: Mapped[dict[str, Any] | None] = mapped_column(
+        EncryptedJSON, nullable=True
+    )
     onboarding_completed: Mapped[bool | None] = mapped_column(
         nullable=True, default=False
     )
