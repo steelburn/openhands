@@ -23,7 +23,7 @@ def encode_page_id(value: int) -> str:
     Returns:
         Base64-encoded string (URL-safe, without padding).
     """
-    return base64.urlsafe_b64encode(str(value).encode()).decode().rstrip("=")
+    return base64.urlsafe_b64encode(str(value).encode()).decode().rstrip('=')
 
 
 def decode_page_id(page_id: str | None) -> int | None:
@@ -47,7 +47,7 @@ def decode_page_id(page_id: str | None) -> int | None:
         return None
     try:
         # Add padding back if needed
-        padded = page_id + "=" * (4 - len(page_id) % 4)
+        padded = page_id + '=' * (4 - len(page_id) % 4)
         decoded = base64.urlsafe_b64decode(padded.encode()).decode()
         return int(decoded)
     except (ValueError, Exception):

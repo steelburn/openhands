@@ -10,11 +10,11 @@ from openhands.app_server.utils.logger import (
 
 
 @patch.dict(
-    "os.environ",
+    'os.environ',
     {
-        "API_SECRET": "super-secret-123",
-        "AUTH_TOKEN": "auth-token-456",
-        "NORMAL_VAR": "normal-value",
+        'API_SECRET': 'super-secret-123',
+        'AUTH_TOKEN': 'auth-token-456',
+        'NORMAL_VAR': 'normal-value',
     },
     clear=True,
 )
@@ -24,11 +24,11 @@ def test_sensitive_data_filter_basic():
 
     # Create a log record with sensitive data
     record = logging.LogRecord(
-        name="test_logger",
+        name='test_logger',
         level=logging.INFO,
-        pathname="test.py",
+        pathname='test.py',
         lineno=1,
-        msg="API Secret: super-secret-123, Token: auth-token-456, Normal: normal-value",
+        msg='API Secret: super-secret-123, Token: auth-token-456, Normal: normal-value',
         args=(),
         exc_info=None,
     )
@@ -37,23 +37,23 @@ def test_sensitive_data_filter_basic():
     filter.filter(record)
 
     # Check that sensitive data is masked but normal data isn't
-    assert "******" in record.msg
-    assert "super-secret-123" not in record.msg
-    assert "auth-token-456" not in record.msg
-    assert "normal-value" in record.msg
+    assert '******' in record.msg
+    assert 'super-secret-123' not in record.msg
+    assert 'auth-token-456' not in record.msg
+    assert 'normal-value' in record.msg
 
 
-@patch.dict("os.environ", {}, clear=True)
+@patch.dict('os.environ', {}, clear=True)
 def test_sensitive_data_filter_empty_values():
     # Test with empty environment variables
     filter = SensitiveDataFilter()
 
     record = logging.LogRecord(
-        name="test_logger",
+        name='test_logger',
         level=logging.INFO,
-        pathname="test.py",
+        pathname='test.py',
         lineno=1,
-        msg="No sensitive data here",
+        msg='No sensitive data here',
         args=(),
         exc_info=None,
     )
@@ -62,21 +62,21 @@ def test_sensitive_data_filter_empty_values():
     filter.filter(record)
 
     # Message should remain unchanged
-    assert record.msg == "No sensitive data here"
+    assert record.msg == 'No sensitive data here'
 
 
-@patch.dict("os.environ", {"API_KEY": "secret-key-789"}, clear=True)
+@patch.dict('os.environ', {'API_KEY': 'secret-key-789'}, clear=True)
 def test_sensitive_data_filter_multiple_occurrences():
     # Test with multiple occurrences of the same sensitive data
     filter = SensitiveDataFilter()
 
     # Create a message with multiple occurrences of the same sensitive data
     record = logging.LogRecord(
-        name="test_logger",
+        name='test_logger',
         level=logging.INFO,
-        pathname="test.py",
+        pathname='test.py',
         lineno=1,
-        msg="Key1: secret-key-789, Key2: secret-key-789",
+        msg='Key1: secret-key-789, Key2: secret-key-789',
         args=(),
         exc_info=None,
     )
@@ -85,16 +85,16 @@ def test_sensitive_data_filter_multiple_occurrences():
     filter.filter(record)
 
     # Check that all occurrences are masked
-    assert record.msg.count("******") == 2
-    assert "secret-key-789" not in record.msg
+    assert record.msg.count('******') == 2
+    assert 'secret-key-789' not in record.msg
 
 
 @patch.dict(
-    "os.environ",
+    'os.environ',
     {
-        "secret_KEY": "secret-value-1",
-        "API_secret": "secret-value-2",
-        "TOKEN_code": "secret-value-3",
+        'secret_KEY': 'secret-value-1',
+        'API_secret': 'secret-value-2',
+        'TOKEN_code': 'secret-value-3',
     },
     clear=True,
 )
@@ -103,11 +103,11 @@ def test_sensitive_data_filter_case_sensitivity():
     filter = SensitiveDataFilter()
 
     record = logging.LogRecord(
-        name="test_logger",
+        name='test_logger',
         level=logging.INFO,
-        pathname="test.py",
+        pathname='test.py',
         lineno=1,
-        msg="Values: secret-value-1, secret-value-2, secret-value-3",
+        msg='Values: secret-value-1, secret-value-2, secret-value-3',
         args=(),
         exc_info=None,
     )
@@ -116,10 +116,10 @@ def test_sensitive_data_filter_case_sensitivity():
     filter.filter(record)
 
     # Check that all sensitive values are masked regardless of case
-    assert "secret-value-1" not in record.msg
-    assert "secret-value-2" not in record.msg
-    assert "secret-value-3" not in record.msg
-    assert record.msg.count("******") == 3
+    assert 'secret-value-1' not in record.msg
+    assert 'secret-value-2' not in record.msg
+    assert 'secret-value-3' not in record.msg
+    assert record.msg.count('******') == 3
 
 
 # --------------------------------------------------------------------------
@@ -133,15 +133,15 @@ def test_redact_url_params_filter_websocket_log():
 
     # Simulate uvicorn WebSocket access log format
     record = logging.LogRecord(
-        name="uvicorn.access",
+        name='uvicorn.access',
         level=logging.INFO,
-        pathname="",
+        pathname='',
         lineno=0,
         msg='%s - "%s" [%s]',
         args=(
-            "127.0.0.1:8000",
-            "GET /ws/abc123?resend_all=true&session_api_key=secret-token-12345",
-            "accepted",
+            '127.0.0.1:8000',
+            'GET /ws/abc123?resend_all=true&session_api_key=secret-token-12345',
+            'accepted',
         ),
         exc_info=None,
     )
@@ -154,10 +154,10 @@ def test_redact_url_params_filter_websocket_log():
 
     # Check that secret is redacted but other params preserved
     args_str = str(record.args)
-    assert "secret-token-12345" not in args_str
+    assert 'secret-token-12345' not in args_str
     # URL-encoded <redacted> is %3Credacted%3E
-    assert "<redacted>" in args_str or "%3Credacted%3E" in args_str
-    assert "resend_all=true" in args_str
+    assert '<redacted>' in args_str or '%3Credacted%3E' in args_str
+    assert 'resend_all=true' in args_str
 
 
 def test_redact_url_params_filter_multiple_sensitive_params():
@@ -165,21 +165,21 @@ def test_redact_url_params_filter_multiple_sensitive_params():
     log_filter = RedactURLParamsFilter()
 
     record = logging.LogRecord(
-        name="uvicorn.access",
+        name='uvicorn.access',
         level=logging.INFO,
-        pathname="",
+        pathname='',
         lineno=0,
-        msg="Request: %s",
-        args=("GET /api?api_key=secret1&token=secret2&user_id=123",),
+        msg='Request: %s',
+        args=('GET /api?api_key=secret1&token=secret2&user_id=123',),
         exc_info=None,
     )
 
     log_filter.filter(record)
 
     args_str = str(record.args)
-    assert "secret1" not in args_str
-    assert "secret2" not in args_str
-    assert "user_id=123" in args_str
+    assert 'secret1' not in args_str
+    assert 'secret2' not in args_str
+    assert 'user_id=123' in args_str
 
 
 def test_redact_url_params_filter_non_url_passthrough():
@@ -187,19 +187,19 @@ def test_redact_url_params_filter_non_url_passthrough():
     log_filter = RedactURLParamsFilter()
 
     record = logging.LogRecord(
-        name="test",
+        name='test',
         level=logging.INFO,
-        pathname="",
+        pathname='',
         lineno=0,
-        msg="Normal log: %s %s",
-        args=("hello", "world"),
+        msg='Normal log: %s %s',
+        args=('hello', 'world'),
         exc_info=None,
     )
 
     log_filter.filter(record)
 
     # Message should remain unchanged
-    assert record.args == ("hello", "world")
+    assert record.args == ('hello', 'world')
 
 
 def test_redact_url_params_filter_no_query_string():
@@ -207,19 +207,19 @@ def test_redact_url_params_filter_no_query_string():
     log_filter = RedactURLParamsFilter()
 
     record = logging.LogRecord(
-        name="test",
+        name='test',
         level=logging.INFO,
-        pathname="",
+        pathname='',
         lineno=0,
-        msg="Request: %s",
-        args=("GET /api/v1/users",),
+        msg='Request: %s',
+        args=('GET /api/v1/users',),
         exc_info=None,
     )
 
     log_filter.filter(record)
 
     # URL without query string should remain unchanged
-    assert record.args == ("GET /api/v1/users",)
+    assert record.args == ('GET /api/v1/users',)
 
 
 def test_redact_url_params_filter_empty_args():
@@ -227,11 +227,11 @@ def test_redact_url_params_filter_empty_args():
     log_filter = RedactURLParamsFilter()
 
     record = logging.LogRecord(
-        name="test",
+        name='test',
         level=logging.INFO,
-        pathname="",
+        pathname='',
         lineno=0,
-        msg="Simple message",
+        msg='Simple message',
         args=(),
         exc_info=None,
     )
@@ -247,11 +247,11 @@ def test_redact_url_params_filter_none_args():
     log_filter = RedactURLParamsFilter()
 
     record = logging.LogRecord(
-        name="test",
+        name='test',
         level=logging.INFO,
-        pathname="",
+        pathname='',
         lineno=0,
-        msg="Simple message",
+        msg='Simple message',
         args=None,
         exc_info=None,
     )
@@ -267,22 +267,22 @@ def test_redact_url_params_filter_dict_args():
     log_filter = RedactURLParamsFilter()
 
     record = logging.LogRecord(
-        name="test",
+        name='test',
         level=logging.INFO,
-        pathname="",
+        pathname='',
         lineno=0,
-        msg="%(method)s %(path)s",
-        args={"method": "GET", "path": "/api?secret=test"},
+        msg='%(method)s %(path)s',
+        args={'method': 'GET', 'path': '/api?secret=test'},
         exc_info=None,
     )
 
     result = log_filter.filter(record)
 
     assert result is True
-    assert record.args["method"] == "GET"
-    assert "test" not in record.args["path"]
+    assert record.args['method'] == 'GET'
+    assert 'test' not in record.args['path']
     assert (
-        "<redacted>" in record.args["path"] or "%3Credacted%3E" in record.args["path"]
+        '<redacted>' in record.args['path'] or '%3Credacted%3E' in record.args['path']
     )
 
 
@@ -291,9 +291,9 @@ def test_redact_url_params_filter_msg_embedded_url():
     log_filter = RedactURLParamsFilter()
 
     record = logging.LogRecord(
-        name="uvicorn.access",
+        name='uvicorn.access',
         level=logging.INFO,
-        pathname="",
+        pathname='',
         lineno=0,
         msg='10.0.0.1 - "GET /ws/abc?resend_all=true&session_api_key=secret-uuid-123" [accepted]',
         args=None,
@@ -303,9 +303,9 @@ def test_redact_url_params_filter_msg_embedded_url():
     result = log_filter.filter(record)
 
     assert result is True
-    assert "secret-uuid-123" not in record.msg
-    assert "resend_all=true" in record.msg
-    assert "<redacted>" in record.msg or "%3Credacted%3E" in record.msg
+    assert 'secret-uuid-123' not in record.msg
+    assert 'resend_all=true' in record.msg
+    assert '<redacted>' in record.msg or '%3Credacted%3E' in record.msg
 
 
 def test_uvicorn_default_config_default_handler_has_redact_filter():
@@ -314,54 +314,54 @@ def test_uvicorn_default_config_default_handler_has_redact_filter():
     Ensures WebSocket [accepted] logs don't leak session_api_key.
     """
     config = _uvicorn_default_log_config()
-    assert "redact_url_params" in config["handlers"]["default"]["filters"]
+    assert 'redact_url_params' in config['handlers']['default']['filters']
 
 
 def test_uvicorn_json_config_default_handler_has_redact_filter():
     """The 'default' handler in JSON config must also have the redact filter."""
     config = _uvicorn_json_log_config()
-    assert "redact_url_params" in config["handlers"]["default"]["filters"]
+    assert 'redact_url_params' in config['handlers']['default']['filters']
 
 
 def test_uvicorn_configs_all_handlers_have_redact_filter():
     """Every handler in both uvicorn configs must include the redact filter."""
     for config_fn in (_uvicorn_default_log_config, _uvicorn_json_log_config):
         config = config_fn()
-        for handler_name, handler in config["handlers"].items():
-            assert "redact_url_params" in handler.get("filters", []), (
+        for handler_name, handler in config['handlers'].items():
+            assert 'redact_url_params' in handler.get('filters', []), (
                 f"Handler '{handler_name}' in {config_fn.__name__} is missing "
                 f"the 'redact_url_params' filter"
             )
 
 
-@patch.dict("os.environ", {}, clear=True)
+@patch.dict('os.environ', {}, clear=True)
 def test_sensitive_data_filter_redacts_api_key_literals():
     """SensitiveDataFilter must redact common API key prefixes via SDK utils."""
     sensitive_filter = SensitiveDataFilter()
 
     # Use values that match the SDK's actual patterns (20+ chars after prefix)
     cases = [
-        "sk-proj-" + "a" * 25,
-        "ghp_" + "A" * 25,
+        'sk-proj-' + 'a' * 25,
+        'ghp_' + 'A' * 25,
         "api_key='should-be-hidden'",
         "{'GITHUB_TOKEN': 'mytoken'}",
     ]
     for secret in cases:
         record = logging.LogRecord(
-            name="test",
+            name='test',
             level=logging.INFO,
-            pathname="test.py",
+            pathname='test.py',
             lineno=1,
-            msg=f"Value: {secret}",
+            msg=f'Value: {secret}',
             args=(),
             exc_info=None,
         )
         sensitive_filter.filter(record)
-        assert secret not in record.msg, f"Secret {secret!r} was not redacted"
-        assert "<redacted>" in record.msg
+        assert secret not in record.msg, f'Secret {secret!r} was not redacted'
+        assert '<redacted>' in record.msg
 
 
-@patch.dict("os.environ", {}, clear=True)
+@patch.dict('os.environ', {}, clear=True)
 def test_sensitive_filter_applied_to_handler_catches_child_logger_records():
     """Filter on the handler must catch records propagated from child loggers.
 
@@ -379,20 +379,20 @@ def test_sensitive_filter_applied_to_handler_catches_child_logger_records():
     handler.setLevel(logging.DEBUG)
     handler.addFilter(sensitive_filter)
 
-    parent = logging.getLogger("openhands.test_parent")
+    parent = logging.getLogger('openhands.test_parent')
     parent.addHandler(handler)
     parent.setLevel(logging.DEBUG)
     parent.propagate = False
 
-    child = logging.getLogger("openhands.test_parent.child")
+    child = logging.getLogger('openhands.test_parent.child')
     child.setLevel(logging.DEBUG)
 
     # Use a value that matches the SDK's actual redaction patterns (20+ chars)
-    secret = "sk-proj-" + "x" * 25
-    child.info(f"Token: {secret}")
+    secret = 'sk-proj-' + 'x' * 25
+    child.info(f'Token: {secret}')
 
     output = stream.getvalue()
     assert secret not in output, (
-        "Child logger record was not redacted by handler filter"
+        'Child logger record was not redacted by handler filter'
     )
-    assert "<redacted>" in output
+    assert '<redacted>' in output

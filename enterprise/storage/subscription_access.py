@@ -12,14 +12,14 @@ class SubscriptionAccess(Base):
     Tracks subscription status, duration, payment information, and cancellation status.
     """
 
-    __tablename__ = "subscription_access"
+    __tablename__ = 'subscription_access'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     status: Mapped[str] = mapped_column(
         Enum(
-            "ACTIVE",
-            "DISABLED",
-            name="subscription_access_status_enum",
+            'ACTIVE',
+            'DISABLED',
+            name='subscription_access_status_enum',
         ),
         nullable=False,
         index=True,

@@ -18,7 +18,7 @@ class BitbucketDCWebhook(Base):
     time using the repository identity carried in the payload.
     """
 
-    __tablename__ = "bitbucket_dc_webhook"
+    __tablename__ = 'bitbucket_dc_webhook'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     project_key: Mapped[str] = mapped_column(String, nullable=False)
@@ -28,13 +28,13 @@ class BitbucketDCWebhook(Base):
     webhook_secret: Mapped[str | None] = mapped_column(String, nullable=True)
     last_synced: Mapped[datetime | None] = mapped_column(
         DateTime,
-        server_default=text("CURRENT_TIMESTAMP"),
-        onupdate=text("CURRENT_TIMESTAMP"),
+        server_default=text('CURRENT_TIMESTAMP'),
+        onupdate=text('CURRENT_TIMESTAMP'),
         nullable=True,
     )
 
     def __repr__(self) -> str:
         return (
-            f"<BitbucketDCWebhook(id={self.id}, project_key={self.project_key}, "
-            f"repo_slug={self.repo_slug}, webhook_id={self.webhook_id})>"
+            f'<BitbucketDCWebhook(id={self.id}, project_key={self.project_key}, '
+            f'repo_slug={self.repo_slug}, webhook_id={self.webhook_id})>'
         )

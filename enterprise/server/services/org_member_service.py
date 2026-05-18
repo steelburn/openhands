@@ -57,7 +57,7 @@ class OrgMemberService:
 
         # Get user email
         user = await UserStore.get_user_by_id(str(user_id))
-        email = user.email if user and user.email else ""
+        email = user.email if user and user.email else ''
 
         return MeResponse.from_org_member(org_member, role, email)
 
@@ -86,7 +86,7 @@ class OrgMemberService:
             org_id, current_user_id
         )
         if not requester_membership:
-            return False, "not_a_member", None
+            return False, 'not_a_member', None
 
         # Parse page_id to get offset (page_id is offset encoded as string)
         offset = 0
@@ -94,9 +94,9 @@ class OrgMemberService:
             try:
                 offset = int(page_id)
                 if offset < 0:
-                    return False, "invalid_page_id", None
+                    return False, 'invalid_page_id', None
             except ValueError:
-                return False, "invalid_page_id", None
+                return False, 'invalid_page_id', None
 
         # Call store to get paginated members
         members, _ = await OrgMemberStore.get_org_members_paginated(
@@ -118,7 +118,7 @@ class OrgMemberService:
                     user_id=str(member.user_id),
                     email=user.email if user else None,
                     role_id=member.role_id,
-                    role=role.name if role else "",
+                    role=role.name if role else '',
                     role_rank=role.rank if role else 0,
                     status=member.status,
                 )
@@ -184,38 +184,38 @@ class OrgMemberService:
             org_id, current_user_id
         )
         if not requester_membership:
-            return False, "not_a_member"
+            return False, 'not_a_member'
 
         # Check if trying to remove self
         if str(current_user_id) == str(target_user_id):
-            return False, "cannot_remove_self"
+            return False, 'cannot_remove_self'
 
         # Get target user's membership
         target_membership = await OrgMemberStore.get_org_member(org_id, target_user_id)
         if not target_membership:
-            return False, "member_not_found"
+            return False, 'member_not_found'
 
         requester_role = await RoleStore.get_role_by_id(requester_membership.role_id)
         target_role = await RoleStore.get_role_by_id(target_membership.role_id)
 
         if not requester_role or not target_role:
-            return False, "role_not_found"
+            return False, 'role_not_found'
 
         # Check permission based on roles
         if not OrgMemberService._can_remove_member(
             requester_role.name, target_role.name
         ):
-            return False, "insufficient_permission"
+            return False, 'insufficient_permission'
 
         # Check if removing the last owner
         if target_role.name == ROLE_OWNER:
             if await OrgMemberService._is_last_owner(org_id, target_user_id):
-                return False, "cannot_remove_last_owner"
+                return False, 'cannot_remove_last_owner'
 
         # Perform the removal
         success = await OrgMemberStore.remove_user_from_org(org_id, target_user_id)
         if not success:
-            return False, "removal_failed"
+            return False, 'removal_failed'
 
         # Update user's current_org_id if it points to the org they were removed from
         user = await UserStore.get_user_by_id(str(target_user_id))
@@ -227,21 +227,21 @@ class OrgMemberService:
         try:
             await LiteLlmManager.remove_user_from_team(str(target_user_id), str(org_id))
             logger.info(
-                "Successfully removed user from LiteLLM team",
+                'Successfully removed user from LiteLLM team',
                 extra={
-                    "user_id": str(target_user_id),
-                    "org_id": str(org_id),
+                    'user_id': str(target_user_id),
+                    'org_id': str(org_id),
                 },
             )
         except Exception as e:
             # Log but don't fail the operation - database removal already succeeded
             # LiteLLM state will be eventually consistent
             logger.warning(
-                "Failed to remove user from LiteLLM team",
+                'Failed to remove user from LiteLLM team',
                 extra={
-                    "user_id": str(target_user_id),
-                    "org_id": str(org_id),
-                    "error": str(e),
+                    'user_id': str(target_user_id),
+                    'org_id': str(org_id),
+                    'error': str(e),
                 },
             )
 
@@ -290,7 +290,7 @@ class OrgMemberService:
 
         # Check if trying to modify self
         if str(current_user_id) == str(target_user_id):
-            raise CannotModifySelfError("modify")
+            raise CannotModifySelfError('modify')
 
         # Get target user's membership
         target_membership = await OrgMemberStore.get_org_member(org_id, target_user_id)
@@ -328,7 +328,7 @@ class OrgMemberService:
             requester_role.name, target_role.name, new_role.name
         ):
             raise InsufficientPermissionError(
-                "You do not have permission to modify this member"
+                'You do not have permission to modify this member'
             )
 
         # Check if demoting the last owner
@@ -337,14 +337,14 @@ class OrgMemberService:
             and new_role.name != ROLE_OWNER
             and await OrgMemberService._is_last_owner(org_id, target_user_id)
         ):
-            raise LastOwnerError("demote")
+            raise LastOwnerError('demote')
 
         # Perform the update
         updated_member = await OrgMemberStore.update_user_role_in_org(
             org_id, target_user_id, new_role.id
         )
         if not updated_member:
-            raise MemberUpdateError("Failed to update member")
+            raise MemberUpdateError('Failed to update member')
 
         # Get user email for response
         user = await UserStore.get_user_by_id(str(target_user_id))

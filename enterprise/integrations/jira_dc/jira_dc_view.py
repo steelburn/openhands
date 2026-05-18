@@ -52,23 +52,23 @@ class JiraDcNewConversationView(JiraDcViewInterface):
     conversation_id: str
 
     # Decrypted API key (set by manager)
-    _decrypted_api_key: str = field(default="", repr=False)
+    _decrypted_api_key: str = field(default='', repr=False)
 
     # Resolved org ID for V1 conversations
     resolved_org_id: UUID | None = None
 
     async def _get_instructions(self, jinja_env: Environment) -> tuple[str, str]:
         """Instructions passed when conversation is first initialized."""
-        instructions_template = jinja_env.get_template("jira_dc_instructions.j2")
+        instructions_template = jinja_env.get_template('jira_dc_instructions.j2')
         instructions = instructions_template.render()
 
-        user_msg_template = jinja_env.get_template("jira_dc_new_conversation.j2")
+        user_msg_template = jinja_env.get_template('jira_dc_new_conversation.j2')
 
         user_msg = user_msg_template.render(
             issue_key=self.job_context.issue_key,
             issue_title=self.job_context.issue_title,
             issue_description=self.job_context.issue_description,
-            user_message=self.job_context.user_msg or "",
+            user_message=self.job_context.user_msg or '',
         )
 
         return instructions, user_msg
@@ -83,7 +83,7 @@ class JiraDcNewConversationView(JiraDcViewInterface):
             StartingConvoException: If conversation creation fails
         """
         if not self.selected_repo:
-            raise StartingConvoException("No repository selected for this conversation")
+            raise StartingConvoException('No repository selected for this conversation')
 
         # Generate conversation ID
         self.conversation_id = uuid4().hex
@@ -103,13 +103,13 @@ class JiraDcNewConversationView(JiraDcViewInterface):
 
     async def _create_v1_conversation(self, jinja_env: Environment):
         """Create conversation using the V1 app conversation system."""
-        logger.info("[Jira DC]: Creating V1 conversation")
+        logger.info('[Jira DC]: Creating V1 conversation')
 
         instructions, user_msg = await self._get_instructions(jinja_env)
 
         # Create the initial message request
         initial_message = SendMessageRequest(
-            role="user", content=[TextContent(text=user_msg)]
+            role='user', content=[TextContent(text=user_msg)]
         )
 
         # Create the Jira DC V1 callback processor
@@ -131,7 +131,7 @@ class JiraDcNewConversationView(JiraDcViewInterface):
             selected_repository=self.selected_repo,
             selected_branch=None,
             git_provider=git_provider,
-            title=f"Jira DC Issue {self.job_context.issue_key}: {self.job_context.issue_title or 'Unknown'}",
+            title=f'Jira DC Issue {self.job_context.issue_key}: {self.job_context.issue_title or "Unknown"}',
             trigger=ConversationTrigger.JIRA,
             processors=[jira_dc_callback_processor],
         )
@@ -150,12 +150,12 @@ class JiraDcNewConversationView(JiraDcViewInterface):
                 start_request
             ):
                 if task.status == AppConversationStartTaskStatus.ERROR:
-                    logger.error(f"Failed to start V1 conversation: {task.detail}")
+                    logger.error(f'Failed to start V1 conversation: {task.detail}')
                     raise RuntimeError(
-                        f"Failed to start V1 conversation: {task.detail}"
+                        f'Failed to start V1 conversation: {task.detail}'
                     )
 
-        logger.info(f"[Jira DC]: Created new conversation: {self.conversation_id}")
+        logger.info(f'[Jira DC]: Created new conversation: {self.conversation_id}')
 
     def _create_jira_dc_v1_callback_processor(self) -> JiraDcV1CallbackProcessor:
         """Create a V1 callback processor for Jira DC integration."""
@@ -181,7 +181,7 @@ class JiraDcNewConversationView(JiraDcViewInterface):
             return repository.git_provider
         except Exception as e:
             logger.warning(
-                f"[Jira DC] Failed to determine git provider for {self.selected_repo}: {e}"
+                f'[Jira DC] Failed to determine git provider for {self.selected_repo}: {e}'
             )
             return None
 
@@ -202,7 +202,7 @@ class JiraDcNewConversationView(JiraDcViewInterface):
             return resolved_org_id
         except Exception as e:
             logger.warning(
-                f"[Jira DC] Failed to resolve org for {self.selected_repo}: {e}"
+                f'[Jira DC] Failed to resolve org for {self.selected_repo}: {e}'
             )
             return None
 
@@ -225,15 +225,15 @@ class JiraDcExistingConversationView(JiraDcViewInterface):
 
     async def _get_instructions(self, jinja_env: Environment) -> tuple[str, str]:
         """Instructions passed when conversation is updated."""
-        user_msg_template = jinja_env.get_template("jira_dc_existing_conversation.j2")
+        user_msg_template = jinja_env.get_template('jira_dc_existing_conversation.j2')
         user_msg = user_msg_template.render(
             issue_key=self.job_context.issue_key,
-            user_message=self.job_context.user_msg or "",
+            user_message=self.job_context.user_msg or '',
             issue_title=self.job_context.issue_title,
             issue_description=self.job_context.issue_description,
         )
 
-        return "", user_msg
+        return '', user_msg
 
     async def create_or_update_conversation(self, jinja_env: Environment) -> str:
         """Send a message to an existing V1 conversation.
@@ -291,13 +291,13 @@ class JiraDcExistingConversationView(JiraDcViewInterface):
 
             if sandbox is None or sandbox.status != SandboxStatus.RUNNING:
                 logger.warning(
-                    f"[Jira DC] Sandbox not running for conversation {self.conversation_id}"
+                    f'[Jira DC] Sandbox not running for conversation {self.conversation_id}'
                 )
                 return
 
             if sandbox.session_api_key is None:
                 logger.warning(
-                    f"[Jira DC] No session API key for sandbox: {sandbox.id}"
+                    f'[Jira DC] No session API key for sandbox: {sandbox.id}'
                 )
                 return
 
@@ -305,14 +305,14 @@ class JiraDcExistingConversationView(JiraDcViewInterface):
             agent_server_url = get_agent_server_url_from_sandbox(sandbox)
 
             send_message_request = SendMessageRequest(
-                role="user", content=[TextContent(text=user_msg)]
+                role='user', content=[TextContent(text=user_msg)]
             )
 
             url = (
                 f"{agent_server_url.rstrip('/')}"
-                f"/api/conversations/{self.conversation_id}/messages"
+                f'/api/conversations/{self.conversation_id}/messages'
             )
-            headers = {"X-Session-API-Key": sandbox.session_api_key}
+            headers = {'X-Session-API-Key': sandbox.session_api_key}
             payload = send_message_request.model_dump()
 
             try:
@@ -324,15 +324,15 @@ class JiraDcExistingConversationView(JiraDcViewInterface):
                 )
                 response.raise_for_status()
                 logger.info(
-                    f"[Jira DC] Sent message to existing conversation {self.conversation_id}"
+                    f'[Jira DC] Sent message to existing conversation {self.conversation_id}'
                 )
             except httpx.HTTPStatusError as e:
                 logger.error(
-                    f"[Jira DC] Failed to send message: HTTP {e.response.status_code}"
+                    f'[Jira DC] Failed to send message: HTTP {e.response.status_code}'
                 )
                 raise
             except Exception as e:
-                logger.error(f"[Jira DC] Failed to send message: {e}")
+                logger.error(f'[Jira DC] Failed to send message: {e}')
                 raise
 
     def get_response_msg(self) -> str:
@@ -353,7 +353,7 @@ class JiraDcFactory:
     ) -> JiraDcViewInterface:
         """Create appropriate Jira DC view based on the payload."""
         if not jira_dc_user or not saas_user_auth or not jira_dc_workspace:
-            raise StartingConvoException("User not authenticated with Jira integration")
+            raise StartingConvoException('User not authenticated with Jira integration')
 
         conversation = await integration_store.get_user_conversations_by_issue_id(
             job_context.issue_id, jira_dc_user.id
@@ -375,5 +375,5 @@ class JiraDcFactory:
             jira_dc_user=jira_dc_user,
             jira_dc_workspace=jira_dc_workspace,
             selected_repo=None,  # Will be set later after repo inference
-            conversation_id="",  # Will be set when conversation is created
+            conversation_id='',  # Will be set when conversation is created
         )

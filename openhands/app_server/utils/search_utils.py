@@ -19,14 +19,14 @@ def page_id_to_offset(page_id: str | None) -> int:
 async def iterate(fn: Callable, **kwargs) -> AsyncIterator:
     """Iterate over paged result sets. Assumes that the results sets contain an array of result objects, and a next_page_id"""
     kwargs = {**kwargs}
-    kwargs["page_id"] = None
+    kwargs['page_id'] = None
     while True:
         result_set = await fn(**kwargs)
-        items = getattr(result_set, "items", None)
+        items = getattr(result_set, 'items', None)
         if items is None:
-            items = getattr(result_set, "results")
+            items = getattr(result_set, 'results')
         for result in items:
             yield result
         if result_set.next_page_id is None:
             return
-        kwargs["page_id"] = result_set.next_page_id
+        kwargs['page_id'] = result_set.next_page_id

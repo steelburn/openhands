@@ -20,9 +20,9 @@ from storage.user_app_settings_store import UserAppSettingsStore
 async def async_engine():
     """Create an async SQLite engine for testing."""
     engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
+        'sqlite+aiosqlite:///:memory:',
         poolclass=StaticPool,
-        connect_args={"check_same_thread": False},
+        connect_args={'check_same_thread': False},
         echo=False,
     )
     async with engine.begin() as conn:
@@ -46,18 +46,18 @@ async def test_get_user_by_id_success(async_session_maker):
     """
     # Arrange
     async with async_session_maker() as session:
-        org = Org(name="test-org")
+        org = Org(name='test-org')
         session.add(org)
         await session.flush()
 
         user = User(
             id=uuid.uuid4(),
             current_org_id=org.id,
-            language="en",
+            language='en',
             user_consents_to_analytics=True,
             enable_sound_notifications=False,
-            git_user_name="testuser",
-            git_user_email="test@example.com",
+            git_user_name='testuser',
+            git_user_email='test@example.com',
         )
         session.add(user)
         await session.commit()
@@ -70,11 +70,11 @@ async def test_get_user_by_id_success(async_session_maker):
     # Assert
     assert result is not None
     assert str(result.id) == user_id
-    assert result.language == "en"
+    assert result.language == 'en'
     assert result.user_consents_to_analytics is True
     assert result.enable_sound_notifications is False
-    assert result.git_user_name == "testuser"
-    assert result.git_user_email == "test@example.com"
+    assert result.git_user_name == 'testuser'
+    assert result.git_user_email == 'test@example.com'
 
 
 @pytest.mark.asyncio
@@ -105,14 +105,14 @@ async def test_update_user_app_settings_success(async_session_maker):
     """
     # Arrange
     async with async_session_maker() as session:
-        org = Org(name="test-org")
+        org = Org(name='test-org')
         session.add(org)
         await session.flush()
 
         user = User(
             id=uuid.uuid4(),
             current_org_id=org.id,
-            language="en",
+            language='en',
             user_consents_to_analytics=False,
         )
         session.add(user)
@@ -120,11 +120,11 @@ async def test_update_user_app_settings_success(async_session_maker):
         user_id = str(user.id)
 
         update_data = UserAppSettingsUpdate(
-            language="es",
+            language='es',
             user_consents_to_analytics=True,
             enable_sound_notifications=True,
-            git_user_name="newuser",
-            git_user_email="new@example.com",
+            git_user_name='newuser',
+            git_user_email='new@example.com',
         )
 
         # Act - create store with the session
@@ -133,11 +133,11 @@ async def test_update_user_app_settings_success(async_session_maker):
 
     # Assert
     assert result is not None
-    assert result.language == "es"
+    assert result.language == 'es'
     assert result.user_consents_to_analytics is True
     assert result.enable_sound_notifications is True
-    assert result.git_user_name == "newuser"
-    assert result.git_user_email == "new@example.com"
+    assert result.git_user_name == 'newuser'
+    assert result.git_user_email == 'new@example.com'
 
 
 @pytest.mark.asyncio
@@ -149,23 +149,23 @@ async def test_update_user_app_settings_partial(async_session_maker):
     """
     # Arrange
     async with async_session_maker() as session:
-        org = Org(name="test-org")
+        org = Org(name='test-org')
         session.add(org)
         await session.flush()
 
         user = User(
             id=uuid.uuid4(),
             current_org_id=org.id,
-            language="en",
+            language='en',
             user_consents_to_analytics=True,
-            git_user_name="original",
+            git_user_name='original',
         )
         session.add(user)
         await session.commit()
         user_id = str(user.id)
 
         # Only update language
-        update_data = UserAppSettingsUpdate(language="fr")
+        update_data = UserAppSettingsUpdate(language='fr')
 
         # Act - create store with the session
         store = UserAppSettingsStore(db_session=session)
@@ -173,9 +173,9 @@ async def test_update_user_app_settings_partial(async_session_maker):
 
     # Assert
     assert result is not None
-    assert result.language == "fr"
+    assert result.language == 'fr'
     assert result.user_consents_to_analytics is True  # Unchanged
-    assert result.git_user_name == "original"  # Unchanged
+    assert result.git_user_name == 'original'  # Unchanged
 
 
 @pytest.mark.asyncio
@@ -187,7 +187,7 @@ async def test_update_user_app_settings_user_not_found(async_session_maker):
     """
     # Arrange
     non_existent_id = str(uuid.uuid4())
-    update_data = UserAppSettingsUpdate(language="en")
+    update_data = UserAppSettingsUpdate(language='en')
 
     # Act
     async with async_session_maker() as session:

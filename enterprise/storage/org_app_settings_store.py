@@ -78,9 +78,9 @@ class OrgAppSettingsStore:
             org.agent_settings = deep_merge(
                 org.agent_settings,
                 {
-                    "llm": {
-                        "model": get_default_litellm_model(),
-                        "base_url": LITE_LLM_API_URL,
+                    'llm': {
+                        'model': get_default_litellm_model(),
+                        'base_url': LITE_LLM_API_URL,
                     },
                 },
             )

@@ -32,18 +32,18 @@ def app() -> FastAPI:
     app = FastAPI()
 
     @app.get(
-        "/orgs/{org_id}/things",
+        '/orgs/{org_id}/things',
         dependencies=[REJECT_X_ORG_ID_PATH_MISMATCH],
     )
     def path_org_route(org_id: UUID) -> dict:
-        return {"org_id": str(org_id)}
+        return {'org_id': str(org_id)}
 
     @app.get(
-        "/no-path-org",
+        '/no-path-org',
         dependencies=[REJECT_X_ORG_ID_PATH_MISMATCH],
     )
     def no_path_org_route() -> dict:
-        return {"ok": True}
+        return {'ok': True}
 
     return app
 
@@ -64,14 +64,14 @@ def org_id() -> UUID:
 
 
 def test_no_header_passes_through(client: TestClient, org_id: UUID):
-    r = client.get(f"/orgs/{org_id}/things")
+    r = client.get(f'/orgs/{org_id}/things')
     assert r.status_code == 200
-    assert r.json() == {"org_id": str(org_id)}
+    assert r.json() == {'org_id': str(org_id)}
 
 
 def test_matching_header_passes_through(client: TestClient, org_id: UUID):
     r = client.get(
-        f"/orgs/{org_id}/things",
+        f'/orgs/{org_id}/things',
         headers={X_ORG_ID_HEADER: str(org_id)},
     )
     assert r.status_code == 200
@@ -81,7 +81,7 @@ def test_matching_header_case_insensitive_uuid(client: TestClient, org_id: UUID)
     """UUIDs compare value-wise, not string-wise — uppercase header
     must match lowercase path."""
     r = client.get(
-        f"/orgs/{org_id}/things",
+        f'/orgs/{org_id}/things',
         headers={X_ORG_ID_HEADER: str(org_id).upper()},
     )
     assert r.status_code == 200
@@ -93,8 +93,8 @@ def test_empty_header_value_passes_through(client: TestClient, org_id: UUID):
     that starts treating ``X-Org-Id: ''`` as a malformed UUID is
     caught."""
     r = client.get(
-        f"/orgs/{org_id}/things",
-        headers={X_ORG_ID_HEADER: ""},
+        f'/orgs/{org_id}/things',
+        headers={X_ORG_ID_HEADER: ''},
     )
     # Empty header → either passes through (current Starlette behavior)
     # or 400. Either is defensible; what we must NEVER do is leak it
@@ -111,12 +111,12 @@ def test_empty_header_value_passes_through(client: TestClient, org_id: UUID):
 def test_conflicting_header_rejected_with_400(client: TestClient, org_id: UUID):
     other = uuid4()
     r = client.get(
-        f"/orgs/{org_id}/things",
+        f'/orgs/{org_id}/things',
         headers={X_ORG_ID_HEADER: str(other)},
     )
     assert r.status_code == 400
     body = r.json()
-    detail = body.get("detail", "")
+    detail = body.get('detail', '')
     # Error message must name both ids so an operator reading logs can
     # immediately tell which side is stale.
     assert str(other) in detail
@@ -125,11 +125,11 @@ def test_conflicting_header_rejected_with_400(client: TestClient, org_id: UUID):
 
 def test_malformed_header_rejected_with_400(client: TestClient, org_id: UUID):
     r = client.get(
-        f"/orgs/{org_id}/things",
-        headers={X_ORG_ID_HEADER: "not-a-uuid"},
+        f'/orgs/{org_id}/things',
+        headers={X_ORG_ID_HEADER: 'not-a-uuid'},
     )
     assert r.status_code == 400
-    assert "not a valid UUID" in r.json().get("detail", "")
+    assert 'not a valid UUID' in r.json().get('detail', '')
 
 
 # --------------------------------------------------------------------- #
@@ -143,11 +143,11 @@ def test_dep_on_non_path_route_is_noop(client: TestClient):
     present. (A 500 here would be worse than the silent miswiring that
     we'd catch in dev when no behavior changed.)"""
     r = client.get(
-        "/no-path-org",
+        '/no-path-org',
         headers={X_ORG_ID_HEADER: str(uuid4())},
     )
     assert r.status_code == 200
-    assert r.json() == {"ok": True}
+    assert r.json() == {'ok': True}
 
 
 def test_dep_on_non_path_route_ignores_malformed_header(client: TestClient):
@@ -155,7 +155,7 @@ def test_dep_on_non_path_route_ignores_malformed_header(client: TestClient):
     The dep should only complain about path-vs-header conflicts; if
     there's no path to compare against, it stays silent."""
     r = client.get(
-        "/no-path-org",
-        headers={X_ORG_ID_HEADER: "not-a-uuid"},
+        '/no-path-org',
+        headers={X_ORG_ID_HEADER: 'not-a-uuid'},
     )
     assert r.status_code == 200

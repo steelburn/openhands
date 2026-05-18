@@ -12,24 +12,24 @@ from openhands.app_server.integrations.service_types import ProviderType
 async def test_azure_devops_service_init():
     """Test that the Azure DevOps service initializes correctly."""
     service = AzureDevOpsService(
-        user_id="test_user",
+        user_id='test_user',
         token=None,
-        base_domain="myorg",
+        base_domain='myorg',
     )
 
-    assert service.organization == "myorg"
+    assert service.organization == 'myorg'
     assert service.provider == ProviderType.AZURE_DEVOPS.value
 
 
 @pytest.mark.asyncio
 async def test_azure_devops_get_repositories():
     """Test that the Azure DevOps service can get repositories."""
-    with patch("httpx.AsyncClient") as mock_client:
+    with patch('httpx.AsyncClient') as mock_client:
         # Mock the response for projects
         mock_projects_response = MagicMock()
         mock_projects_response.json.return_value = {
-            "value": [
-                {"name": "Project1"},
+            'value': [
+                {'name': 'Project1'},
             ]
         }
         mock_projects_response.raise_for_status = AsyncMock()
@@ -37,18 +37,18 @@ async def test_azure_devops_get_repositories():
         # Mock the response for repositories
         mock_repos_response = MagicMock()
         mock_repos_response.json.return_value = {
-            "value": [
+            'value': [
                 {
-                    "id": "repo1",
-                    "name": "Repo1",
-                    "project": {"name": "Project1"},
-                    "lastUpdateTime": "2023-01-01T00:00:00Z",
+                    'id': 'repo1',
+                    'name': 'Repo1',
+                    'project': {'name': 'Project1'},
+                    'lastUpdateTime': '2023-01-01T00:00:00Z',
                 },
                 {
-                    "id": "repo2",
-                    "name": "Repo2",
-                    "project": {"name": "Project1"},
-                    "lastUpdateTime": "2023-01-02T00:00:00Z",
+                    'id': 'repo2',
+                    'name': 'Repo2',
+                    'project': {'name': 'Project1'},
+                    'lastUpdateTime': '2023-01-02T00:00:00Z',
                 },
             ]
         }
@@ -67,37 +67,37 @@ async def test_azure_devops_get_repositories():
 
         # Create the service and call get_repositories
         service = AzureDevOpsService(
-            user_id="test_user",
+            user_id='test_user',
             token=None,
-            base_domain="myorg",
+            base_domain='myorg',
         )
 
         # Mock the _get_azure_devops_headers method
         service._get_azure_devops_headers = AsyncMock(return_value={})
 
         # Call the method
-        repos = await service.get_repositories("updated", None)
+        repos = await service.get_repositories('updated', None)
 
         # Verify the results (sorted by lastUpdateTime descending, so repo2 first)
         assert len(repos) == 2
-        assert repos[0].id == "repo2"
-        assert repos[0].full_name == "myorg/Project1/Repo2"
+        assert repos[0].id == 'repo2'
+        assert repos[0].full_name == 'myorg/Project1/Repo2'
         assert repos[0].git_provider == ProviderType.AZURE_DEVOPS
-        assert repos[1].id == "repo1"
-        assert repos[1].full_name == "myorg/Project1/Repo1"
+        assert repos[1].id == 'repo1'
+        assert repos[1].full_name == 'myorg/Project1/Repo1'
         assert repos[1].git_provider == ProviderType.AZURE_DEVOPS
 
 
 @pytest.mark.asyncio
 async def test_azure_devops_get_repository_details():
     """Test that the Azure DevOps service can get repository details."""
-    with patch("httpx.AsyncClient") as mock_client:
+    with patch('httpx.AsyncClient') as mock_client:
         # Mock the response
         mock_response = MagicMock()
         mock_response.json.return_value = {
-            "id": "repo1",
-            "name": "Repo1",
-            "project": {"name": "Project1"},
+            'id': 'repo1',
+            'name': 'Repo1',
+            'project': {'name': 'Project1'},
         }
         mock_response.raise_for_status = AsyncMock()
 
@@ -108,9 +108,9 @@ async def test_azure_devops_get_repository_details():
 
         # Create the service and call get_repository_details_from_repo_name
         service = AzureDevOpsService(
-            user_id="test_user",
+            user_id='test_user',
             token=None,
-            base_domain="myorg",
+            base_domain='myorg',
         )
 
         # Mock the _get_azure_devops_headers method
@@ -118,10 +118,10 @@ async def test_azure_devops_get_repository_details():
 
         # Call the method
         repo = await service.get_repository_details_from_repo_name(
-            "myorg/Project1/Repo1"
+            'myorg/Project1/Repo1'
         )
 
         # Verify the results
-        assert repo.id == "repo1"
-        assert repo.full_name == "myorg/Project1/Repo1"
+        assert repo.id == 'repo1'
+        assert repo.full_name == 'myorg/Project1/Repo1'
         assert repo.git_provider == ProviderType.AZURE_DEVOPS

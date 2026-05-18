@@ -20,11 +20,11 @@ if TYPE_CHECKING:
 class OrgMember(Base):
     """Junction table for organization-member relationships with roles."""
 
-    __tablename__ = "org_member"
+    __tablename__ = 'org_member'
 
-    org_id: Mapped[UUID] = mapped_column(ForeignKey("org.id"), primary_key=True)
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"), primary_key=True)
-    role_id: Mapped[int] = mapped_column(ForeignKey("role.id"), nullable=False)
+    org_id: Mapped[UUID] = mapped_column(ForeignKey('org.id'), primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey('user.id'), primary_key=True)
+    role_id: Mapped[int] = mapped_column(ForeignKey('role.id'), nullable=False)
     _llm_api_key: Mapped[str] = mapped_column(String, nullable=False)
     _llm_api_key_for_byor: Mapped[str | None] = mapped_column(String, nullable=True)
     has_custom_llm_api_key: Mapped[bool] = mapped_column(nullable=False, default=False)
@@ -37,9 +37,9 @@ class OrgMember(Base):
     status: Mapped[str | None] = mapped_column(String, nullable=True)
 
     # Relationships
-    org: Mapped["Org"] = relationship("Org", back_populates="org_members")
-    user: Mapped["User"] = relationship("User", back_populates="org_members")
-    role: Mapped["Role"] = relationship("Role", back_populates="org_members")
+    org: Mapped['Org'] = relationship('Org', back_populates='org_members')
+    user: Mapped['User'] = relationship('User', back_populates='org_members')
+    role: Mapped['Role'] = relationship('Role', back_populates='org_members')
 
     def __init__(self, **kwargs):
         # Handle known SQLAlchemy columns directly
@@ -48,13 +48,13 @@ class OrgMember(Base):
                 setattr(self, key, kwargs.pop(key))
 
         # Handle custom property-style fields
-        if "llm_api_key" in kwargs:
-            self.llm_api_key = kwargs.pop("llm_api_key")
-        if "llm_api_key_for_byor" in kwargs:
-            self.llm_api_key_for_byor = kwargs.pop("llm_api_key_for_byor")
+        if 'llm_api_key' in kwargs:
+            self.llm_api_key = kwargs.pop('llm_api_key')
+        if 'llm_api_key_for_byor' in kwargs:
+            self.llm_api_key_for_byor = kwargs.pop('llm_api_key_for_byor')
 
         if kwargs:
-            raise TypeError(f"Unexpected keyword arguments: {list(kwargs.keys())}")
+            raise TypeError(f'Unexpected keyword arguments: {list(kwargs.keys())}')
 
     @property
     def llm_api_key(self) -> SecretStr:

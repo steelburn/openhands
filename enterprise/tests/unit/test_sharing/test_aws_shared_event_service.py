@@ -44,7 +44,7 @@ def aws_shared_event_service(mock_shared_conversation_info_service, mock_s3_clie
     return AwsSharedEventService(
         shared_conversation_info_service=mock_shared_conversation_info_service,
         s3_client=mock_s3_client,
-        bucket_name="test-bucket",
+        bucket_name='test-bucket',
     )
 
 
@@ -53,9 +53,9 @@ def sample_public_conversation():
     """Create a sample public conversation."""
     return SharedConversation(
         id=uuid4(),
-        created_by_user_id="test_user",
-        sandbox_id="test_sandbox",
-        title="Test Public Conversation",
+        created_by_user_id='test_user',
+        sandbox_id='test_sandbox',
+        title='Test Public Conversation',
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
         metrics=MetricsSnapshot(
@@ -161,7 +161,7 @@ class TestAwsSharedEventService:
         # Call the method
         result = await aws_shared_event_service.search_shared_events(
             conversation_id=conversation_id,
-            kind__eq="ActionEvent",
+            kind__eq='ActionEvent',
             limit=10,
         )
 
@@ -174,7 +174,7 @@ class TestAwsSharedEventService:
         )
         mock_event_service.search_events.assert_called_once_with(
             conversation_id=conversation_id,
-            kind__eq="ActionEvent",
+            kind__eq='ActionEvent',
             timestamp__gte=None,
             timestamp__lt=None,
             sort_order=EventSortOrder.TIMESTAMP,
@@ -232,7 +232,7 @@ class TestAwsSharedEventService:
         # Call the method
         result = await aws_shared_event_service.count_shared_events(
             conversation_id=conversation_id,
-            kind__eq="ActionEvent",
+            kind__eq='ActionEvent',
         )
 
         # Verify the result
@@ -243,7 +243,7 @@ class TestAwsSharedEventService:
         )
         mock_event_service.count_events.assert_called_once_with(
             conversation_id=conversation_id,
-            kind__eq="ActionEvent",
+            kind__eq='ActionEvent',
             timestamp__gte=None,
             timestamp__lt=None,
         )
@@ -354,24 +354,24 @@ class TestAwsSharedEventServiceInjector:
 
     def test_bucket_name_from_environment_variable(self):
         """Test that bucket_name is read from FILE_STORE_PATH environment variable."""
-        test_bucket_name = "test-bucket-name"
-        with patch.dict(os.environ, {"FILE_STORE_PATH": test_bucket_name}):
+        test_bucket_name = 'test-bucket-name'
+        with patch.dict(os.environ, {'FILE_STORE_PATH': test_bucket_name}):
             # Create a new injector instance to pick up the environment variable
             # Note: The class attribute is evaluated at class definition time,
             # so we need to test that the attribute exists and can be overridden
             injector = AwsSharedEventServiceInjector()
-            injector.bucket_name = os.environ.get("FILE_STORE_PATH")
+            injector.bucket_name = os.environ.get('FILE_STORE_PATH')
             assert injector.bucket_name == test_bucket_name
 
     def test_bucket_name_default_value_when_env_not_set(self):
         """Test that bucket_name is None when FILE_STORE_PATH is not set."""
         with patch.dict(os.environ, {}, clear=True):
             # Remove FILE_STORE_PATH if it exists
-            os.environ.pop("FILE_STORE_PATH", None)
+            os.environ.pop('FILE_STORE_PATH', None)
             injector = AwsSharedEventServiceInjector()
             # The bucket_name will be whatever was set at class definition time
             # or None if FILE_STORE_PATH was not set when the class was defined
-            assert hasattr(injector, "bucket_name")
+            assert hasattr(injector, 'bucket_name')
 
     async def test_injector_yields_aws_shared_event_service(self):
         """Test that the injector yields an AwsSharedEventService instance."""
@@ -381,7 +381,7 @@ class TestAwsSharedEventServiceInjector:
 
         # Create the injector
         injector = AwsSharedEventServiceInjector()
-        injector.bucket_name = "test-bucket"
+        injector.bucket_name = 'test-bucket'
 
         # Mock the get_db_session context manager
         mock_db_context = AsyncMock()
@@ -393,11 +393,11 @@ class TestAwsSharedEventServiceInjector:
 
         with (
             patch(
-                "server.sharing.aws_shared_event_service.boto3.client",
+                'server.sharing.aws_shared_event_service.boto3.client',
                 return_value=mock_s3_client,
             ),
             patch(
-                "openhands.app_server.config.get_db_session",
+                'openhands.app_server.config.get_db_session',
                 return_value=mock_db_context,
             ),
         ):
@@ -406,7 +406,7 @@ class TestAwsSharedEventServiceInjector:
                 # Verify the service is an instance of AwsSharedEventService
                 assert isinstance(service, AwsSharedEventService)
                 assert service.s3_client == mock_s3_client
-                assert service.bucket_name == "test-bucket"
+                assert service.bucket_name == 'test-bucket'
 
     async def test_injector_uses_bucket_name_from_instance(self):
         """Test that the injector uses the bucket_name from the instance."""
@@ -416,7 +416,7 @@ class TestAwsSharedEventServiceInjector:
 
         # Create the injector with a specific bucket name
         injector = AwsSharedEventServiceInjector()
-        injector.bucket_name = "my-custom-bucket"
+        injector.bucket_name = 'my-custom-bucket'
 
         # Mock the get_db_session context manager
         mock_db_context = AsyncMock()
@@ -428,17 +428,17 @@ class TestAwsSharedEventServiceInjector:
 
         with (
             patch(
-                "server.sharing.aws_shared_event_service.boto3.client",
+                'server.sharing.aws_shared_event_service.boto3.client',
                 return_value=mock_s3_client,
             ),
             patch(
-                "openhands.app_server.config.get_db_session",
+                'openhands.app_server.config.get_db_session',
                 return_value=mock_db_context,
             ),
         ):
             # Call the inject method
             async for service in injector.inject(mock_state, mock_request):
-                assert service.bucket_name == "my-custom-bucket"
+                assert service.bucket_name == 'my-custom-bucket'
 
     async def test_injector_creates_sql_shared_conversation_info_service(self):
         """Test that the injector creates SQLSharedConversationInfoService with db_session."""
@@ -448,7 +448,7 @@ class TestAwsSharedEventServiceInjector:
 
         # Create the injector
         injector = AwsSharedEventServiceInjector()
-        injector.bucket_name = "test-bucket"
+        injector.bucket_name = 'test-bucket'
 
         # Mock the get_db_session context manager
         mock_db_context = AsyncMock()
@@ -460,15 +460,15 @@ class TestAwsSharedEventServiceInjector:
 
         with (
             patch(
-                "server.sharing.aws_shared_event_service.boto3.client",
+                'server.sharing.aws_shared_event_service.boto3.client',
                 return_value=mock_s3_client,
             ),
             patch(
-                "openhands.app_server.config.get_db_session",
+                'openhands.app_server.config.get_db_session',
                 return_value=mock_db_context,
             ),
             patch(
-                "server.sharing.aws_shared_event_service.SQLSharedConversationInfoService"
+                'server.sharing.aws_shared_event_service.SQLSharedConversationInfoService'
             ) as mock_sql_service_class,
         ):
             mock_sql_service = MagicMock()
@@ -489,7 +489,7 @@ class TestAwsSharedEventServiceInjector:
 
         # Create the injector
         injector = AwsSharedEventServiceInjector()
-        injector.bucket_name = "test-bucket"
+        injector.bucket_name = 'test-bucket'
 
         # Mock the get_db_session context manager
         mock_db_context = AsyncMock()
@@ -501,11 +501,11 @@ class TestAwsSharedEventServiceInjector:
 
         with (
             patch(
-                "server.sharing.aws_shared_event_service.boto3.client",
+                'server.sharing.aws_shared_event_service.boto3.client',
                 return_value=mock_s3_client,
             ),
             patch(
-                "openhands.app_server.config.get_db_session",
+                'openhands.app_server.config.get_db_session',
                 return_value=mock_db_context,
             ),
         ):
@@ -521,7 +521,7 @@ class TestAwsSharedEventServiceInjector:
 
         # Create the injector
         injector = AwsSharedEventServiceInjector()
-        injector.bucket_name = "test-bucket"
+        injector.bucket_name = 'test-bucket'
 
         # Mock the get_db_session context manager
         mock_db_context = AsyncMock()
@@ -533,14 +533,14 @@ class TestAwsSharedEventServiceInjector:
 
         with (
             patch(
-                "server.sharing.aws_shared_event_service.boto3.client",
+                'server.sharing.aws_shared_event_service.boto3.client',
                 return_value=mock_s3_client,
             ) as mock_boto3_client,
             patch(
-                "openhands.app_server.config.get_db_session",
+                'openhands.app_server.config.get_db_session',
                 return_value=mock_db_context,
             ),
-            patch.dict(os.environ, {"AWS_S3_ENDPOINT": "https://s3.example.com"}),
+            patch.dict(os.environ, {'AWS_S3_ENDPOINT': 'https://s3.example.com'}),
         ):
             # Call the inject method
             async for service in injector.inject(mock_state, mock_request):
@@ -549,6 +549,6 @@ class TestAwsSharedEventServiceInjector:
             # Verify boto3.client was called with 's3' and endpoint_url
             # but without explicit credentials (role-based auth)
             mock_boto3_client.assert_called_once_with(
-                "s3",
-                endpoint_url="https://s3.example.com",
+                's3',
+                endpoint_url='https://s3.example.com',
             )

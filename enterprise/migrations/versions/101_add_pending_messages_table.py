@@ -12,8 +12,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "101"
-down_revision: Union[str, None] = "100"
+revision: str = '101'
+down_revision: Union[str, None] = '100'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -25,15 +25,15 @@ def upgrade() -> None:
     delivered and deleted regardless of success or failure.
     """
     op.create_table(
-        "pending_messages",
-        sa.Column("id", sa.String(), primary_key=True),
-        sa.Column("conversation_id", sa.String(), nullable=False, index=True),
-        sa.Column("role", sa.String(20), nullable=False, server_default="user"),
-        sa.Column("content", sa.JSON, nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        'pending_messages',
+        sa.Column('id', sa.String(), primary_key=True),
+        sa.Column('conversation_id', sa.String(), nullable=False, index=True),
+        sa.Column('role', sa.String(20), nullable=False, server_default='user'),
+        sa.Column('content', sa.JSON, nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), nullable=False),
     )
 
 
 def downgrade() -> None:
     """Remove pending_messages table."""
-    op.drop_table("pending_messages")
+    op.drop_table('pending_messages')

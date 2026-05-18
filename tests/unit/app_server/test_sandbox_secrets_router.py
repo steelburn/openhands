@@ -38,8 +38,8 @@ from openhands.sdk.llm import LLM
 from openhands.sdk.secret import StaticSecret
 from openhands.sdk.settings import OpenHandsAgentSettings
 
-SANDBOX_ID = "sb-test-123"
-USER_ID = "test-user-id"
+SANDBOX_ID = 'sb-test-123'
+USER_ID = 'test-user-id'
 
 
 def _make_sandbox_info(
@@ -49,9 +49,9 @@ def _make_sandbox_info(
     return SandboxInfo(
         id=sandbox_id,
         created_by_user_id=user_id,
-        sandbox_spec_id="test-spec",
+        sandbox_spec_id='test-spec',
         status=SandboxStatus.RUNNING,
-        session_api_key="session-key",
+        session_api_key='session-key',
     )
 
 
@@ -62,7 +62,7 @@ def _patch_sandbox_service(return_sandbox: SandboxInfo | None):
         return_value=return_sandbox
     )
     ctx = patch(
-        "openhands.app_server.sandbox.session_auth.get_sandbox_service",
+        'openhands.app_server.sandbox.session_auth.get_sandbox_service',
     )
     return ctx, mock_sandbox_service
 
@@ -91,12 +91,12 @@ class TestValidateSessionKey:
         with pytest.raises(HTTPException) as exc_info:
             await validate_session_key(None)
         assert exc_info.value.status_code == 401
-        assert "X-Session-API-Key" in exc_info.value.detail
+        assert 'X-Session-API-Key' in exc_info.value.detail
 
     async def test_rejects_empty_string_key(self):
         """Empty string session key raises 401."""
         with pytest.raises(HTTPException) as exc_info:
-            await validate_session_key("")
+            await validate_session_key('')
         assert exc_info.value.status_code == 401
 
     async def test_rejects_invalid_key(self):
@@ -107,9 +107,9 @@ class TestValidateSessionKey:
             mock_get.return_value.__aexit__ = AsyncMock(return_value=False)
 
             with pytest.raises(HTTPException) as exc_info:
-                await validate_session_key("bogus-key")
+                await validate_session_key('bogus-key')
         assert exc_info.value.status_code == 401
-        assert "Invalid session API key" in exc_info.value.detail
+        assert 'Invalid session API key' in exc_info.value.detail
 
     async def test_accepts_valid_key(self):
         """Valid session key returns sandbox info."""
@@ -119,7 +119,7 @@ class TestValidateSessionKey:
             mock_get.return_value.__aenter__ = AsyncMock(return_value=mock_svc)
             mock_get.return_value.__aexit__ = AsyncMock(return_value=False)
 
-            result = await validate_session_key("valid-key")
+            result = await validate_session_key('valid-key')
         assert result.id == SANDBOX_ID
 
     async def test_rejects_sandbox_without_user_in_saas_mode(self):
@@ -129,7 +129,7 @@ class TestValidateSessionKey:
         with (
             ctx as mock_get,
             patch(
-                "openhands.app_server.sandbox.session_auth.get_global_config"
+                'openhands.app_server.sandbox.session_auth.get_global_config'
             ) as mock_cfg,
         ):
             mock_get.return_value.__aenter__ = AsyncMock(return_value=mock_svc)
@@ -140,9 +140,9 @@ class TestValidateSessionKey:
             mock_cfg.return_value.app_mode = AppMode.SAAS
 
             with pytest.raises(HTTPException) as exc_info:
-                await validate_session_key("valid-key")
+                await validate_session_key('valid-key')
         assert exc_info.value.status_code == 401
-        assert "no user" in exc_info.value.detail
+        assert 'no user' in exc_info.value.detail
 
     # -------------------------------------------------------------------------
     # Security: Status check tests (prevents leaked session keys from being
@@ -154,9 +154,9 @@ class TestValidateSessionKey:
         sandbox = SandboxInfo(
             id=SANDBOX_ID,
             created_by_user_id=USER_ID,
-            sandbox_spec_id="test-spec",
+            sandbox_spec_id='test-spec',
             status=SandboxStatus.PAUSED,
-            session_api_key="session-key",
+            session_api_key='session-key',
         )
         ctx, mock_svc = _patch_sandbox_service(sandbox)
         with ctx as mock_get:
@@ -164,18 +164,18 @@ class TestValidateSessionKey:
             mock_get.return_value.__aexit__ = AsyncMock(return_value=False)
 
             with pytest.raises(HTTPException) as exc_info:
-                await validate_session_key("valid-key")
+                await validate_session_key('valid-key')
         assert exc_info.value.status_code == 401
-        assert "not running" in exc_info.value.detail
+        assert 'not running' in exc_info.value.detail
 
     async def test_rejects_missing_sandbox(self):
         """Session key for MISSING sandbox raises 401 - security mitigation."""
         sandbox = SandboxInfo(
             id=SANDBOX_ID,
             created_by_user_id=USER_ID,
-            sandbox_spec_id="test-spec",
+            sandbox_spec_id='test-spec',
             status=SandboxStatus.MISSING,
-            session_api_key="session-key",
+            session_api_key='session-key',
         )
         ctx, mock_svc = _patch_sandbox_service(sandbox)
         with ctx as mock_get:
@@ -183,18 +183,18 @@ class TestValidateSessionKey:
             mock_get.return_value.__aexit__ = AsyncMock(return_value=False)
 
             with pytest.raises(HTTPException) as exc_info:
-                await validate_session_key("valid-key")
+                await validate_session_key('valid-key')
         assert exc_info.value.status_code == 401
-        assert "not running" in exc_info.value.detail
+        assert 'not running' in exc_info.value.detail
 
     async def test_rejects_error_sandbox(self):
         """Session key for ERROR sandbox raises 401 - security mitigation."""
         sandbox = SandboxInfo(
             id=SANDBOX_ID,
             created_by_user_id=USER_ID,
-            sandbox_spec_id="test-spec",
+            sandbox_spec_id='test-spec',
             status=SandboxStatus.ERROR,
-            session_api_key="session-key",
+            session_api_key='session-key',
         )
         ctx, mock_svc = _patch_sandbox_service(sandbox)
         with ctx as mock_get:
@@ -202,18 +202,18 @@ class TestValidateSessionKey:
             mock_get.return_value.__aexit__ = AsyncMock(return_value=False)
 
             with pytest.raises(HTTPException) as exc_info:
-                await validate_session_key("valid-key")
+                await validate_session_key('valid-key')
         assert exc_info.value.status_code == 401
-        assert "not running" in exc_info.value.detail
+        assert 'not running' in exc_info.value.detail
 
     async def test_rejects_starting_sandbox(self):
         """Session key for STARTING sandbox raises 401 - must wait for RUNNING."""
         sandbox = SandboxInfo(
             id=SANDBOX_ID,
             created_by_user_id=USER_ID,
-            sandbox_spec_id="test-spec",
+            sandbox_spec_id='test-spec',
             status=SandboxStatus.STARTING,
-            session_api_key="session-key",
+            session_api_key='session-key',
         )
         ctx, mock_svc = _patch_sandbox_service(sandbox)
         with ctx as mock_get:
@@ -221,25 +221,25 @@ class TestValidateSessionKey:
             mock_get.return_value.__aexit__ = AsyncMock(return_value=False)
 
             with pytest.raises(HTTPException) as exc_info:
-                await validate_session_key("valid-key")
+                await validate_session_key('valid-key')
         assert exc_info.value.status_code == 401
-        assert "not running" in exc_info.value.detail
+        assert 'not running' in exc_info.value.detail
 
     async def test_accepts_running_sandbox(self):
         """Session key for RUNNING sandbox is accepted."""
         sandbox = SandboxInfo(
             id=SANDBOX_ID,
             created_by_user_id=USER_ID,
-            sandbox_spec_id="test-spec",
+            sandbox_spec_id='test-spec',
             status=SandboxStatus.RUNNING,
-            session_api_key="session-key",
+            session_api_key='session-key',
         )
         ctx, mock_svc = _patch_sandbox_service(sandbox)
         with ctx as mock_get:
             mock_get.return_value.__aenter__ = AsyncMock(return_value=mock_svc)
             mock_get.return_value.__aexit__ = AsyncMock(return_value=False)
 
-            result = await validate_session_key("valid-key")
+            result = await validate_session_key('valid-key')
         assert result.id == SANDBOX_ID
         assert result.status == SandboxStatus.RUNNING
 
@@ -259,9 +259,9 @@ class TestGetCurrentUserExposeSecrets:
             id=USER_ID,
             agent_settings=OpenHandsAgentSettings(
                 llm=LLM(
-                    model="anthropic/claude-sonnet-4-20250514",
-                    api_key=SecretStr("sk-test-key-123"),
-                    base_url="https://litellm.example.com",
+                    model='anthropic/claude-sonnet-4-20250514',
+                    api_key=SecretStr('sk-test-key-123'),
+                    base_url='https://litellm.example.com',
                 ),
             ),
         )
@@ -270,22 +270,22 @@ class TestGetCurrentUserExposeSecrets:
         mock_context.get_user_id = AsyncMock(return_value=USER_ID)
 
         with patch(
-            "openhands.app_server.user.user_router.validate_session_key_ownership"
+            'openhands.app_server.user.user_router.validate_session_key_ownership'
         ) as mock_validate:
             mock_validate.return_value = None
             result = await get_current_user(
                 user_context=mock_context,
                 expose_secrets=True,
-                x_session_api_key="valid-key",
+                x_session_api_key='valid-key',
             )
 
         import json
 
         body = json.loads(result.body)
-        sdk_vals = body["agent_settings"]
-        assert sdk_vals["llm"]["model"] == "anthropic/claude-sonnet-4-20250514"
-        assert sdk_vals["llm"]["api_key"] == "sk-test-key-123"
-        assert sdk_vals["llm"]["base_url"] == "https://litellm.example.com"
+        sdk_vals = body['agent_settings']
+        assert sdk_vals['llm']['model'] == 'anthropic/claude-sonnet-4-20250514'
+        assert sdk_vals['llm']['api_key'] == 'sk-test-key-123'
+        assert sdk_vals['llm']['base_url'] == 'https://litellm.example.com'
 
     async def test_expose_secrets_rejects_missing_session_key(self):
         """expose_secrets=true without X-Session-API-Key is rejected."""
@@ -294,14 +294,14 @@ class TestGetCurrentUserExposeSecrets:
         with pytest.raises(HTTPException) as exc_info:
             await validate_session_key_ownership(mock_context, session_api_key=None)
         assert exc_info.value.status_code == 401
-        assert "X-Session-API-Key" in exc_info.value.detail
+        assert 'X-Session-API-Key' in exc_info.value.detail
 
     async def test_expose_secrets_rejects_wrong_user(self):
         """expose_secrets=true with session key from different user is rejected."""
         mock_context = AsyncMock()
-        mock_context.get_user_id = AsyncMock(return_value="user-A")
+        mock_context.get_user_id = AsyncMock(return_value='user-A')
 
-        other_user_sandbox = _make_sandbox_info(user_id="user-B")
+        other_user_sandbox = _make_sandbox_info(user_id='user-B')
 
         ctx, mock_svc = _patch_sandbox_service(other_user_sandbox)
         with ctx as mock_get, pytest.raises(HTTPException) as exc_info:
@@ -309,7 +309,7 @@ class TestGetCurrentUserExposeSecrets:
             mock_get.return_value.__aexit__ = AsyncMock(return_value=False)
 
             await validate_session_key_ownership(
-                mock_context, session_api_key="stolen-key"
+                mock_context, session_api_key='stolen-key'
             )
 
         assert exc_info.value.status_code == 403
@@ -319,7 +319,7 @@ class TestGetCurrentUserExposeSecrets:
         mock_context = AsyncMock()
         mock_context.get_user_id = AsyncMock(return_value=None)
 
-        sandbox = _make_sandbox_info(user_id="user-B")
+        sandbox = _make_sandbox_info(user_id='user-B')
 
         ctx, mock_svc = _patch_sandbox_service(sandbox)
         with ctx as mock_get, pytest.raises(HTTPException) as exc_info:
@@ -327,18 +327,18 @@ class TestGetCurrentUserExposeSecrets:
             mock_get.return_value.__aexit__ = AsyncMock(return_value=False)
 
             await validate_session_key_ownership(
-                mock_context, session_api_key="some-key"
+                mock_context, session_api_key='some-key'
             )
 
         assert exc_info.value.status_code == 401
-        assert "Cannot determine authenticated user" in exc_info.value.detail
+        assert 'Cannot determine authenticated user' in exc_info.value.detail
 
     async def test_default_masks_api_key(self):
         """Without expose_secrets, llm_api_key is masked (no session key needed)."""
         user_info = UserInfo(
             id=USER_ID,
             agent_settings=OpenHandsAgentSettings(
-                llm=LLM(model="gpt-4o", api_key=SecretStr("sk-test-key-123")),
+                llm=LLM(model='gpt-4o', api_key=SecretStr('sk-test-key-123')),
             ),
         )
         mock_context = AsyncMock()
@@ -350,9 +350,9 @@ class TestGetCurrentUserExposeSecrets:
 
         # Returns UserInfo directly (FastAPI will serialize with masking)
         assert isinstance(result, UserInfo)
-        dumped = result.model_dump(mode="json")
-        assert dumped["agent_settings"]["llm"]["api_key"] != "sk-test-key-123"
-        assert dumped["agent_settings"]["llm"]["api_key"] == "**********"
+        dumped = result.model_dump(mode='json')
+        assert dumped['agent_settings']['llm']['api_key'] != 'sk-test-key-123'
+        assert dumped['agent_settings']['llm']['api_key'] == '**********'
 
 
 # ---------------------------------------------------------------------------
@@ -367,19 +367,19 @@ class TestListSecretNames:
     async def test_returns_secret_names_without_values(self):
         """Response contains names and descriptions, NOT raw values."""
         secrets = {
-            "GITHUB_TOKEN": StaticSecret(
-                value=SecretStr("ghp_test123"),
-                description="GitHub personal access token",
+            'GITHUB_TOKEN': StaticSecret(
+                value=SecretStr('ghp_test123'),
+                description='GitHub personal access token',
             ),
-            "MY_API_KEY": StaticSecret(
-                value=SecretStr("my-api-key-value"),
-                description="Custom API key",
+            'MY_API_KEY': StaticSecret(
+                value=SecretStr('my-api-key-value'),
+                description='Custom API key',
             ),
         }
         sandbox_info = _make_sandbox_info()
 
         with patch(
-            "openhands.app_server.sandbox.sandbox_router._get_user_context"
+            'openhands.app_server.sandbox.sandbox_router._get_user_context'
         ) as mock_ctx:
             ctx = AsyncMock()
             ctx.get_secrets = AsyncMock(return_value=secrets)
@@ -391,19 +391,19 @@ class TestListSecretNames:
         assert isinstance(result, SecretNamesResponse)
         assert len(result.secrets) == 2
         names = {s.name for s in result.secrets}
-        assert "GITHUB_TOKEN" in names
-        assert "MY_API_KEY" in names
+        assert 'GITHUB_TOKEN' in names
+        assert 'MY_API_KEY' in names
 
-        gh = next(s for s in result.secrets if s.name == "GITHUB_TOKEN")
-        assert gh.description == "GitHub personal access token"
+        gh = next(s for s in result.secrets if s.name == 'GITHUB_TOKEN')
+        assert gh.description == 'GitHub personal access token'
         # Verify no 'value' field is exposed
-        assert not hasattr(gh, "value")
+        assert not hasattr(gh, 'value')
 
     async def test_returns_empty_when_no_secrets(self):
         sandbox_info = _make_sandbox_info()
 
         with patch(
-            "openhands.app_server.sandbox.sandbox_router._get_user_context"
+            'openhands.app_server.sandbox.sandbox_router._get_user_context'
         ) as mock_ctx:
             ctx = AsyncMock()
             ctx.get_secrets = AsyncMock(return_value={})
@@ -427,15 +427,15 @@ class TestGetSecretValue:
     async def test_returns_raw_secret_value(self):
         """Raw secret value returned as plain text."""
         secrets = {
-            "GITHUB_TOKEN": StaticSecret(
-                value=SecretStr("ghp_actual_secret"),
-                description="GitHub token",
+            'GITHUB_TOKEN': StaticSecret(
+                value=SecretStr('ghp_actual_secret'),
+                description='GitHub token',
             ),
         }
         sandbox_info = _make_sandbox_info()
 
         with patch(
-            "openhands.app_server.sandbox.sandbox_router._get_user_context"
+            'openhands.app_server.sandbox.sandbox_router._get_user_context'
         ) as mock_ctx:
             ctx = AsyncMock()
             ctx.get_secrets = AsyncMock(return_value=secrets)
@@ -443,19 +443,19 @@ class TestGetSecretValue:
             mock_ctx.return_value = ctx
 
             response = await get_secret_value(
-                secret_name="GITHUB_TOKEN",
+                secret_name='GITHUB_TOKEN',
                 sandbox_info=sandbox_info,
             )
 
-        assert response.body == b"ghp_actual_secret"
-        assert response.media_type == "text/plain"
+        assert response.body == b'ghp_actual_secret'
+        assert response.media_type == 'text/plain'
 
     async def test_returns_404_for_unknown_secret(self):
         """404 when requested secret doesn't exist in custom secrets or provider tokens."""
         sandbox_info = _make_sandbox_info()
 
         with patch(
-            "openhands.app_server.sandbox.sandbox_router._get_user_context"
+            'openhands.app_server.sandbox.sandbox_router._get_user_context'
         ) as mock_ctx:
             ctx = AsyncMock()
             ctx.get_secrets = AsyncMock(return_value={})
@@ -464,7 +464,7 @@ class TestGetSecretValue:
 
             with pytest.raises(HTTPException) as exc_info:
                 await get_secret_value(
-                    secret_name="NONEXISTENT",
+                    secret_name='NONEXISTENT',
                     sandbox_info=sandbox_info,
                 )
 
@@ -473,12 +473,12 @@ class TestGetSecretValue:
     async def test_returns_404_for_none_value_secret(self):
         """404 when secret exists but has None value."""
         secrets = {
-            "EMPTY_SECRET": StaticSecret(value=None),
+            'EMPTY_SECRET': StaticSecret(value=None),
         }
         sandbox_info = _make_sandbox_info()
 
         with patch(
-            "openhands.app_server.sandbox.sandbox_router._get_user_context"
+            'openhands.app_server.sandbox.sandbox_router._get_user_context'
         ) as mock_ctx:
             ctx = AsyncMock()
             ctx.get_secrets = AsyncMock(return_value=secrets)
@@ -487,7 +487,7 @@ class TestGetSecretValue:
 
             with pytest.raises(HTTPException) as exc_info:
                 await get_secret_value(
-                    secret_name="EMPTY_SECRET",
+                    secret_name='EMPTY_SECRET',
                     sandbox_info=sandbox_info,
                 )
 
@@ -532,8 +532,8 @@ def _build_integration_test_app(
 
         app.dependency_overrides[user_dependency.dependency] = lambda: mock_user_context
 
-    app.include_router(user_router, prefix="/api/v1")
-    app.include_router(sandbox_router, prefix="/api/v1")
+    app.include_router(user_router, prefix='/api/v1')
+    app.include_router(sandbox_router, prefix='/api/v1')
     return app
 
 
@@ -554,7 +554,7 @@ class TestExposeSecretsIntegration:
             return_value=UserInfo(
                 id=USER_ID,
                 agent_settings=OpenHandsAgentSettings(
-                    llm=LLM(model="gpt-4o", api_key=SecretStr("sk-secret-123")),
+                    llm=LLM(model='gpt-4o', api_key=SecretStr('sk-secret-123')),
                 ),
             )
         )
@@ -563,10 +563,10 @@ class TestExposeSecretsIntegration:
         app = _build_integration_test_app(mock_user_ctx)
         client = TestClient(app, raise_server_exceptions=False)
 
-        response = client.get("/api/v1/users/me", params={"expose_secrets": "true"})
+        response = client.get('/api/v1/users/me', params={'expose_secrets': 'true'})
 
         assert response.status_code == 401
-        assert "X-Session-API-Key" in response.json()["detail"]
+        assert 'X-Session-API-Key' in response.json()['detail']
 
     def test_expose_secrets_with_invalid_session_key_returns_401(self):
         """Invalid session key (no matching sandbox) is rejected."""
@@ -575,7 +575,7 @@ class TestExposeSecretsIntegration:
             return_value=UserInfo(
                 id=USER_ID,
                 agent_settings=OpenHandsAgentSettings(
-                    llm=LLM(model="gpt-4o", api_key=SecretStr("sk-secret-123")),
+                    llm=LLM(model='gpt-4o', api_key=SecretStr('sk-secret-123')),
                 ),
             )
         )
@@ -588,33 +588,33 @@ class TestExposeSecretsIntegration:
         client = TestClient(app, raise_server_exceptions=False)
 
         with patch(
-            "openhands.app_server.sandbox.session_auth.get_sandbox_service",
+            'openhands.app_server.sandbox.session_auth.get_sandbox_service',
             _create_sandbox_service_context_manager(mock_sandbox_svc),
         ):
             response = client.get(
-                "/api/v1/users/me",
-                params={"expose_secrets": "true"},
-                headers={"X-Session-API-Key": "bogus-key"},
+                '/api/v1/users/me',
+                params={'expose_secrets': 'true'},
+                headers={'X-Session-API-Key': 'bogus-key'},
             )
 
         assert response.status_code == 401
-        assert "Invalid session API key" in response.json()["detail"]
+        assert 'Invalid session API key' in response.json()['detail']
 
     def test_expose_secrets_with_wrong_user_returns_403(self):
         """Session key from a different user's sandbox is rejected."""
         mock_user_ctx = AsyncMock()
         mock_user_ctx.get_user_info = AsyncMock(
             return_value=UserInfo(
-                id="user-A",
+                id='user-A',
                 agent_settings=OpenHandsAgentSettings(
-                    llm=LLM(model="gpt-4o", api_key=SecretStr("sk-secret-123")),
+                    llm=LLM(model='gpt-4o', api_key=SecretStr('sk-secret-123')),
                 ),
             )
         )
-        mock_user_ctx.get_user_id = AsyncMock(return_value="user-A")
+        mock_user_ctx.get_user_id = AsyncMock(return_value='user-A')
 
         # Sandbox owned by user-B
-        sandbox_b = _make_sandbox_info(user_id="user-B")
+        sandbox_b = _make_sandbox_info(user_id='user-B')
         mock_sandbox_svc = AsyncMock()
         mock_sandbox_svc.get_sandbox_by_session_api_key = AsyncMock(
             return_value=sandbox_b
@@ -624,17 +624,17 @@ class TestExposeSecretsIntegration:
         client = TestClient(app, raise_server_exceptions=False)
 
         with patch(
-            "openhands.app_server.sandbox.session_auth.get_sandbox_service",
+            'openhands.app_server.sandbox.session_auth.get_sandbox_service',
             _create_sandbox_service_context_manager(mock_sandbox_svc),
         ):
             response = client.get(
-                "/api/v1/users/me",
-                params={"expose_secrets": "true"},
-                headers={"X-Session-API-Key": "stolen-key"},
+                '/api/v1/users/me',
+                params={'expose_secrets': 'true'},
+                headers={'X-Session-API-Key': 'stolen-key'},
             )
 
         assert response.status_code == 403
-        assert "does not belong" in response.json()["detail"]
+        assert 'does not belong' in response.json()['detail']
 
     def test_expose_secrets_valid_dual_auth_returns_200_unmasked(self):
         """Valid Bearer + valid session key owned by same user → 200 with secrets."""
@@ -644,9 +644,9 @@ class TestExposeSecretsIntegration:
                 id=USER_ID,
                 agent_settings=OpenHandsAgentSettings(
                     llm=LLM(
-                        model="anthropic/claude-sonnet-4-20250514",
-                        api_key=SecretStr("sk-real-secret"),
-                        base_url="https://litellm.example.com",
+                        model='anthropic/claude-sonnet-4-20250514',
+                        api_key=SecretStr('sk-real-secret'),
+                        base_url='https://litellm.example.com',
                     ),
                 ),
             )
@@ -663,20 +663,20 @@ class TestExposeSecretsIntegration:
         client = TestClient(app, raise_server_exceptions=False)
 
         with patch(
-            "openhands.app_server.sandbox.session_auth.get_sandbox_service",
+            'openhands.app_server.sandbox.session_auth.get_sandbox_service',
             _create_sandbox_service_context_manager(mock_sandbox_svc),
         ):
             response = client.get(
-                "/api/v1/users/me",
-                params={"expose_secrets": "true"},
-                headers={"X-Session-API-Key": "valid-key"},
+                '/api/v1/users/me',
+                params={'expose_secrets': 'true'},
+                headers={'X-Session-API-Key': 'valid-key'},
             )
 
         assert response.status_code == 200
         user = UserInfo.model_validate_json(response.text)
-        assert user.agent_settings.llm.api_key.get_secret_value() == "sk-real-secret"
-        assert user.agent_settings.llm.model == "anthropic/claude-sonnet-4-20250514"
-        assert user.agent_settings.llm.base_url == "https://litellm.example.com"
+        assert user.agent_settings.llm.api_key.get_secret_value() == 'sk-real-secret'
+        assert user.agent_settings.llm.model == 'anthropic/claude-sonnet-4-20250514'
+        assert user.agent_settings.llm.base_url == 'https://litellm.example.com'
 
     def test_default_masks_secrets_via_http(self):
         """Without expose_secrets, secrets are in agent_settings."""
@@ -686,8 +686,8 @@ class TestExposeSecretsIntegration:
                 id=USER_ID,
                 agent_settings=OpenHandsAgentSettings(
                     llm=LLM(
-                        model="gpt-4o",
-                        api_key=SecretStr("sk-should-be-masked"),
+                        model='gpt-4o',
+                        api_key=SecretStr('sk-should-be-masked'),
                     ),
                 ),
             )
@@ -696,7 +696,7 @@ class TestExposeSecretsIntegration:
         app = _build_integration_test_app(mock_user_ctx)
         client = TestClient(app, raise_server_exceptions=False)
 
-        response = client.get("/api/v1/users/me")
+        response = client.get('/api/v1/users/me')
 
         assert response.status_code == 200
         user = UserInfo.model_validate_json(response.text)
@@ -716,10 +716,10 @@ class TestSandboxSecretsIntegration:
         app = _build_integration_test_app()
         client = TestClient(app, raise_server_exceptions=False)
 
-        response = client.get(f"/api/v1/sandboxes/{SANDBOX_ID}/settings/secrets")
+        response = client.get(f'/api/v1/sandboxes/{SANDBOX_ID}/settings/secrets')
 
         assert response.status_code == 401
-        assert "X-Session-API-Key" in response.json()["detail"]
+        assert 'X-Session-API-Key' in response.json()['detail']
 
     def test_secrets_list_with_invalid_session_key_returns_401(self):
         """Invalid session key on secrets endpoint is rejected."""
@@ -730,16 +730,16 @@ class TestSandboxSecretsIntegration:
         mock_sandbox_svc.get_sandbox_by_session_api_key = AsyncMock(return_value=None)
 
         with patch(
-            "openhands.app_server.sandbox.session_auth.get_sandbox_service",
+            'openhands.app_server.sandbox.session_auth.get_sandbox_service',
             _create_sandbox_service_context_manager(mock_sandbox_svc),
         ):
             response = client.get(
-                f"/api/v1/sandboxes/{SANDBOX_ID}/settings/secrets",
-                headers={"X-Session-API-Key": "bogus"},
+                f'/api/v1/sandboxes/{SANDBOX_ID}/settings/secrets',
+                headers={'X-Session-API-Key': 'bogus'},
             )
 
         assert response.status_code == 401
-        assert "Invalid session API key" in response.json()["detail"]
+        assert 'Invalid session API key' in response.json()['detail']
 
     def test_secrets_list_with_mismatched_sandbox_id_returns_403(self):
         """Session key maps to a different sandbox than the URL path → 403."""
@@ -747,23 +747,23 @@ class TestSandboxSecretsIntegration:
         client = TestClient(app, raise_server_exceptions=False)
 
         # Session key maps to sandbox "other-sandbox", but URL says SANDBOX_ID
-        other_sandbox = _make_sandbox_info(sandbox_id="other-sandbox")
+        other_sandbox = _make_sandbox_info(sandbox_id='other-sandbox')
         mock_sandbox_svc = AsyncMock()
         mock_sandbox_svc.get_sandbox_by_session_api_key = AsyncMock(
             return_value=other_sandbox
         )
 
         with patch(
-            "openhands.app_server.sandbox.session_auth.get_sandbox_service",
+            'openhands.app_server.sandbox.session_auth.get_sandbox_service',
             _create_sandbox_service_context_manager(mock_sandbox_svc),
         ):
             response = client.get(
-                f"/api/v1/sandboxes/{SANDBOX_ID}/settings/secrets",
-                headers={"X-Session-API-Key": "valid-key"},
+                f'/api/v1/sandboxes/{SANDBOX_ID}/settings/secrets',
+                headers={'X-Session-API-Key': 'valid-key'},
             )
 
         assert response.status_code == 403
-        assert "does not match" in response.json()["detail"]
+        assert 'does not match' in response.json()['detail']
 
     def test_sandbox_without_user_returns_401_for_secret_value(self):
         """Sandbox with no owning user → 401 when fetching a secret value."""
@@ -778,17 +778,17 @@ class TestSandboxSecretsIntegration:
         )
 
         with patch(
-            "openhands.app_server.sandbox.session_auth.get_sandbox_service",
+            'openhands.app_server.sandbox.session_auth.get_sandbox_service',
             _create_sandbox_service_context_manager(mock_sandbox_svc),
         ):
             response = client.get(
-                f"/api/v1/sandboxes/{SANDBOX_ID}/settings/secrets/MY_SECRET",
-                headers={"X-Session-API-Key": "valid-key"},
+                f'/api/v1/sandboxes/{SANDBOX_ID}/settings/secrets/MY_SECRET',
+                headers={'X-Session-API-Key': 'valid-key'},
             )
 
         # _get_user_context raises 401 because created_by_user_id is None
         assert response.status_code == 401
-        assert "no associated user" in response.json()["detail"]
+        assert 'no associated user' in response.json()['detail']
 
 
 # ---------------------------------------------------------------------------
@@ -805,8 +805,8 @@ class TestProviderTokensInEndpoints:
         mock_user_auth = AsyncMock()
         mock_user_auth.get_provider_tokens = AsyncMock(
             return_value={
-                ProviderType.GITHUB: ProviderToken(token=SecretStr("ghp_test123")),
-                ProviderType.GITLAB: ProviderToken(token=SecretStr("glpat-test456")),
+                ProviderType.GITHUB: ProviderToken(token=SecretStr('ghp_test123')),
+                ProviderType.GITLAB: ProviderToken(token=SecretStr('glpat-test456')),
             }
         )
 
@@ -815,15 +815,15 @@ class TestProviderTokensInEndpoints:
 
         gh_key = ProviderHandler.get_provider_env_key(ProviderType.GITHUB)
         gl_key = ProviderHandler.get_provider_env_key(ProviderType.GITLAB)
-        assert result[gh_key] == "ghp_test123"
-        assert result[gl_key] == "glpat-test456"
+        assert result[gh_key] == 'ghp_test123'
+        assert result[gl_key] == 'glpat-test456'
 
     async def test_empty_provider_tokens_excluded(self):
         """Provider tokens with empty token values are excluded."""
         mock_user_auth = AsyncMock()
         mock_user_auth.get_provider_tokens = AsyncMock(
             return_value={
-                ProviderType.GITHUB: ProviderToken(token=SecretStr("")),
+                ProviderType.GITHUB: ProviderToken(token=SecretStr('')),
             }
         )
 
@@ -845,17 +845,17 @@ class TestProviderTokensInEndpoints:
     async def test_list_secret_names_includes_provider_tokens(self):
         """list_secret_names returns both custom secrets and provider token names."""
         custom_secrets = {
-            "MY_KEY": StaticSecret(
-                value=SecretStr("my-value"), description="custom key"
+            'MY_KEY': StaticSecret(
+                value=SecretStr('my-value'), description='custom key'
             ),
         }
         gh_key = ProviderHandler.get_provider_env_key(ProviderType.GITHUB)
-        provider_env_vars = {gh_key: "ghp_test123"}
+        provider_env_vars = {gh_key: 'ghp_test123'}
 
         sandbox_info = _make_sandbox_info()
 
         with patch(
-            "openhands.app_server.sandbox.sandbox_router._get_user_context"
+            'openhands.app_server.sandbox.sandbox_router._get_user_context'
         ) as mock_ctx:
             ctx = AsyncMock()
             ctx.get_secrets = AsyncMock(return_value=custom_secrets)
@@ -865,7 +865,7 @@ class TestProviderTokensInEndpoints:
             result = await list_secret_names(sandbox_info=sandbox_info)
 
         names = {s.name for s in result.secrets}
-        assert "MY_KEY" in names
+        assert 'MY_KEY' in names
         assert gh_key in names
         assert len(result.secrets) == 2
 
@@ -875,12 +875,12 @@ class TestProviderTokensInEndpoints:
         sandbox_info = _make_sandbox_info()
 
         with patch(
-            "openhands.app_server.sandbox.sandbox_router._get_user_context"
+            'openhands.app_server.sandbox.sandbox_router._get_user_context'
         ) as mock_ctx:
             ctx = AsyncMock()
             ctx.get_secrets = AsyncMock(return_value={})
             ctx.get_provider_tokens = AsyncMock(
-                return_value={gh_key: "ghp_fresh_token"}
+                return_value={gh_key: 'ghp_fresh_token'}
             )
             mock_ctx.return_value = ctx
 
@@ -888,8 +888,8 @@ class TestProviderTokensInEndpoints:
                 secret_name=gh_key, sandbox_info=sandbox_info
             )
 
-        assert response.body == b"ghp_fresh_token"
-        assert response.media_type == "text/plain"
+        assert response.body == b'ghp_fresh_token'
+        assert response.media_type == 'text/plain'
 
     async def test_custom_secret_takes_priority_over_provider_token(self):
         """If a custom secret has the same name, it takes priority."""
@@ -897,23 +897,23 @@ class TestProviderTokensInEndpoints:
         sandbox_info = _make_sandbox_info()
 
         with patch(
-            "openhands.app_server.sandbox.sandbox_router._get_user_context"
+            'openhands.app_server.sandbox.sandbox_router._get_user_context'
         ) as mock_ctx:
             ctx = AsyncMock()
             ctx.get_secrets = AsyncMock(
                 return_value={
                     gh_key: StaticSecret(
-                        value=SecretStr("custom-override"),
-                        description="user override",
+                        value=SecretStr('custom-override'),
+                        description='user override',
                     )
                 }
             )
             # Provider token should NOT be called since custom secret matches
-            ctx.get_provider_tokens = AsyncMock(return_value={gh_key: "provider-value"})
+            ctx.get_provider_tokens = AsyncMock(return_value={gh_key: 'provider-value'})
             mock_ctx.return_value = ctx
 
             response = await get_secret_value(
                 secret_name=gh_key, sandbox_info=sandbox_info
             )
 
-        assert response.body == b"custom-override"
+        assert response.body == b'custom-override'

@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 class Org(Base):
     """Organization model."""
 
-    __tablename__ = "org"
+    __tablename__ = 'org'
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
     name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
@@ -68,45 +68,45 @@ class Org(Base):
     sandbox_grouping_strategy: Mapped[str | None] = mapped_column(String, nullable=True)
 
     # Relationships
-    org_members: Mapped[list["OrgMember"]] = relationship(
-        "OrgMember", back_populates="org"
+    org_members: Mapped[list['OrgMember']] = relationship(
+        'OrgMember', back_populates='org'
     )
-    current_users: Mapped[list["User"]] = relationship(
-        "User", back_populates="current_org"
+    current_users: Mapped[list['User']] = relationship(
+        'User', back_populates='current_org'
     )
-    invitations: Mapped[list["OrgInvitation"]] = relationship(
-        "OrgInvitation", back_populates="org", passive_deletes=True
+    invitations: Mapped[list['OrgInvitation']] = relationship(
+        'OrgInvitation', back_populates='org', passive_deletes=True
     )
-    billing_sessions: Mapped[list["BillingSession"]] = relationship(
-        "BillingSession", back_populates="org"
+    billing_sessions: Mapped[list['BillingSession']] = relationship(
+        'BillingSession', back_populates='org'
     )
     stored_conversation_metadata_saas: Mapped[
-        list["StoredConversationMetadataSaas"]
-    ] = relationship("StoredConversationMetadataSaas", back_populates="org")
-    user_secrets: Mapped[list["StoredCustomSecrets"]] = relationship(
-        "StoredCustomSecrets", back_populates="org"
+        list['StoredConversationMetadataSaas']
+    ] = relationship('StoredConversationMetadataSaas', back_populates='org')
+    user_secrets: Mapped[list['StoredCustomSecrets']] = relationship(
+        'StoredCustomSecrets', back_populates='org'
     )
-    api_keys: Mapped[list["ApiKey"]] = relationship("ApiKey", back_populates="org")
-    slack_conversations: Mapped[list["SlackConversation"]] = relationship(
-        "SlackConversation", back_populates="org"
+    api_keys: Mapped[list['ApiKey']] = relationship('ApiKey', back_populates='org')
+    slack_conversations: Mapped[list['SlackConversation']] = relationship(
+        'SlackConversation', back_populates='org'
     )
-    slack_users: Mapped[list["SlackUser"]] = relationship(
-        "SlackUser", back_populates="org"
+    slack_users: Mapped[list['SlackUser']] = relationship(
+        'SlackUser', back_populates='org'
     )
-    stripe_customers: Mapped[list["StripeCustomer"]] = relationship(
-        "StripeCustomer", back_populates="org"
+    stripe_customers: Mapped[list['StripeCustomer']] = relationship(
+        'StripeCustomer', back_populates='org'
     )
-    git_claims: Mapped[list["OrgGitClaim"]] = relationship(
-        "OrgGitClaim", back_populates="org"
+    git_claims: Mapped[list['OrgGitClaim']] = relationship(
+        'OrgGitClaim', back_populates='org'
     )
 
     def __init__(self, **kwargs):
         # Serialize Pydantic model objects to dicts for JSON columns.
         from pydantic import BaseModel
 
-        for key in ("agent_settings", "conversation_settings"):
+        for key in ('agent_settings', 'conversation_settings'):
             if key in kwargs and isinstance(kwargs[key], BaseModel):
-                kwargs[key] = kwargs[key].model_dump(mode="json")
+                kwargs[key] = kwargs[key].model_dump(mode='json')
 
         # Handle known SQLAlchemy columns directly
         for key in list(kwargs):
@@ -114,15 +114,15 @@ class Org(Base):
                 setattr(self, key, kwargs.pop(key))
 
         # Handle custom property-style fields
-        if "llm_api_key" in kwargs:
-            self.llm_api_key = kwargs.pop("llm_api_key")
-        if "search_api_key" in kwargs:
-            self.search_api_key = kwargs.pop("search_api_key")
-        if "sandbox_api_key" in kwargs:
-            self.sandbox_api_key = kwargs.pop("sandbox_api_key")
+        if 'llm_api_key' in kwargs:
+            self.llm_api_key = kwargs.pop('llm_api_key')
+        if 'search_api_key' in kwargs:
+            self.search_api_key = kwargs.pop('search_api_key')
+        if 'sandbox_api_key' in kwargs:
+            self.sandbox_api_key = kwargs.pop('sandbox_api_key')
 
         if kwargs:
-            raise TypeError(f"Unexpected keyword arguments: {list(kwargs.keys())}")
+            raise TypeError(f'Unexpected keyword arguments: {list(kwargs.keys())}')
 
     @property
     def llm_api_key(self) -> SecretStr | None:

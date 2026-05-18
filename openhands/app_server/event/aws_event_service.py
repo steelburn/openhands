@@ -38,62 +38,62 @@ class AwsEventService(EventServiceBase):
         """Get the event at the path given."""
         try:
             response = self.s3_client.get_object(Bucket=self.bucket_name, Key=str(path))
-            with response["Body"] as stream:
-                json_data = stream.read().decode("utf-8")
+            with response['Body'] as stream:
+                json_data = stream.read().decode('utf-8')
             event = Event.model_validate_json(json_data)
             return event
         except botocore.exceptions.ClientError as e:
-            if e.response["Error"]["Code"] == "NoSuchKey":
+            if e.response['Error']['Code'] == 'NoSuchKey':
                 return None
-            _logger.exception(f"Error reading event from {path}")
+            _logger.exception(f'Error reading event from {path}')
             return None
         except Exception:
-            _logger.exception(f"Error reading event from {path}")
+            _logger.exception(f'Error reading event from {path}')
             return None
 
     def _store_event(self, path: Path, event: Event):
         """Store the event given at the path given."""
-        data = event.model_dump(mode="json")
+        data = event.model_dump(mode='json')
         json_str = json.dumps(data, indent=2)
         self.s3_client.put_object(
             Bucket=self.bucket_name,
             Key=str(path),
-            Body=json_str.encode("utf-8"),
+            Body=json_str.encode('utf-8'),
         )
 
     def _search_paths(self, prefix: Path, page_id: str | None = None) -> list[Path]:
         """Search paths."""
         kwargs: dict[str, Any] = {
-            "Bucket": self.bucket_name,
-            "Prefix": str(prefix),
+            'Bucket': self.bucket_name,
+            'Prefix': str(prefix),
         }
         if page_id:
-            kwargs["ContinuationToken"] = page_id
+            kwargs['ContinuationToken'] = page_id
 
         response = self.s3_client.list_objects_v2(**kwargs)
-        contents = response.get("Contents", [])
-        paths = [Path(obj["Key"]) for obj in contents]
+        contents = response.get('Contents', [])
+        paths = [Path(obj['Key']) for obj in contents]
         return paths
 
 
 def _get_default_aws_endpoint_url() -> str | None:
     """Legacy fallback for aws endpoint url based on V0"""
-    endpoint_url = os.getenv("AWS_S3_ENDPOINT")
+    endpoint_url = os.getenv('AWS_S3_ENDPOINT')
     if not endpoint_url:
         return None
-    secure = os.getenv("AWS_S3_SECURE", "true").lower() == "true"
+    secure = os.getenv('AWS_S3_SECURE', 'true').lower() == 'true'
     if secure:
-        if not endpoint_url.startswith("https://"):
-            endpoint_url = "https://" + endpoint_url.removeprefix("http://")
+        if not endpoint_url.startswith('https://'):
+            endpoint_url = 'https://' + endpoint_url.removeprefix('http://')
     else:
-        if not endpoint_url.startswith("http://"):
-            endpoint_url = "http://" + endpoint_url.removeprefix("https://")
+        if not endpoint_url.startswith('http://'):
+            endpoint_url = 'http://' + endpoint_url.removeprefix('https://')
     return endpoint_url
 
 
 class AwsEventServiceInjector(EventServiceInjector):
     bucket_name: str
-    prefix: Path = Path("users")
+    prefix: Path = Path('users')
     endpoint_url: str | None = Field(default_factory=_get_default_aws_endpoint_url)
 
     async def inject(
@@ -116,7 +116,7 @@ class AwsEventServiceInjector(EventServiceInjector):
             # Use role-based authentication - boto3 will automatically
             # use IAM role credentials when running in AWS
             s3_client = boto3.client(
-                "s3",
+                's3',
                 endpoint_url=self.endpoint_url,
             )
 

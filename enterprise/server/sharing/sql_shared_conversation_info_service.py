@@ -74,7 +74,7 @@ class SQLSharedConversationInfoService(SharedConversationInfoService):
                 StoredConversationMetadata.conversation_id
                 == StoredConversationMetadataSaas.conversation_id,
             )
-            .where(StoredConversationMetadata.conversation_version == "V1")
+            .where(StoredConversationMetadata.conversation_version == 'V1')
             .where(StoredConversationMetadata.public == True)  # noqa: E712
         )
         return query

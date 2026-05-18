@@ -23,11 +23,11 @@ class BitbucketDCMixinBase(BaseGitService, HTTPClient):
     Base mixin for BitBucket data center service containing common functionality
     """
 
-    BASE_URL: str = ""  # Set dynamically from domain in __init__
+    BASE_URL: str = ''  # Set dynamically from domain in __init__
     user_id: str | None
 
     def _repo_api_base(self, owner: str, repo: str) -> str:
-        return f"{self.BASE_URL}/projects/{owner}/repos/{repo}"
+        return f'{self.BASE_URL}/projects/{owner}/repos/{repo}'
 
     @staticmethod
     def _resolve_primary_email(emails: list[dict]) -> str | None:
@@ -37,8 +37,8 @@ class BitbucketDCMixinBase(BaseGitService, HTTPClient):
         'email', 'is_primary', and 'is_confirmed' keys.
         """
         for entry in emails:
-            if entry.get("is_primary") and entry.get("is_confirmed"):
-                return entry.get("email")
+            if entry.get('is_primary') and entry.get('is_confirmed'):
+                return entry.get('email')
         return None
 
     def _extract_owner_and_repo(self, repository: str) -> tuple[str, str]:
@@ -53,9 +53,9 @@ class BitbucketDCMixinBase(BaseGitService, HTTPClient):
         Raises:
             ValueError: If repository format is invalid
         """
-        parts = repository.split("/")
+        parts = repository.split('/')
         if len(parts) < 2:
-            raise ValueError(f"Invalid repository name: {repository}")
+            raise ValueError(f'Invalid repository name: {repository}')
 
         return parts[-2], parts[-1]
 
@@ -87,15 +87,15 @@ class BitbucketDCMixinBase(BaseGitService, HTTPClient):
 
         token_value = self.token.get_secret_value()
 
-        if ":" in token_value:
+        if ':' in token_value:
             auth_str = base64.b64encode(token_value.encode()).decode()
             return {
-                "Authorization": f"Basic {auth_str}",
-                "Accept": "application/json",
+                'Authorization': f'Basic {auth_str}',
+                'Accept': 'application/json',
             }
         return {
-            "Authorization": f"Bearer {token_value}",
-            "Accept": "application/json",
+            'Authorization': f'Bearer {token_value}',
+            'Accept': 'application/json',
         }
 
     async def _make_request(
@@ -146,8 +146,8 @@ class BitbucketDCMixinBase(BaseGitService, HTTPClient):
         """Verify that the token and host are valid by making a lightweight API call.
         Raises an exception if the token is invalid or the host is unreachable.
         """
-        url = f"{self.BASE_URL}/repos"
-        await self._make_request(url, {"limit": "1"})
+        url = f'{self.BASE_URL}/repos'
+        await self._make_request(url, {'limit': '1'})
 
     async def _fetch_paginated_data(
         self, url: str, params: dict, max_items: int
@@ -170,17 +170,17 @@ class BitbucketDCMixinBase(BaseGitService, HTTPClient):
             response, _ = await self._make_request(current_url, params)
 
             # Extract items from response
-            page_items = response.get("values", [])
+            page_items = response.get('values', [])
             all_items.extend(page_items)
 
-            if response.get("isLastPage", True):
+            if response.get('isLastPage', True):
                 break
-            next_start = response.get("nextPageStart")
+            next_start = response.get('nextPageStart')
             if next_start is None:
                 break
             params = params or {}
             params = dict(params)
-            params["start"] = next_start
+            params['start'] = next_start
             current_url = base_endpoint
 
         return all_items[:max_items]
@@ -192,9 +192,9 @@ class BitbucketDCMixinBase(BaseGitService, HTTPClient):
         'values' list of email objects containing 'email', 'is_primary',
         and 'is_confirmed' fields.
         """
-        url = f"{self.BASE_URL}/user/emails"
+        url = f'{self.BASE_URL}/user/emails'
         response, _ = await self._make_request(url)
-        return response.get("values", [])
+        return response.get('values', [])
 
     async def get_user(self) -> User:
         """Get the authenticated user's information."""
@@ -203,34 +203,34 @@ class BitbucketDCMixinBase(BaseGitService, HTTPClient):
             # HTTP Access tokens (x-token-auth) don't have user info.
             # For OAuth, the user_id should be set.
             return User(
-                id="",
-                login="",
-                avatar_url="",
+                id='',
+                login='',
+                avatar_url='',
                 name=None,
                 email=None,
             )
 
         # Basic auth - extract username and query users API to get slug
-        users_url = f"{self.BASE_URL}/users"
+        users_url = f'{self.BASE_URL}/users'
         data, _ = await self._make_request(
-            users_url, {"filter": self.user_id, "avatarSize": 64}
+            users_url, {'filter': self.user_id, 'avatarSize': 64}
         )
-        users = data.get("values", [])
+        users = data.get('values', [])
         if not users:
-            raise AuthenticationError(f"User not found: {self.user_id}")
+            raise AuthenticationError(f'User not found: {self.user_id}')
 
         user_data = users[0]
-        avatar = user_data.get("avatarUrl", "")
+        avatar = user_data.get('avatarUrl', '')
         # Handle relative avatar URLs (Server returns /users/... paths)
-        if avatar.startswith("/users"):
+        if avatar.startswith('/users'):
             # Strip /rest/api/1.0 from BASE_URL to get the base server URL
-            base_server_url = self.BASE_URL.rsplit("/rest/api/1.0", 1)[0]
-            avatar = f"{base_server_url}{avatar}"
-        display_name = user_data.get("displayName")
-        email = user_data.get("emailAddress")
+            base_server_url = self.BASE_URL.rsplit('/rest/api/1.0', 1)[0]
+            avatar = f'{base_server_url}{avatar}'
+        display_name = user_data.get('displayName')
+        email = user_data.get('emailAddress')
         return User(
-            id=str(user_data.get("id") or user_data.get("slug") or self.user_id),
-            login=user_data.get("name") or self.user_id,
+            id=str(user_data.get('id') or user_data.get('slug') or self.user_id),
+            login=user_data.get('name') or self.user_id,
             avatar_url=avatar,
             name=display_name,
             email=email,
@@ -253,31 +253,31 @@ class BitbucketDCMixinBase(BaseGitService, HTTPClient):
         Returns:
             Repository object
         """
-        project_key = repo.get("project", {}).get("key", "")
-        repo_slug = repo.get("slug", "")
+        project_key = repo.get('project', {}).get('key', '')
+        repo_slug = repo.get('slug', '')
 
         if not project_key or not repo_slug:
             raise ValueError(
-                f"Cannot parse repository: missing project key or slug. "
-                f"Got project_key={project_key!r}, repo_slug={repo_slug!r}"
+                f'Cannot parse repository: missing project key or slug. '
+                f'Got project_key={project_key!r}, repo_slug={repo_slug!r}'
             )
 
-        full_name = f"{project_key}/{repo_slug}"
-        is_public = repo.get("public", False)
+        full_name = f'{project_key}/{repo_slug}'
+        is_public = repo.get('public', False)
 
         main_branch: str | None = None
         if fetch_default_branch:
             try:
                 default_branch_url = (
-                    f"{self._repo_api_base(project_key, repo_slug)}/default-branch"
+                    f'{self._repo_api_base(project_key, repo_slug)}/default-branch'
                 )
                 default_branch_data, _ = await self._make_request(default_branch_url)
-                main_branch = default_branch_data.get("displayId") or None
+                main_branch = default_branch_data.get('displayId') or None
             except Exception as e:
-                logger.debug(f"Could not fetch default branch for {full_name}: {e}")
+                logger.debug(f'Could not fetch default branch for {full_name}: {e}')
 
         return Repository(
-            id=str(repo.get("id", "")),
+            id=str(repo.get('id', '')),
             full_name=full_name,
             git_provider=ProviderType.BITBUCKET_DATA_CENTER,
             is_public=is_public,

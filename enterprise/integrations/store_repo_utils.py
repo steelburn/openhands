@@ -21,7 +21,7 @@ async def store_repositories_in_db(repos: list[Repository], user_id: str) -> Non
     stored_repos = []
     user_repos = []
     for repo in repos:
-        repo_id = f"{repo.git_provider.value}##{str(repo.id)}"
+        repo_id = f'{repo.git_provider.value}##{str(repo.id)}'
         stored_repo = StoredRepository(
             repo_name=repo.full_name,
             repo_id=repo_id,
@@ -44,6 +44,6 @@ async def store_repositories_in_db(repos: list[Repository], user_id: str) -> Non
         user_repo_store = UserRepositoryMapStore.get_instance()
         await user_repo_store.store_user_repo_mappings(user_repos)
 
-        logger.info(f"Saved repos for user {user_id}")
+        logger.info(f'Saved repos for user {user_id}')
     except Exception:
-        logger.warning("Failed to save repos", exc_info=True)
+        logger.warning('Failed to save repos', exc_info=True)

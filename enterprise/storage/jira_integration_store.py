@@ -22,7 +22,7 @@ class JiraIntegrationStore:
         encrypted_webhook_secret: str,
         svc_acc_email: str,
         encrypted_svc_acc_api_key: str,
-        status: str = "active",
+        status: str = 'active',
     ) -> JiraWorkspace:
         """Create a new Jira workspace with encrypted sensitive data."""
 
@@ -41,7 +41,7 @@ class JiraIntegrationStore:
             await session.commit()
             await session.refresh(workspace)
 
-        logger.info(f"[Jira] Created workspace {workspace.name}")
+        logger.info(f'[Jira] Created workspace {workspace.name}')
         return workspace
 
     async def update_workspace(
@@ -82,7 +82,7 @@ class JiraIntegrationStore:
             await session.commit()
             await session.refresh(workspace)
 
-            logger.info(f"[Jira] Updated workspace {workspace.name}")
+            logger.info(f'[Jira] Updated workspace {workspace.name}')
             return workspace
 
     async def create_workspace_link(
@@ -90,7 +90,7 @@ class JiraIntegrationStore:
         keycloak_user_id: str,
         jira_user_id: str,
         jira_workspace_id: int,
-        status: str = "active",
+        status: str = 'active',
     ) -> JiraUser:
         """Create a new Jira workspace link."""
 
@@ -107,7 +107,7 @@ class JiraIntegrationStore:
             await session.refresh(jira_user)
 
         logger.info(
-            f"[Jira] Created user {jira_user.id} for workspace {jira_workspace_id}"
+            f'[Jira] Created user {jira_user.id} for workspace {jira_workspace_id}'
         )
         return jira_user
 
@@ -138,7 +138,7 @@ class JiraIntegrationStore:
                 select(JiraUser).filter(
                     and_(
                         JiraUser.keycloak_user_id == keycloak_user_id,
-                        JiraUser.status == "active",
+                        JiraUser.status == 'active',
                     )
                 )
             )
@@ -169,7 +169,7 @@ class JiraIntegrationStore:
                     and_(
                         JiraUser.jira_user_id == jira_user_id,
                         JiraUser.jira_workspace_id == jira_workspace_id,
-                        JiraUser.status == "active",
+                        JiraUser.status == 'active',
                     )
                 )
             )
@@ -187,14 +187,14 @@ class JiraIntegrationStore:
 
             if not jira_user:
                 raise ValueError(
-                    f"Jira user not found for Keycloak ID: {keycloak_user_id}"
+                    f'Jira user not found for Keycloak ID: {keycloak_user_id}'
                 )
 
             jira_user.status = status
             await session.commit()
             await session.refresh(jira_user)
 
-            logger.info(f"[Jira] Updated user {keycloak_user_id} status to {status}")
+            logger.info(f'[Jira] Updated user {keycloak_user_id} status to {status}')
             return jira_user
 
     async def deactivate_workspace(self, workspace_id: int):
@@ -204,14 +204,14 @@ class JiraIntegrationStore:
                 select(JiraUser).filter(
                     and_(
                         JiraUser.jira_workspace_id == workspace_id,
-                        JiraUser.status == "active",
+                        JiraUser.status == 'active',
                     )
                 )
             )
             users = result.scalars().all()
 
             for user in users:
-                user.status = "inactive"
+                user.status = 'inactive'
                 session.add(user)
 
             result = await session.execute(
@@ -219,12 +219,12 @@ class JiraIntegrationStore:
             )
             workspace = result.scalars().first()
             if workspace:
-                workspace.status = "inactive"
+                workspace.status = 'inactive'
                 session.add(workspace)
 
             await session.commit()
 
-        logger.info(f"[Jira] Deactivated all user links for workspace {workspace_id}")
+        logger.info(f'[Jira] Deactivated all user links for workspace {workspace_id}')
 
     async def create_conversation(self, jira_conversation: JiraConversation) -> None:
         """Create a new Jira conversation record."""

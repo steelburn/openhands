@@ -20,19 +20,19 @@ if TYPE_CHECKING:
 class StoredConversationMetadataSaas(Base):
     """SaaS conversation metadata model containing user and org associations."""
 
-    __tablename__ = "conversation_metadata_saas"
+    __tablename__ = 'conversation_metadata_saas'
 
     conversation_id: Mapped[str] = mapped_column(String, primary_key=True)
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("user.id"), nullable=False)
-    org_id: Mapped[UUID] = mapped_column(ForeignKey("org.id"), nullable=False)
+    user_id: Mapped[UUID] = mapped_column(ForeignKey('user.id'), nullable=False)
+    org_id: Mapped[UUID] = mapped_column(ForeignKey('org.id'), nullable=False)
 
     # Relationships
-    user: Mapped["User"] = relationship(
-        "User", back_populates="stored_conversation_metadata_saas"
+    user: Mapped['User'] = relationship(
+        'User', back_populates='stored_conversation_metadata_saas'
     )
-    org: Mapped["Org"] = relationship(
-        "Org", back_populates="stored_conversation_metadata_saas"
+    org: Mapped['Org'] = relationship(
+        'Org', back_populates='stored_conversation_metadata_saas'
     )
 
 
-__all__ = ["StoredConversationMetadataSaas"]
+__all__ = ['StoredConversationMetadataSaas']

@@ -22,17 +22,17 @@ def get_default_sandbox_specs():
     return [
         SandboxSpecInfo(
             id=get_agent_server_image(),
-            command=["/usr/local/bin/openhands-agent-server", "--port", "60000"],
+            command=['/usr/local/bin/openhands-agent-server', '--port', '60000'],
             initial_env={
-                "OPENVSCODE_SERVER_ROOT": "/openhands/.openvscode-server",
-                "LOG_JSON": "true",
-                "OH_ENABLE_VNC": "0",
-                "OH_CONVERSATIONS_PATH": "/workspace/conversations",
-                "OH_BASH_EVENTS_DIR": "/workspace/bash_events",
-                "OH_VSCODE_PORT": "60001",
+                'OPENVSCODE_SERVER_ROOT': '/openhands/.openvscode-server',
+                'LOG_JSON': 'true',
+                'OH_ENABLE_VNC': '0',
+                'OH_CONVERSATIONS_PATH': '/workspace/conversations',
+                'OH_BASH_EVENTS_DIR': '/workspace/bash_events',
+                'OH_VSCODE_PORT': '60001',
                 **get_agent_server_env(),
             },
-            working_dir="/workspace/project",
+            working_dir='/workspace/project',
         )
     ]
 
@@ -40,7 +40,7 @@ def get_default_sandbox_specs():
 class RemoteSandboxSpecServiceInjector(SandboxSpecServiceInjector):
     specs: list[SandboxSpecInfo] = Field(
         default_factory=get_default_sandbox_specs,
-        description="Preset list of sandbox specs",
+        description='Preset list of sandbox specs',
     )
 
     async def inject(

@@ -6,19 +6,19 @@ from pathlib import Path
 
 
 def test_oauth_callback_route_precedes_spa_mount(tmp_path):
-    frontend_build = tmp_path / "frontend" / "build"
+    frontend_build = tmp_path / 'frontend' / 'build'
     frontend_build.mkdir(parents=True)
-    (frontend_build / "index.html").write_text("<html></html>")
+    (frontend_build / 'index.html').write_text('<html></html>')
 
     repo_root = Path(__file__).resolve().parents[3]
     env = os.environ.copy()
-    env["FRONTEND_DIRECTORY"] = str(frontend_build)
-    env["PYTHONPATH"] = (
+    env['FRONTEND_DIRECTORY'] = str(frontend_build)
+    env['PYTHONPATH'] = (
         f"{repo_root / 'enterprise'}:{repo_root}:{env.get('PYTHONPATH', '')}"
     )
-    env["OPENHANDS_SUPPRESS_BANNER"] = "1"
-    env["POSTHOG_CLIENT_KEY"] = "test-posthog-key"
-    env["SERVE_FRONTEND"] = "true"
+    env['OPENHANDS_SUPPRESS_BANNER'] = '1'
+    env['POSTHOG_CLIENT_KEY'] = 'test-posthog-key'
+    env['SERVE_FRONTEND'] = 'true'
 
     script = textwrap.dedent(
         """
@@ -49,7 +49,7 @@ def test_oauth_callback_route_precedes_spa_mount(tmp_path):
     )
 
     result = subprocess.run(
-        [sys.executable, "-c", script],
+        [sys.executable, '-c', script],
         cwd=tmp_path,
         env=env,
         text=True,
@@ -58,4 +58,4 @@ def test_oauth_callback_route_precedes_spa_mount(tmp_path):
     )
     matched_route = result.stdout.strip().splitlines()[-1]
 
-    assert matched_route == "keycloak_callback"
+    assert matched_route == 'keycloak_callback'

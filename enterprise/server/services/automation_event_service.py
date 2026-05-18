@@ -44,8 +44,8 @@ ORG_CLAIM_CACHE_TTL_SECONDS = 3600  # 1 hour for org claims (rarely change)
 USER_ID_CACHE_TTL_SECONDS = 86400  # 24 hours for user ID mappings (never change)
 
 # Cache key prefixes (provider is appended dynamically)
-ORG_CLAIM_CACHE_PREFIX = "automation:org_claim"
-USER_ID_CACHE_PREFIX = "automation:idp_to_kc_user"
+ORG_CLAIM_CACHE_PREFIX = 'automation:org_claim'
+USER_ID_CACHE_PREFIX = 'automation:idp_to_kc_user'
 
 
 @dataclass
@@ -77,13 +77,13 @@ class AutomationEventService:
         if AUTOMATION_EVENT_FORWARDING_ENABLED:
             if not AUTOMATION_SERVICE_URL:
                 raise ValueError(
-                    "AUTOMATION_EVENT_FORWARDING_ENABLED=true but "
-                    "AUTOMATION_SERVICE_URL is not configured"
+                    'AUTOMATION_EVENT_FORWARDING_ENABLED=true but '
+                    'AUTOMATION_SERVICE_URL is not configured'
                 )
             if not AUTOMATION_WEBHOOK_SECRET:
                 raise ValueError(
-                    "AUTOMATION_EVENT_FORWARDING_ENABLED=true but "
-                    "AUTOMATION_WEBHOOK_SECRET is not configured"
+                    'AUTOMATION_EVENT_FORWARDING_ENABLED=true but '
+                    'AUTOMATION_WEBHOOK_SECRET is not configured'
                 )
 
     async def forward_event(
@@ -121,19 +121,19 @@ class AutomationEventService:
         except (aiohttp.ClientError, asyncio.TimeoutError) as e:
             # Network errors are expected and recoverable
             logger.error(
-                f"[AutomationEventService] Network error forwarding "
-                f"{provider.value} event (org_id={org_id}): {e}",
+                f'[AutomationEventService] Network error forwarding '
+                f'{provider.value} event (org_id={org_id}): {e}',
                 exc_info=True,
-                extra={"installation_id": installation_id},
+                extra={'installation_id': installation_id},
             )
         except Exception as e:
             # Log unexpected errors. Note: This is a background task, so exceptions
             # won't surface to the HTTP caller - they're logged for debugging only.
             logger.error(
-                f"[AutomationEventService] Unexpected error forwarding "
-                f"{provider.value} event (org_id={org_id}): {e}",
+                f'[AutomationEventService] Unexpected error forwarding '
+                f'{provider.value} event (org_id={org_id}): {e}',
                 exc_info=True,
-                extra={"installation_id": installation_id},
+                extra={'installation_id': installation_id},
             )
             # Don't re-raise in background task - just log for debugging
 
@@ -154,8 +154,8 @@ class AutomationEventService:
 
         if not git_org_name:
             logger.warning(
-                f"[AutomationEventService] No repository owner in "
-                f"{provider.value} payload, skipping"
+                f'[AutomationEventService] No repository owner in '
+                f'{provider.value} payload, skipping'
             )
             return None
 
@@ -163,18 +163,18 @@ class AutomationEventService:
         org_id = await self._resolve_git_org(provider, git_org_name)
 
         # Fallback for personal repos (owner_type indicates individual user)
-        if not org_id and owner_type == "User":
+        if not org_id and owner_type == 'User':
             org_id = await self._resolve_personal_org(provider, owner_id)
             if org_id:
                 logger.info(
-                    f"[AutomationEventService] Resolved personal repo owner "
-                    f"{git_org_name} to personal org {org_id} ({provider.value})"
+                    f'[AutomationEventService] Resolved personal repo owner '
+                    f'{git_org_name} to personal org {org_id} ({provider.value})'
                 )
 
         if not org_id:
             logger.warning(
-                f"[AutomationEventService] {provider.value} org {git_org_name} "
-                f"not claimed and no personal org found, skipping"
+                f'[AutomationEventService] {provider.value} org {git_org_name} '
+                f'not claimed and no personal org found, skipping'
             )
             return None
 
@@ -202,11 +202,11 @@ class AutomationEventService:
         # Compare using .value to handle different ProviderType enum instances
         # (e.g., test mocks may use a different enum class with the same values)
         if provider == ProviderType.GITHUB:
-            repo = payload.get("repository", {})
-            owner = repo.get("owner", {})
-            return owner.get("login"), owner.get("type"), owner.get("id")
+            repo = payload.get('repository', {})
+            owner = repo.get('owner', {})
+            return owner.get('login'), owner.get('type'), owner.get('id')
 
-        logger.warning(f"Unsupported provider ({provider.value})")
+        logger.warning(f'Unsupported provider ({provider.value})')
         return None, None, None
 
     def _build_event_payload(
@@ -221,11 +221,11 @@ class AutomationEventService:
         This keeps the forward path fast for high-traffic scenarios.
         """
         return {
-            "organization": {
-                "git_org": org_context.git_org,
-                "openhands_org_id": str(org_context.org_id),
+            'organization': {
+                'git_org': org_context.git_org,
+                'openhands_org_id': str(org_context.org_id),
             },
-            "payload": payload,
+            'payload': payload,
         }
 
     # =========================================================================
@@ -250,20 +250,20 @@ class AutomationEventService:
         git_organization as lowercase.
         """
         normalized_org = git_org_name.lower()
-        cache_key = f"{ORG_CLAIM_CACHE_PREFIX}:{provider.value}:{normalized_org}"
+        cache_key = f'{ORG_CLAIM_CACHE_PREFIX}:{provider.value}:{normalized_org}'
 
         # Check cache first
         cached = await self._get_cached_value(cache_key)
         if cached is not None:
-            if cached == "none":
+            if cached == 'none':
                 logger.debug(
-                    f"[AutomationEventService] Cache hit (negative): "
-                    f"{provider.value} org {git_org_name} not claimed"
+                    f'[AutomationEventService] Cache hit (negative): '
+                    f'{provider.value} org {git_org_name} not claimed'
                 )
                 return None
             logger.debug(
-                f"[AutomationEventService] Cache hit: "
-                f"{provider.value} org {git_org_name} -> {cached}"
+                f'[AutomationEventService] Cache hit: '
+                f'{provider.value} org {git_org_name} -> {cached}'
             )
             return UUID(cached)
 
@@ -271,7 +271,7 @@ class AutomationEventService:
         # Construct a minimal repo name since resolve_org_for_repo extracts the org
         org_id = await resolve_org_for_repo(
             provider=provider.value,
-            full_repo_name=f"{normalized_org}/",
+            full_repo_name=f'{normalized_org}/',
         )
 
         # Cache the result (including negative results)
@@ -282,7 +282,7 @@ class AutomationEventService:
             return org_id
         else:
             # Cache negative result to avoid repeated DB queries
-            await self._set_cached_value(cache_key, "none", ORG_CLAIM_CACHE_TTL_SECONDS)
+            await self._set_cached_value(cache_key, 'none', ORG_CLAIM_CACHE_TTL_SECONDS)
             return None
 
     async def _resolve_personal_org(
@@ -324,20 +324,20 @@ class AutomationEventService:
             provider: The Git provider type
             provider_user_id: The user ID from the provider
         """
-        cache_key = f"{USER_ID_CACHE_PREFIX}:{provider.value}:{provider_user_id}"
+        cache_key = f'{USER_ID_CACHE_PREFIX}:{provider.value}:{provider_user_id}'
 
         # Check cache first
         cached = await self._get_cached_value(cache_key)
         if cached is not None:
-            if cached == "none":
+            if cached == 'none':
                 logger.debug(
-                    f"[AutomationEventService] Cache hit (negative): "
-                    f"{provider.value} user {provider_user_id} not in Keycloak"
+                    f'[AutomationEventService] Cache hit (negative): '
+                    f'{provider.value} user {provider_user_id} not in Keycloak'
                 )
                 return None
             logger.debug(
-                f"[AutomationEventService] Cache hit: "
-                f"{provider.value} user {provider_user_id} -> Keycloak {cached}"
+                f'[AutomationEventService] Cache hit: '
+                f'{provider.value} user {provider_user_id} -> Keycloak {cached}'
             )
             return cached
 
@@ -355,15 +355,15 @@ class AutomationEventService:
             else:
                 # Cache negative result to prevent repeated Keycloak queries
                 await self._set_cached_value(
-                    cache_key, "none", USER_ID_CACHE_TTL_SECONDS
+                    cache_key, 'none', USER_ID_CACHE_TTL_SECONDS
                 )
 
             return keycloak_id
         except Exception as e:
             # Log at warning level to surface programmer errors and API issues
             logger.warning(
-                f"[AutomationEventService] Failed to get keycloak ID for "
-                f"{provider.value} user {provider_user_id}: {e}"
+                f'[AutomationEventService] Failed to get keycloak ID for '
+                f'{provider.value} user {provider_user_id}: {e}'
             )
             return None
 
@@ -388,12 +388,12 @@ class AutomationEventService:
                 return None
 
             # Redis returns bytes, decode to string
-            return cached.decode("utf-8") if isinstance(cached, bytes) else cached
+            return cached.decode('utf-8') if isinstance(cached, bytes) else cached
         except Exception as e:
             # Log at warning level - cache errors cause DB fallback
             logger.warning(
-                f"[AutomationEventService] Redis cache read error "
-                f"(falling back to DB): {e}"
+                f'[AutomationEventService] Redis cache read error '
+                f'(falling back to DB): {e}'
             )
             return None
 
@@ -410,7 +410,7 @@ class AutomationEventService:
             await redis.setex(cache_key, ttl_seconds, value)
         except Exception as e:
             # Log at warning level for visibility
-            logger.warning(f"[AutomationEventService] Redis cache write error: {e}")
+            logger.warning(f'[AutomationEventService] Redis cache write error: {e}')
 
     def _sign_payload(self, payload_bytes: bytes) -> str:
         """
@@ -422,11 +422,11 @@ class AutomationEventService:
         Returns the signature in the format 'sha256=<hex_digest>'.
         """
         signature = hmac.new(
-            AUTOMATION_WEBHOOK_SECRET.encode("utf-8"),
+            AUTOMATION_WEBHOOK_SECRET.encode('utf-8'),
             msg=payload_bytes,
             digestmod=hashlib.sha256,
         ).hexdigest()
-        return f"sha256={signature}"
+        return f'sha256={signature}'
 
     async def _send_to_automation_service(
         self,
@@ -447,23 +447,23 @@ class AutomationEventService:
         """
         if not AUTOMATION_SERVICE_URL:
             logger.warning(
-                "[AutomationEventService] AUTOMATION_SERVICE_URL not configured"
+                '[AutomationEventService] AUTOMATION_SERVICE_URL not configured'
             )
             return
 
         # Build endpoint URL. AUTOMATION_SERVICE_URL may include path segments
         # (e.g., https://example.com/api/automation), so we strip trailing slash
         # and append our path. The provider is included in the URL path.
-        base_url = AUTOMATION_SERVICE_URL.rstrip("/")
-        url = f"{base_url}/v1/events/{org_id}/{provider.value}"
+        base_url = AUTOMATION_SERVICE_URL.rstrip('/')
+        url = f'{base_url}/v1/events/{org_id}/{provider.value}'
 
         # Serialize payload to JSON bytes for signing
-        payload_bytes = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+        payload_bytes = json.dumps(payload, separators=(',', ':')).encode('utf-8')
         signature = self._sign_payload(payload_bytes)
 
         headers = {
-            "Content-Type": "application/json",
-            "X-Hub-Signature-256": signature,
+            'Content-Type': 'application/json',
+            'X-Hub-Signature-256': signature,
         }
 
         try:
@@ -482,23 +482,23 @@ class AutomationEventService:
                         except (aiohttp.ContentTypeError, ValueError):
                             body = await resp.text()
                         logger.warning(
-                            f"[AutomationEventService] Automation service returned "
-                            f"{resp.status} for {provider.value} org {org_id}: {body}"
+                            f'[AutomationEventService] Automation service returned '
+                            f'{resp.status} for {provider.value} org {org_id}: {body}'
                         )
                     else:
                         data = await resp.json()
-                        matched = data.get("matched", 0)
+                        matched = data.get('matched', 0)
                         logger.info(
-                            f"[AutomationEventService] Forwarded {provider.value} "
-                            f"event to org {org_id}: {matched} automations matched"
+                            f'[AutomationEventService] Forwarded {provider.value} '
+                            f'event to org {org_id}: {matched} automations matched'
                         )
         except asyncio.TimeoutError:
             logger.warning(
-                f"[AutomationEventService] Timeout ({AUTOMATION_SERVICE_TIMEOUT}s) "
-                f"forwarding {provider.value} event to automation service"
+                f'[AutomationEventService] Timeout ({AUTOMATION_SERVICE_TIMEOUT}s) '
+                f'forwarding {provider.value} event to automation service'
             )
         except aiohttp.ClientError as e:
             logger.warning(
-                f"[AutomationEventService] HTTP error forwarding "
-                f"{provider.value} event to automation service: {e}"
+                f'[AutomationEventService] HTTP error forwarding '
+                f'{provider.value} event to automation service: {e}'
             )

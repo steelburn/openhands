@@ -22,8 +22,8 @@ _content_type_adapter = TypeAdapter(list[TextContent | ImageContent])
 
 # Create router with authentication dependencies
 router = APIRouter(
-    prefix="/conversations/{conversation_id}/pending-messages",
-    tags=["Pending Messages"],
+    prefix='/conversations/{conversation_id}/pending-messages',
+    tags=['Pending Messages'],
     dependencies=get_dependencies(),
 )
 
@@ -32,7 +32,7 @@ pending_message_service_dependency = depends_pending_message_service()
 
 
 @router.post(
-    "", response_model=PendingMessageResponse, status_code=status.HTTP_201_CREATED
+    '', response_model=PendingMessageResponse, status_code=status.HTTP_201_CREATED
 )
 async def queue_pending_message(
     conversation_id: str,
@@ -61,16 +61,16 @@ async def queue_pending_message(
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid request body",
+            detail='Invalid request body',
         )
 
-    raw_content = body.get("content")
-    role = body.get("role", "user")
+    raw_content = body.get('content')
+    role = body.get('role', 'user')
 
     if not raw_content or not isinstance(raw_content, list):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="content must be a non-empty list",
+            detail='content must be a non-empty list',
         )
 
     # Validate and parse content into typed objects
@@ -79,7 +79,7 @@ async def queue_pending_message(
     except ValidationError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid content format: {e}",
+            detail=f'Invalid content format: {e}',
         )
 
     # Rate limit: max 10 pending messages per conversation
@@ -87,7 +87,7 @@ async def queue_pending_message(
     if pending_count >= 10:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many pending messages. Maximum 10 messages per conversation.",
+            detail='Too many pending messages. Maximum 10 messages per conversation.',
         )
 
     response = await pending_service.add_message(
@@ -97,8 +97,8 @@ async def queue_pending_message(
     )
 
     logger.info(
-        f"Queued pending message {response.id} for conversation {conversation_id} "
-        f"(position: {response.position})"
+        f'Queued pending message {response.id} for conversation {conversation_id} '
+        f'(position: {response.position})'
     )
 
     return response

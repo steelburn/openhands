@@ -253,7 +253,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             )
             if parent_info is None:
                 raise ValueError(
-                    f"Parent conversation not found: {request.parent_conversation_id}"
+                    f'Parent conversation not found: {request.parent_conversation_id}'
                 )
             self._inherit_configuration_from_parent(request, parent_info)
 
@@ -289,7 +289,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             working_dir = sandbox_spec.working_dir
             sandbox_grouping_strategy = await self._get_sandbox_grouping_strategy()
             if sandbox_grouping_strategy != SandboxGroupingStrategy.NO_GROUPING:
-                working_dir = f"{working_dir}/{conversation_id.hex}"
+                working_dir = f'{working_dir}/{conversation_id.hex}'
 
             # Run setup scripts
             remote_workspace = AsyncRemoteWorkspace(
@@ -327,15 +327,15 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
 
             # Start conversation...
             body_json = start_conversation_request.model_dump(
-                mode="json", context={"expose_secrets": True}
+                mode='json', context={'expose_secrets': True}
             )
             headers = (
-                {"X-Session-API-Key": sandbox.session_api_key}
+                {'X-Session-API-Key': sandbox.session_api_key}
                 if sandbox.session_api_key
                 else {}
             )
             response = await self.httpx_client.post(
-                f"{agent_server_url}/api/conversations",
+                f'{agent_server_url}/api/conversations',
                 json=body_json,
                 headers=headers,
                 timeout=self.sandbox_startup_timeout,
@@ -348,22 +348,22 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             # the same agent back through the AgentBase discriminator.
             request_agent = start_conversation_request.agent
             tags: dict[str, str] = {}
-            if request_agent.agent_kind == "acp":
+            if request_agent.agent_kind == 'acp':
                 llm_model = None
-                agent_kind = "acp"
+                agent_kind = 'acp'
                 # Persist the active ACP provider key so the conversation UI
                 # can resolve a brand label ("Claude Code", "Codex", …) via
                 # the SDK registry without keeping a per-conversation column.
                 acp_user = await self.user_context.get_user_info()
                 if isinstance(acp_user.agent_settings, ACPAgentSettings):
-                    tags["acp_server"] = acp_user.agent_settings.acp_server
+                    tags['acp_server'] = acp_user.agent_settings.acp_server
             else:
                 llm_model = request_agent.llm.model
-                agent_kind = "openhands"
+                agent_kind = 'openhands'
 
             app_conversation_info = AppConversationInfo(
                 id=info.id,
-                title=f"Conversation {info.id.hex[:5]}",
+                title=f'Conversation {info.id.hex[:5]}',
                 sandbox_id=sandbox.id,
                 created_by_user_id=user_id,
                 llm_model=llm_model,
@@ -416,7 +416,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 )
 
         except Exception as exc:
-            _logger.exception("Error starting conversation", stack_info=True)
+            _logger.exception('Error starting conversation', stack_info=True)
             task.status = AppConversationStartTaskStatus.ERROR
             task.detail = redact_text_secrets(redact_api_key_literals(str(exc)))
             yield task
@@ -486,13 +486,13 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         agent_server_url = self._get_agent_server_url(sandbox)
         headers: dict[str, str] = {}
         if sandbox.session_api_key:
-            headers["X-Session-API-Key"] = sandbox.session_api_key
+            headers['X-Session-API-Key'] = sandbox.session_api_key
 
         try:
-            url = f"{agent_server_url.rstrip('/')}/api/conversations"
+            url = f'{agent_server_url.rstrip("/")}/api/conversations'
             response = await self.httpx_client.get(
                 url,
-                params={"ids": [str(c) for c in conversation_ids]},
+                params={'ids': [str(c) for c in conversation_ids]},
                 headers=headers,
             )
             response.raise_for_status()
@@ -501,12 +501,12 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             return [c for c in infos if c]
         except httpx.HTTPStatusError:
             _logger.warning(
-                f"Error getting conversation status from sandbox {sandbox.id}",
+                f'Error getting conversation status from sandbox {sandbox.id}',
                 exc_info=True,
             )
         except Exception:
             _logger.exception(
-                f"Error getting conversation status from sandbox {sandbox.id}",
+                f'Error getting conversation status from sandbox {sandbox.id}',
                 stack_info=True,
             )
         return []
@@ -535,7 +535,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 None,
             )
             if conversation_url:
-                conversation_url += f"/api/conversations/{app_conversation_info.id.hex}"
+                conversation_url += f'/api/conversations/{app_conversation_info.id.hex}'
             session_api_key = sandbox.session_api_key
 
         return AppConversation(
@@ -598,7 +598,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
 
         except Exception as e:
             _logger.warning(
-                f"Error finding running sandbox for user: {e}", exc_info=True
+                f'Error finding running sandbox for user: {e}', exc_info=True
             )
             return None
 
@@ -680,7 +680,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             return counts
         except Exception as e:
             _logger.warning(
-                f"Error counting conversations by sandbox: {e}", exc_info=True
+                f'Error counting conversations by sandbox: {e}', exc_info=True
             )
             # Return empty counts on error - will default to first sandbox
             return {}
@@ -712,7 +712,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 task.request.sandbox_id
             )
             if sandbox_info is None:
-                raise SandboxError(f"Sandbox not found: {task.request.sandbox_id}")
+                raise SandboxError(f'Sandbox not found: {task.request.sandbox_id}')
             sandbox = sandbox_info
 
         # Update the listener with sandbox info
@@ -723,10 +723,10 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         conversation_id_str = (
             str(task.request.conversation_id)
             if task.request.conversation_id is not None
-            else "unknown"
+            else 'unknown'
         )
         _logger.info(
-            f"Assigned sandbox {sandbox.id} to conversation {conversation_id_str}"
+            f'Assigned sandbox {sandbox.id} to conversation {conversation_id_str}'
         )
 
         yield task
@@ -737,7 +737,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
 
         # Check for immediate error states
         if sandbox.status in (None, SandboxStatus.ERROR):
-            raise SandboxError(f"Sandbox status: {sandbox.status}")
+            raise SandboxError(f'Sandbox status: {sandbox.status}')
 
         # For non-STARTING/RUNNING states (except PAUSED which we just resumed), fail fast
         if sandbox.status not in (
@@ -745,7 +745,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             SandboxStatus.RUNNING,
             SandboxStatus.PAUSED,
         ):
-            raise SandboxError(f"Sandbox not startable: {sandbox.id}")
+            raise SandboxError(f'Sandbox not startable: {sandbox.id}')
 
         # Use shared wait_for_sandbox_running utility to poll for ready state
         await self.sandbox_service.wait_for_sandbox_running(
@@ -805,16 +805,16 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
 
         if request.initial_message is not None:
             raise ValueError(
-                "initial_message cannot be provided when suggested_task is present"
+                'initial_message cannot be provided when suggested_task is present'
             )
 
         prompt = suggested_task.get_prompt_for_task()
         if not prompt:
             raise ValueError(
-                f"Suggested task returned empty prompt for task type {suggested_task.task_type}"
+                f'Suggested task returned empty prompt for task type {suggested_task.task_type}'
             )
         request.initial_message = SendMessageRequest(
-            role="user",
+            role='user',
             content=[TextContent(text=prompt)],
         )
         request.trigger = ConversationTrigger.SUGGESTED_TASK
@@ -840,11 +840,11 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         """
         # GitLab and Azure DevOps use agents-tmp-config (since .agents_tmp is invalid)
         if git_provider in (ProviderType.GITLAB, ProviderType.AZURE_DEVOPS):
-            config_dir = "agents-tmp-config"
+            config_dir = 'agents-tmp-config'
         else:
-            config_dir = ".agents_tmp"
+            config_dir = '.agents_tmp'
 
-        return f"{working_dir}/{config_dir}/PLAN.md"
+        return f'{working_dir}/{config_dir}/PLAN.md'
 
     async def _setup_secrets_for_git_providers(self, user: UserInfo) -> dict:
         """Set up secrets for all git provider authentication.
@@ -870,22 +870,22 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             if not provider_token.token:
                 continue
 
-            secret_name = f"{provider_type.name}_TOKEN"
-            description = f"{provider_type.name} authentication token"
+            secret_name = f'{provider_type.name}_TOKEN'
+            description = f'{provider_type.name} authentication token'
 
             if self.web_url:
                 # Create an access token for web-based authentication
                 access_token = self.jwt_service.create_jws_token(
                     payload={
-                        "user_id": user.id,
-                        "provider_type": provider_type.value,
+                        'user_id': user.id,
+                        'provider_type': provider_type.value,
                     },
                     expires_in=self.access_token_hard_timeout,
                 )
-                headers = {"X-Access-Token": access_token}
+                headers = {'X-Access-Token': access_token}
 
                 secrets[secret_name] = LookupSecret(
-                    url=self.web_url + "/api/v1/webhooks/secrets",
+                    url=self.web_url + '/api/v1/webhooks/secrets',
                     headers=headers,
                     description=description,
                 )
@@ -912,7 +912,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         model: str = (
             llm_model
             or user.agent_settings.llm.model
-            or LLM.model_fields["model"].default
+            or LLM.model_fields['model'].default
         )
 
         base_url = resolve_provider_llm_base_url(
@@ -925,7 +925,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             model=model,
             base_url=base_url,
             api_key=user.agent_settings.llm.api_key,
-            usage_id="agent",
+            usage_id='agent',
         )
 
     async def _add_system_mcp_servers(
@@ -945,16 +945,16 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             return
 
         # Add default OpenHands MCP server (includes Tavily proxy if configured)
-        mcp_url = f"{self.web_url}/mcp/mcp"
-        mcp_servers["default"] = {
-            "url": mcp_url,
-            "headers": {"X-OpenHands-ServerConversation-ID": str(conversation_id)},
+        mcp_url = f'{self.web_url}/mcp/mcp'
+        mcp_servers['default'] = {
+            'url': mcp_url,
+            'headers': {'X-OpenHands-ServerConversation-ID': str(conversation_id)},
         }
 
         # Add API key if available
         mcp_api_key = await self.user_context.get_mcp_api_key()
         if mcp_api_key:
-            mcp_servers["default"]["headers"]["X-Session-API-Key"] = mcp_api_key
+            mcp_servers['default']['headers']['X-Session-API-Key'] = mcp_api_key
 
     def _merge_custom_mcp_config(
         self, mcp_servers: dict[str, Any], user: UserInfo
@@ -975,24 +975,24 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         try:
             count = len(sdk_mcp.mcpServers)
             _logger.info(
-                f"Loading custom MCP config from user settings: {count} servers"
+                f'Loading custom MCP config from user settings: {count} servers'
             )
 
             for name, server in sdk_mcp.mcpServers.items():
                 mcp_servers[name] = server.model_dump(exclude_none=True)
 
             _logger.info(
-                f"Successfully merged custom MCP config: added {count} servers"
+                f'Successfully merged custom MCP config: added {count} servers'
             )
 
         except Exception as e:
             _logger.error(
-                f"Error loading custom MCP config from user settings: {e}",
+                f'Error loading custom MCP config from user settings: {e}',
                 exc_info=True,
             )
             # Continue with system config only, don't fail conversation startup
             _logger.warning(
-                "Continuing with system-generated MCP config only due to custom config error"
+                'Continuing with system-generated MCP config only due to custom config error'
             )
 
     async def _configure_llm_and_mcp(
@@ -1021,8 +1021,8 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         self._merge_custom_mcp_config(mcp_servers, user)
 
         # Wrap in the mcpServers structure required by the SDK
-        mcp_config = {"mcpServers": mcp_servers} if mcp_servers else {}
-        _logger.info(f"Final MCP configuration: {sanitize_config(mcp_config)}")
+        mcp_config = {'mcpServers': mcp_servers} if mcp_servers else {}
+        _logger.info(f'Final MCP configuration: {sanitize_config(mcp_config)}')
 
         return llm, mcp_config
 
@@ -1041,46 +1041,46 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         """
         overrides: dict[str, Any] = {}
         if agent_type == AgentType.PLAN:
-            overrides["system_prompt_filename"] = "system_prompt_planning.j2"
-            overrides["system_prompt_kwargs"] = {
-                "plan_structure": format_plan_structure()
+            overrides['system_prompt_filename'] = 'system_prompt_planning.j2'
+            overrides['system_prompt_kwargs'] = {
+                'plan_structure': format_plan_structure()
             }
         else:
-            overrides["system_prompt_kwargs"] = {"cli_mode": False}
+            overrides['system_prompt_kwargs'] = {'cli_mode': False}
 
         # LLM tracing metadata for openhands/ models
         if should_set_litellm_extra_body(agent.llm.model):
             llm_metadata = get_llm_metadata(
                 model_name=agent.llm.model,
-                llm_type=agent.llm.usage_id or "agent",
+                llm_type=agent.llm.usage_id or 'agent',
                 conversation_id=conversation_id,
                 user_id=user_id,
             )
-            overrides["llm"] = agent.llm.model_copy(
-                update={"litellm_extra_body": {"metadata": llm_metadata}}
+            overrides['llm'] = agent.llm.model_copy(
+                update={'litellm_extra_body': {'metadata': llm_metadata}}
             )
 
         # Condenser LLM tracing
-        if agent.condenser is not None and hasattr(agent.condenser, "llm"):
+        if agent.condenser is not None and hasattr(agent.condenser, 'llm'):
             condenser_llm = agent.condenser.llm
             condenser_updates: dict[str, Any] = {}
-            if not condenser_llm.usage_id or condenser_llm.usage_id == "agent":
-                condenser_updates["usage_id"] = "condenser"
+            if not condenser_llm.usage_id or condenser_llm.usage_id == 'agent':
+                condenser_updates['usage_id'] = 'condenser'
             if should_set_litellm_extra_body(condenser_llm.model):
                 condenser_metadata = get_llm_metadata(
                     model_name=condenser_llm.model,
-                    llm_type="condenser",
+                    llm_type='condenser',
                     conversation_id=conversation_id,
                     user_id=user_id,
                 )
-                condenser_updates["litellm_extra_body"] = {
-                    "metadata": condenser_metadata
+                condenser_updates['litellm_extra_body'] = {
+                    'metadata': condenser_metadata
                 }
             if condenser_updates:
                 updated_condenser = agent.condenser.model_copy(
-                    update={"llm": condenser_llm.model_copy(update=condenser_updates)}
+                    update={'llm': condenser_llm.model_copy(update=condenser_updates)}
                 )
-                overrides["condenser"] = updated_condenser
+                overrides['condenser'] = updated_condenser
 
         return agent.model_copy(update=overrides)
 
@@ -1116,18 +1116,18 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         if len(plugins_with_params) == 1:
             params_text = plugins_with_params[0].format_params_as_text()
             plugin_params_message = (
-                f"\n\nPlugin Configuration Parameters:\n{params_text}"
+                f'\n\nPlugin Configuration Parameters:\n{params_text}'
             )
         else:
             # Group by plugin name for clarity
             formatted_plugins = []
             for plugin in plugins_with_params:
-                params_text = plugin.format_params_as_text(indent="  ")
+                params_text = plugin.format_params_as_text(indent='  ')
                 if params_text:
-                    formatted_plugins.append(f"{plugin.display_name}:\n{params_text}")
+                    formatted_plugins.append(f'{plugin.display_name}:\n{params_text}')
 
             plugin_params_message = (
-                "\n\nPlugin Configuration Parameters:\n" + "\n".join(formatted_plugins)
+                '\n\nPlugin Configuration Parameters:\n' + '\n'.join(formatted_plugins)
             )
 
         if initial_message is None:
@@ -1191,7 +1191,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         """
         return await load_hooks_from_agent_server(
             agent_server_url=remote_workspace.host,
-            session_api_key=remote_workspace._headers.get("X-Session-API-Key"),
+            session_api_key=remote_workspace._headers.get('X-Session-API-Key'),
             project_dir=project_dir,
             httpx_client=self.httpx_client,
         )
@@ -1278,13 +1278,13 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
 
             # Validate overall dict size limits first
             # Cast to Mapping for mypy compatibility (Mapping is covariant in value type)
-            validate_secrets_dict(cast("Mapping[str, object]", api_secrets))
+            validate_secrets_dict(cast('Mapping[str, object]', api_secrets))
 
             for name, value in api_secrets.items():
                 validate_secret_name(name)
                 if name in secrets:
                     _logger.warning(
-                        "API-provided secret %r overrides existing secret", name
+                        'API-provided secret %r overrides existing secret', name
                     )
                 secrets[name] = StaticSecret(value=value)
 
@@ -1298,7 +1298,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         if agent_type == AgentType.PLAN:
             if system_message_suffix:
                 effective_suffix = (
-                    f"{PLANNING_AGENT_INSTRUCTION}\n\n{system_message_suffix}"
+                    f'{PLANNING_AGENT_INSTRUCTION}\n\n{system_message_suffix}'
                 )
             else:
                 effective_suffix = PLANNING_AGENT_INSTRUCTION
@@ -1306,9 +1306,9 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         # --- web host context -----------------------------------------------
         # Add WEB_HOST to agent context if available
         if self.web_url:
-            web_host_context = f"<HOST>\n{self.web_url}\n</HOST>"
+            web_host_context = f'<HOST>\n{self.web_url}\n</HOST>'
             if effective_suffix:
-                effective_suffix = f"{effective_suffix}\n\n{web_host_context}"
+                effective_suffix = f'{effective_suffix}\n\n{web_host_context}'
             else:
                 effective_suffix = web_host_context
 
@@ -1333,10 +1333,10 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
 
         configured_agent_settings = user.agent_settings.model_copy(
             update={
-                "llm": llm,
-                "tools": tools,
-                "mcp_config": MCPConfig(**mcp_config) if mcp_config else None,
-                "agent_context": AgentContext(
+                'llm': llm,
+                'tools': tools,
+                'mcp_config': MCPConfig(**mcp_config) if mcp_config else None,
+                'agent_context': AgentContext(
                     system_message_suffix=effective_suffix,
                     secrets=secrets,
                 ),
@@ -1352,20 +1352,20 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         if remote_workspace:
             try:
                 _logger.debug(
-                    f"Attempting to load hooks from workspace: "
-                    f"project_dir={project_dir}"
+                    f'Attempting to load hooks from workspace: '
+                    f'project_dir={project_dir}'
                 )
                 hook_config = await self._load_hooks_from_workspace(
                     remote_workspace, project_dir
                 )
                 if hook_config:
                     _logger.debug(
-                        f"Successfully loaded hooks: {sanitize_config(hook_config.model_dump())}"
+                        f'Successfully loaded hooks: {sanitize_config(hook_config.model_dump())}'
                     )
                 else:
-                    _logger.debug("No hooks found in workspace")
+                    _logger.debug('No hooks found in workspace')
             except Exception as e:
-                _logger.warning(f"Failed to load hooks: {e}", exc_info=True)
+                _logger.warning(f'Failed to load hooks: {e}', exc_info=True)
 
         # --- plugins --------------------------------------------------------
         final_initial_message = self._construct_initial_message_with_plugin_params(
@@ -1385,13 +1385,13 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         # --- populate ConversationSettings and build request ----------------
         conv_settings = user.conversation_settings.model_copy(
             update={
-                "agent_settings": configured_agent_settings,
-                "workspace": workspace,
-                "conversation_id": conversation_id,
-                "initial_message": final_initial_message,
-                "agent_definitions": agent_definitions,
-                "plugins": sdk_plugins,
-                "hook_config": hook_config,
+                'agent_settings': configured_agent_settings,
+                'workspace': workspace,
+                'conversation_id': conversation_id,
+                'initial_message': final_initial_message,
+                'agent_definitions': agent_definitions,
+                'plugins': sdk_plugins,
+                'hook_config': hook_config,
             }
         )
 
@@ -1436,9 +1436,9 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 project_dir,
                 disabled_skills=disabled_skills,
             )
-            return request.model_copy(update={"agent": updated_agent})
+            return request.model_copy(update={'agent': updated_agent})
         except Exception as e:
-            _logger.warning(f"Failed to load skills: {e}", exc_info=True)
+            _logger.warning(f'Failed to load skills: {e}', exc_info=True)
             return request
 
     async def _build_acp_start_conversation_request(
@@ -1487,12 +1487,12 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 validate_secrets_dict,
             )
 
-            validate_secrets_dict(cast("Mapping[str, object]", api_secrets))
+            validate_secrets_dict(cast('Mapping[str, object]', api_secrets))
             for name, value in api_secrets.items():
                 validate_secret_name(name)
                 if name in secrets:
                     _logger.warning(
-                        "API-provided secret %r overrides existing secret", name
+                        'API-provided secret %r overrides existing secret', name
                     )
                 secrets[name] = StaticSecret(value=value)
 
@@ -1511,7 +1511,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         # conversation start, from the wrong process.
         agent_context = AgentContext(secrets=secrets) if secrets else None
         settings_update = (
-            {"agent_context": agent_context} if agent_context is not None else {}
+            {'agent_context': agent_context} if agent_context is not None else {}
         )
         acp_agent = acp_settings.model_copy(update=settings_update).create_agent()
 
@@ -1527,12 +1527,12 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         # security_analyzer flow through to ACP conversations too.
         conv_settings = user.conversation_settings.model_copy(
             update={
-                "workspace": workspace,
-                "conversation_id": conversation_id,
-                "initial_message": self._construct_initial_message_with_plugin_params(
+                'workspace': workspace,
+                'conversation_id': conversation_id,
+                'initial_message': self._construct_initial_message_with_plugin_params(
                     initial_message, plugins
                 ),
-                "plugins": sdk_plugins,
+                'plugins': sdk_plugins,
             }
         )
         return conv_settings.create_request(StartConversationRequest, agent=acp_agent)
@@ -1557,22 +1557,22 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         """
         # Convert UUIDs to strings for the pending message service
         # The frontend uses task-{uuid.hex} format (no hyphens), matching OpenHandsUUID serialization
-        task_id_str = f"task-{task_id.hex}"
+        task_id_str = f'task-{task_id.hex}'
         # conversation_id uses standard format (with hyphens) for agent server API compatibility
         conversation_id_str = str(conversation_id)
 
-        _logger.info(f"task_id={task_id_str} conversation_id={conversation_id_str}")
+        _logger.info(f'task_id={task_id_str} conversation_id={conversation_id_str}')
 
         # First, update any messages that were queued with the task_id
         updated_count = await self.pending_message_service.update_conversation_id(
             old_conversation_id=task_id_str,
             new_conversation_id=conversation_id_str,
         )
-        _logger.info(f"updated_count={updated_count} ")
+        _logger.info(f'updated_count={updated_count} ')
         if updated_count > 0:
             _logger.info(
-                f"Updated {updated_count} pending messages from task_id={task_id_str} "
-                f"to conversation_id={conversation_id_str}"
+                f'Updated {updated_count} pending messages from task_id={task_id_str} '
+                f'to conversation_id={conversation_id_str}'
             )
 
         # Get all pending messages for this conversation
@@ -1584,8 +1584,8 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             return
 
         _logger.info(
-            f"Processing {len(pending_messages)} pending messages for "
-            f"conversation {conversation_id_str}"
+            f'Processing {len(pending_messages)} pending messages for '
+            f'conversation {conversation_id_str}'
         )
 
         # Process messages sequentially to preserve order
@@ -1595,19 +1595,19 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 content_json = [item.model_dump() for item in msg.content]
                 # Use the events endpoint which handles message sending
                 response = await self.httpx_client.post(
-                    f"{agent_server_url}/api/conversations/{conversation_id_str}/events",
+                    f'{agent_server_url}/api/conversations/{conversation_id_str}/events',
                     json={
-                        "role": msg.role,
-                        "content": content_json,
-                        "run": True,
+                        'role': msg.role,
+                        'content': content_json,
+                        'run': True,
                     },
-                    headers={"X-Session-API-Key": session_api_key},
+                    headers={'X-Session-API-Key': session_api_key},
                     timeout=30.0,
                 )
                 response.raise_for_status()
-                _logger.debug(f"Delivered pending message {msg.id}")
+                _logger.debug(f'Delivered pending message {msg.id}')
             except Exception as e:
-                _logger.warning(f"Failed to deliver pending message {msg.id}: {e}")
+                _logger.warning(f'Failed to deliver pending message {msg.id}: {e}')
 
         # Delete all pending messages after processing (regardless of success/failure)
         deleted_count = (
@@ -1616,8 +1616,8 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             )
         )
         _logger.info(
-            f"Finished processing pending messages for conversation {conversation_id_str}. "
-            f"Deleted {deleted_count} messages."
+            f'Finished processing pending messages for conversation {conversation_id_str}. '
+            f'Deleted {deleted_count} messages.'
         )
 
     async def update_agent_server_conversation_title(
@@ -1638,22 +1638,22 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             app_conversation_info.sandbox_id
         )
         assert sandbox is not None, (
-            f"Sandbox {app_conversation_info.sandbox_id} not found for conversation {conversation_id}"
+            f'Sandbox {app_conversation_info.sandbox_id} not found for conversation {conversation_id}'
         )
         assert sandbox.exposed_urls is not None, (
-            f"Sandbox {app_conversation_info.sandbox_id} has no exposed URLs for conversation {conversation_id}"
+            f'Sandbox {app_conversation_info.sandbox_id} has no exposed URLs for conversation {conversation_id}'
         )
 
         # Use the existing method to get the agent-server URL
         agent_server_url = self._get_agent_server_url(sandbox)
 
         # Prepare the request
-        url = f"{agent_server_url.rstrip('/')}/api/conversations/{conversation_id}"
+        url = f'{agent_server_url.rstrip("/")}/api/conversations/{conversation_id}'
         headers = {}
         if sandbox.session_api_key:
-            headers["X-Session-API-Key"] = sandbox.session_api_key
+            headers['X-Session-API-Key'] = sandbox.session_api_key
 
-        payload = {"title": new_title}
+        payload = {'title': new_title}
 
         # Make the PATCH request to the agent-server
         response = await self.httpx_client.patch(
@@ -1683,45 +1683,45 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             ValueError: If validation fails
         """
         # Check if repository is being set
-        if "selected_repository" in request.model_fields_set:
+        if 'selected_repository' in request.model_fields_set:
             repo = request.selected_repository
             if repo is not None:
                 # Validate repository format (owner/repo)
-                if "/" not in repo or repo.count("/") != 1:
+                if '/' not in repo or repo.count('/') != 1:
                     raise ValueError(
                         f"Invalid repository format: '{repo}'. Expected 'owner/repo'."
                     )
 
                 # Sanitize: check for dangerous characters
-                if any(c in repo for c in [";", "&", "|", "$", "`", "\n", "\r"]):
+                if any(c in repo for c in [';', '&', '|', '$', '`', '\n', '\r']):
                     raise ValueError(f"Invalid characters in repository name: '{repo}'")
 
                 # If setting a repository, branch should also be provided
                 # (either in this request or already exists in conversation)
                 if (
-                    "selected_branch" not in request.model_fields_set
+                    'selected_branch' not in request.model_fields_set
                     and existing_branch is None
                 ):
                     _logger.warning(
-                        f"Repository {repo} set without branch in the same request "
-                        "and no existing branch in conversation"
+                        f'Repository {repo} set without branch in the same request '
+                        'and no existing branch in conversation'
                     )
             else:
                 # Repository is being removed (set to null)
                 # Enforce consistency: branch and provider must also be cleared
-                if "selected_branch" in request.model_fields_set:
+                if 'selected_branch' in request.model_fields_set:
                     if request.selected_branch is not None:
                         raise ValueError(
-                            "When removing repository, branch must also be cleared"
+                            'When removing repository, branch must also be cleared'
                         )
-                if "git_provider" in request.model_fields_set:
+                if 'git_provider' in request.model_fields_set:
                     if request.git_provider is not None:
                         raise ValueError(
-                            "When removing repository, git_provider must also be cleared"
+                            'When removing repository, git_provider must also be cleared'
                         )
 
         # Validate branch if provided
-        if "selected_branch" in request.model_fields_set:
+        if 'selected_branch' in request.model_fields_set:
             branch = request.selected_branch
             if branch is not None:
                 ensure_valid_git_branch_name(branch)
@@ -1780,8 +1780,8 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             self.app_conversation_info_service, SQLAppConversationInfoService
         ):
             _logger.error(
-                f"Cannot delete V1 conversation {conversation_id}: SQL implementation required for transactional deletion",
-                extra={"conversation_id": str(conversation_id)},
+                f'Cannot delete V1 conversation {conversation_id}: SQL implementation required for transactional deletion',
+                extra={'conversation_id': str(conversation_id)},
             )
             return False
 
@@ -1790,8 +1790,8 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             app_conversation = await self.get_app_conversation(conversation_id)
             if not app_conversation:
                 _logger.warning(
-                    f"V1 conversation {conversation_id} not found for deletion",
-                    extra={"conversation_id": str(conversation_id)},
+                    f'V1 conversation {conversation_id} not found for deletion',
+                    extra={'conversation_id': str(conversation_id)},
                 )
                 return False
 
@@ -1809,8 +1809,8 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
 
         except Exception as e:
             _logger.error(
-                f"Error deleting V1 conversation {conversation_id}: {e}",
-                extra={"conversation_id": str(conversation_id)},
+                f'Error deleting V1 conversation {conversation_id}: {e}',
+                extra={'conversation_id': str(conversation_id)},
                 exc_info=True,
             )
             return False
@@ -1839,14 +1839,14 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                     # Delete from database
                     await self._delete_from_database(sub_conversation)
                     _logger.info(
-                        f"Successfully deleted sub-conversation {sub_id}",
-                        extra={"conversation_id": str(sub_id)},
+                        f'Successfully deleted sub-conversation {sub_id}',
+                        extra={'conversation_id': str(sub_id)},
                     )
             except Exception as e:
                 # Log error but continue deleting remaining sub-conversations
                 _logger.warning(
-                    f"Error deleting sub-conversation {sub_id}: {e}",
-                    extra={"conversation_id": str(sub_id)},
+                    f'Error deleting sub-conversation {sub_id}: {e}',
+                    extra={'conversation_id': str(sub_id)},
                     exc_info=True,
                 )
 
@@ -1871,15 +1871,15 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
 
                 # Call agent server delete API
                 response = await self.httpx_client.delete(
-                    f"{agent_server_url}/api/conversations/{conversation_id}",
-                    headers={"X-Session-API-Key": app_conversation.session_api_key},
+                    f'{agent_server_url}/api/conversations/{conversation_id}',
+                    headers={'X-Session-API-Key': app_conversation.session_api_key},
                     timeout=30.0,
                 )
                 response.raise_for_status()
         except Exception as e:
             _logger.warning(
-                f"Failed to delete conversation from agent server: {e}",
-                extra={"conversation_id": str(conversation_id)},
+                f'Failed to delete conversation from agent server: {e}',
+                extra={'conversation_id': str(conversation_id)},
             )
             # Continue with database cleanup even if agent server call fails
 
@@ -1919,7 +1919,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             )
         )
         if not conversation_info:
-            raise ValueError(f"Conversation not found: {conversation_id}")
+            raise ValueError(f'Conversation not found: {conversation_id}')
 
         # Create a temporary directory to store files
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -1928,23 +1928,23 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             async for event in page_iterator(
                 self.event_service.search_events, conversation_id=conversation_id
             ):
-                event_filename = f"event_{i:06d}_{event.id}.json"
+                event_filename = f'event_{i:06d}_{event.id}.json'
                 event_path = os.path.join(temp_dir, event_filename)
 
-                with open(event_path, "w") as f:
+                with open(event_path, 'w') as f:
                     # Use model_dump with mode='json' to handle UUID serialization
-                    event_data = event.model_dump(mode="json")
+                    event_data = event.model_dump(mode='json')
                     json.dump(event_data, f, indent=2)
                 i += 1
 
             # Create meta.json with conversation info
-            meta_path = os.path.join(temp_dir, "meta.json")
-            with open(meta_path, "w") as f:
+            meta_path = os.path.join(temp_dir, 'meta.json')
+            with open(meta_path, 'w') as f:
                 f.write(conversation_info.model_dump_json(indent=2))
 
             # Create zip file in memory
             zip_buffer = tempfile.NamedTemporaryFile()
-            with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 # Add all files from temp directory to zip
                 for root, dirs, files in os.walk(temp_dir):
                     for file in files:
@@ -1962,24 +1962,24 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
 
 class LiveStatusAppConversationServiceInjector(AppConversationServiceInjector):
     sandbox_startup_timeout: int = Field(
-        default=120, description="The max timeout time for sandbox startup"
+        default=120, description='The max timeout time for sandbox startup'
     )
     sandbox_startup_poll_frequency: int = Field(
-        default=2, description="The frequency to poll for sandbox readiness"
+        default=2, description='The frequency to poll for sandbox readiness'
     )
     max_num_conversations_per_sandbox: int = Field(
         default=20,
-        description="The maximum number of conversations allowed per sandbox",
+        description='The maximum number of conversations allowed per sandbox',
     )
     init_git_in_empty_workspace: bool = Field(
         default=True,
-        description="Whether to initialize a git repo when the workspace is empty",
+        description='Whether to initialize a git repo when the workspace is empty',
     )
     access_token_hard_timeout: int | None = Field(
         default=14 * 86400,
         description=(
-            "A security measure - the time after which git tokens may no longer "
-            "be retrieved by a sandboxed conversation."
+            'A security measure - the time after which git tokens may no longer '
+            'be retrieved by a sandboxed conversation.'
         ),
     )
 
@@ -2026,7 +2026,7 @@ class LiveStatusAppConversationServiceInjector(AppConversationServiceInjector):
             web_url = config.web_url
             if web_url is None:
                 if isinstance(sandbox_service, DockerSandboxService):
-                    web_url = f"http://host.docker.internal:{sandbox_service.host_port}"
+                    web_url = f'http://host.docker.internal:{sandbox_service.host_port}'
 
             # Get app_mode for SaaS mode
             app_mode = None

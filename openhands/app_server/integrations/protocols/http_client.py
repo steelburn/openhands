@@ -25,7 +25,7 @@ class HTTPClient(ABC):
     """
 
     # Default attributes (subclasses may override)
-    token: SecretStr = SecretStr("")
+    token: SecretStr = SecretStr('')
     refresh: bool = False
     external_auth_id: str | None = None
     external_auth_token: SecretStr | None = None
@@ -82,25 +82,25 @@ class HTTPClient(ABC):
     ):
         """Handle HTTP status errors and convert them to appropriate exceptions."""
         if e.response.status_code == 401:
-            return AuthenticationError(f"Invalid {self.provider} token")
+            return AuthenticationError(f'Invalid {self.provider} token')
         elif e.response.status_code == 404:
             return ResourceNotFoundError(
-                f"Resource not found on {self.provider} API: {e}"
+                f'Resource not found on {self.provider} API: {e}'
             )
         elif e.response.status_code == 429:
-            logger.warning(f"Rate limit exceeded on {self.provider} API: {e}")
-            return RateLimitError(f"{self.provider} API rate limit exceeded")
+            logger.warning(f'Rate limit exceeded on {self.provider} API: {e}')
+            return RateLimitError(f'{self.provider} API rate limit exceeded')
 
-        logger.warning(f"Status error on {self.provider} API: {e}")
-        return UnknownException(f"Unknown error: {e}")
+        logger.warning(f'Status error on {self.provider} API: {e}')
+        return UnknownException(f'Unknown error: {e}')
 
     def handle_http_error(
         self, e: HTTPError
     ) -> ProviderTimeoutError | UnknownException:
         """Handle general HTTP errors."""
-        logger.warning(f"HTTP error on {self.provider} API: {type(e).__name__} : {e}")
+        logger.warning(f'HTTP error on {self.provider} API: {type(e).__name__} : {e}')
         if isinstance(e, TimeoutException):
             return ProviderTimeoutError(
-                f"{self.provider} API request timed out: {type(e).__name__}"
+                f'{self.provider} API request timed out: {type(e).__name__}'
             )
-        return UnknownException(f"HTTP error {type(e).__name__} : {e}")
+        return UnknownException(f'HTTP error {type(e).__name__} : {e}')

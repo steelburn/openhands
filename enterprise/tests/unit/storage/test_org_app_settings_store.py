@@ -20,9 +20,9 @@ from storage.user import User
 async def async_engine():
     """Create an async SQLite engine for testing."""
     engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
+        'sqlite+aiosqlite:///:memory:',
         poolclass=StaticPool,
-        connect_args={"check_same_thread": False},
+        connect_args={'check_same_thread': False},
         echo=False,
     )
     async with engine.begin() as conn:
@@ -47,7 +47,7 @@ async def test_get_current_org_by_user_id_success(async_session_maker):
     # Arrange
     async with async_session_maker() as session:
         org = Org(
-            name="test-org",
+            name='test-org',
             enable_proactive_conversation_starters=True,
             max_budget_per_task=25.0,
         )
@@ -68,7 +68,7 @@ async def test_get_current_org_by_user_id_success(async_session_maker):
 
     # Assert
     assert result is not None
-    assert result.name == "test-org"
+    assert result.name == 'test-org'
     assert result.enable_proactive_conversation_starters is True
     assert result.max_budget_per_task == 25.0
 
@@ -102,7 +102,7 @@ async def test_update_org_app_settings_success(async_session_maker):
     # Arrange
     async with async_session_maker() as session:
         org = Org(
-            name="test-org",
+            name='test-org',
             enable_proactive_conversation_starters=True,
             max_budget_per_task=10.0,
         )
@@ -135,7 +135,7 @@ async def test_update_org_app_settings_partial(async_session_maker):
     # Arrange
     async with async_session_maker() as session:
         org = Org(
-            name="test-org",
+            name='test-org',
             enable_proactive_conversation_starters=True,
             max_budget_per_task=10.0,
         )

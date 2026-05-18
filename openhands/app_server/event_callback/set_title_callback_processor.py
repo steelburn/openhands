@@ -52,7 +52,7 @@ async def _poll_for_title(
         try:
             headers = (
                 {
-                    "X-Session-API-Key": session_api_key,
+                    'X-Session-API-Key': session_api_key,
                 }
                 if session_api_key
                 else {}
@@ -65,12 +65,12 @@ async def _poll_for_title(
         except httpx.HTTPError as exc:
             # Transient agent-server failures are acceptable; retry later.
             _logger.warning(
-                "Title poll failed for conversation %s: %s",
+                'Title poll failed for conversation %s: %s',
                 url,
                 exc,
             )
         else:
-            title = response.json().get("title")
+            title = response.json().get('title')
             if title:
                 return title
 
@@ -96,7 +96,7 @@ class SetTitleCallbackProcessor(EventCallbackProcessor):
         )
 
         _logger.info(
-            "Callback %s Invoked for event %s",
+            'Callback %s Invoked for event %s',
             callback.id,
             redact_text_secrets(str(event)),
         )
@@ -128,8 +128,8 @@ class SetTitleCallbackProcessor(EventCallbackProcessor):
             if not title:
                 # Keep the callback active so later message events can retry.
                 _logger.info(
-                    f"Conversation {conversation_id} title not available yet; "
-                    "will retry on a future message event."
+                    f'Conversation {conversation_id} title not available yet; '
+                    'will retry on a future message event.'
                 )
                 return None
 

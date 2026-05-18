@@ -35,9 +35,9 @@ class SessionExpiredError(ValueError):
 
 
 __all__ = [
-    "AppMode",
-    "ServerConfigInterface",
-    "MissingSettingsError",
-    "LLMAuthenticationError",
-    "SessionExpiredError",
+    'AppMode',
+    'ServerConfigInterface',
+    'MissingSettingsError',
+    'LLMAuthenticationError',
+    'SessionExpiredError',
 ]

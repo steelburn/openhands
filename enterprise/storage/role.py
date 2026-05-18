@@ -16,14 +16,14 @@ if TYPE_CHECKING:
 class Role(Base):
     """Role model for user permissions."""
 
-    __tablename__ = "role"
+    __tablename__ = 'role'
 
     id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
     rank: Mapped[int] = mapped_column(nullable=False)
 
     # Relationships
-    users: Mapped[list["User"]] = relationship("User", back_populates="role")
-    org_members: Mapped[list["OrgMember"]] = relationship(
-        "OrgMember", back_populates="role"
+    users: Mapped[list['User']] = relationship('User', back_populates='role')
+    org_members: Mapped[list['OrgMember']] = relationship(
+        'OrgMember', back_populates='role'
     )

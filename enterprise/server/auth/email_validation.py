@@ -20,14 +20,14 @@ def extract_base_email(email: str) -> str | None:
     Returns:
         The base email address, or None if email format is invalid
     """
-    if not email or "@" not in email:
+    if not email or '@' not in email:
         return None
 
     try:
-        local_part, domain = email.rsplit("@", 1)
+        local_part, domain = email.rsplit('@', 1)
         # Extract the part before + if it exists
-        base_local = local_part.split("+", 1)[0]
-        return f"{base_local}@{domain}"
+        base_local = local_part.split('+', 1)[0]
+        return f'{base_local}@{domain}'
     except (ValueError, AttributeError):
         return None
 
@@ -41,12 +41,12 @@ def has_plus_modifier(email: str) -> bool:
     Returns:
         True if email contains + before @, False otherwise
     """
-    if not email or "@" not in email:
+    if not email or '@' not in email:
         return False
 
     try:
-        local_part, _ = email.rsplit("@", 1)
-        return "+" in local_part
+        local_part, _ = email.rsplit('@', 1)
+        return '+' in local_part
     except (ValueError, AttributeError):
         return False
 
@@ -98,12 +98,12 @@ def get_base_email_regex_pattern(base_email: str) -> re.Pattern | None:
         return None
 
     try:
-        local_part, domain = base.rsplit("@", 1)
+        local_part, domain = base.rsplit('@', 1)
         # Escape special regex characters in local part and domain
         escaped_local = re.escape(local_part)
         escaped_domain = re.escape(domain)
         # Pattern: joe@example.com OR joe+anything@example.com
-        pattern = rf"^{escaped_local}(\+[^@\s]+)?@{escaped_domain}$"
+        pattern = rf'^{escaped_local}(\+[^@\s]+)?@{escaped_domain}$'
         return re.compile(pattern, re.IGNORECASE)
     except (ValueError, AttributeError):
         return None

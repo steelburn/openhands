@@ -8,7 +8,7 @@ from server.utils.rate_limit_utils import (
     check_rate_limit_by_user_id,
 )
 
-REDIS_PATCH = "server.utils.rate_limit_utils.get_redis_client_async"
+REDIS_PATCH = 'server.utils.rate_limit_utils.get_redis_client_async'
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ def mock_request():
     """Create a mock request object."""
     request = MagicMock(spec=Request)
     request.client = MagicMock()
-    request.client.host = "192.168.1.1"
+    request.client.host = '192.168.1.1'
     return request
 
 
@@ -32,12 +32,12 @@ def mock_redis():
 async def test_rate_limit_by_user_id_first_request_succeeds(mock_request, mock_redis):
     """Test that first request with user_id succeeds and sets rate limit key."""
     # Arrange
-    user_id = "test_user_id"
-    key_prefix = "email_resend"
+    user_id = 'test_user_id'
+    key_prefix = 'email_resend'
 
     with (
         patch(REDIS_PATCH, return_value=mock_redis),
-        patch("server.utils.rate_limit_utils.logger") as mock_logger,
+        patch('server.utils.rate_limit_utils.logger') as mock_logger,
     ):
         # Act
         await check_rate_limit_by_user_id(
@@ -46,7 +46,7 @@ async def test_rate_limit_by_user_id_first_request_succeeds(mock_request, mock_r
 
         # Assert
         mock_redis.set.assert_called_once_with(
-            f"{key_prefix}:{user_id}", 1, nx=True, ex=RATE_LIMIT_USER_SECONDS
+            f'{key_prefix}:{user_id}', 1, nx=True, ex=RATE_LIMIT_USER_SECONDS
         )
         mock_logger.warning.assert_not_called()
         mock_logger.info.assert_not_called()
@@ -58,13 +58,13 @@ async def test_rate_limit_by_user_id_second_request_within_window_fails(
 ):
     """Test that second request with same user_id within rate limit window fails."""
     # Arrange
-    user_id = "test_user_id"
-    key_prefix = "email_resend"
+    user_id = 'test_user_id'
+    key_prefix = 'email_resend'
     mock_redis.set = AsyncMock(return_value=False)  # Key already exists
 
     with (
         patch(REDIS_PATCH, return_value=mock_redis),
-        patch("server.utils.rate_limit_utils.logger") as mock_logger,
+        patch('server.utils.rate_limit_utils.logger') as mock_logger,
     ):
         # Act & Assert
         with pytest.raises(HTTPException) as exc_info:
@@ -73,8 +73,8 @@ async def test_rate_limit_by_user_id_second_request_within_window_fails(
             )
 
         assert exc_info.value.status_code == status.HTTP_429_TOO_MANY_REQUESTS
-        assert "Too many requests" in exc_info.value.detail
-        assert f"{RATE_LIMIT_USER_SECONDS // 60} minutes" in exc_info.value.detail
+        assert 'Too many requests' in exc_info.value.detail
+        assert f'{RATE_LIMIT_USER_SECONDS // 60} minutes' in exc_info.value.detail
         mock_logger.info.assert_called_once()
 
 
@@ -82,11 +82,11 @@ async def test_rate_limit_by_user_id_second_request_within_window_fails(
 async def test_rate_limit_by_ip_when_user_id_is_none(mock_request, mock_redis):
     """Test that rate limiting falls back to IP address when user_id is None."""
     # Arrange
-    key_prefix = "email_resend"
+    key_prefix = 'email_resend'
 
     with (
         patch(REDIS_PATCH, return_value=mock_redis),
-        patch("server.utils.rate_limit_utils.logger") as mock_logger,
+        patch('server.utils.rate_limit_utils.logger') as mock_logger,
     ):
         # Act
         await check_rate_limit_by_user_id(
@@ -95,7 +95,7 @@ async def test_rate_limit_by_ip_when_user_id_is_none(mock_request, mock_redis):
 
         # Assert
         mock_redis.set.assert_called_once_with(
-            f"{key_prefix}:ip:{mock_request.client.host}",
+            f'{key_prefix}:ip:{mock_request.client.host}',
             1,
             nx=True,
             ex=RATE_LIMIT_IP_SECONDS,
@@ -109,7 +109,7 @@ async def test_rate_limit_by_ip_second_request_within_window_fails(
 ):
     """Test that second request from same IP within rate limit window fails."""
     # Arrange
-    key_prefix = "email_resend"
+    key_prefix = 'email_resend'
     mock_redis.set = AsyncMock(return_value=False)  # Key already exists
 
     with patch(REDIS_PATCH, return_value=mock_redis):
@@ -120,19 +120,19 @@ async def test_rate_limit_by_ip_second_request_within_window_fails(
             )
 
         assert exc_info.value.status_code == status.HTTP_429_TOO_MANY_REQUESTS
-        assert f"{RATE_LIMIT_IP_SECONDS // 60} minutes" in exc_info.value.detail
+        assert f'{RATE_LIMIT_IP_SECONDS // 60} minutes' in exc_info.value.detail
 
 
 @pytest.mark.asyncio
 async def test_rate_limit_redis_unavailable_fails_open(mock_request):
     """Test that rate limiting fails open when Redis is unavailable."""
     # Arrange
-    key_prefix = "email_resend"
-    user_id = "test_user_id"
+    key_prefix = 'email_resend'
+    user_id = 'test_user_id'
 
     with (
         patch(REDIS_PATCH, return_value=None),
-        patch("server.utils.rate_limit_utils.logger") as mock_logger,
+        patch('server.utils.rate_limit_utils.logger') as mock_logger,
     ):
         # Act
         await check_rate_limit_by_user_id(
@@ -141,7 +141,7 @@ async def test_rate_limit_redis_unavailable_fails_open(mock_request):
 
         # Assert
         mock_logger.warning.assert_called_once_with(
-            "Redis unavailable for rate limiting, allowing request"
+            'Redis unavailable for rate limiting, allowing request'
         )
 
 
@@ -149,13 +149,13 @@ async def test_rate_limit_redis_unavailable_fails_open(mock_request):
 async def test_rate_limit_redis_exception_fails_open(mock_request, mock_redis):
     """Test that rate limiting fails open when Redis raises an exception."""
     # Arrange
-    key_prefix = "email_resend"
-    user_id = "test_user_id"
-    mock_redis.set = AsyncMock(side_effect=Exception("Redis connection error"))
+    key_prefix = 'email_resend'
+    user_id = 'test_user_id'
+    mock_redis.set = AsyncMock(side_effect=Exception('Redis connection error'))
 
     with (
         patch(REDIS_PATCH, return_value=mock_redis),
-        patch("server.utils.rate_limit_utils.logger") as mock_logger,
+        patch('server.utils.rate_limit_utils.logger') as mock_logger,
     ):
         # Act
         await check_rate_limit_by_user_id(
@@ -164,15 +164,15 @@ async def test_rate_limit_redis_exception_fails_open(mock_request, mock_redis):
 
         # Assert
         mock_logger.warning.assert_called_once()
-        assert "Error checking rate limit" in str(mock_logger.warning.call_args[0][0])
+        assert 'Error checking rate limit' in str(mock_logger.warning.call_args[0][0])
 
 
 @pytest.mark.asyncio
 async def test_rate_limit_custom_key_prefix(mock_request, mock_redis):
     """Test that different key prefixes create different rate limit keys."""
     # Arrange
-    user_id = "test_user_id"
-    key_prefix = "password_reset"
+    user_id = 'test_user_id'
+    key_prefix = 'password_reset'
 
     with patch(REDIS_PATCH, return_value=mock_redis):
         # Act
@@ -182,7 +182,7 @@ async def test_rate_limit_custom_key_prefix(mock_request, mock_redis):
 
         # Assert
         mock_redis.set.assert_called_once_with(
-            f"{key_prefix}:{user_id}", 1, nx=True, ex=RATE_LIMIT_USER_SECONDS
+            f'{key_prefix}:{user_id}', 1, nx=True, ex=RATE_LIMIT_USER_SECONDS
         )
 
 
@@ -190,8 +190,8 @@ async def test_rate_limit_custom_key_prefix(mock_request, mock_redis):
 async def test_rate_limit_custom_rate_limit_seconds(mock_request, mock_redis):
     """Test that custom rate limit seconds are used correctly."""
     # Arrange
-    user_id = "test_user_id"
-    key_prefix = "email_resend"
+    user_id = 'test_user_id'
+    key_prefix = 'email_resend'
     custom_user_seconds = 60
     custom_ip_seconds = 180
 
@@ -207,7 +207,7 @@ async def test_rate_limit_custom_rate_limit_seconds(mock_request, mock_redis):
 
         # Assert
         mock_redis.set.assert_called_once_with(
-            f"{key_prefix}:{user_id}", 1, nx=True, ex=custom_user_seconds
+            f'{key_prefix}:{user_id}', 1, nx=True, ex=custom_user_seconds
         )
 
 
@@ -215,7 +215,7 @@ async def test_rate_limit_custom_rate_limit_seconds(mock_request, mock_redis):
 async def test_rate_limit_ip_with_unknown_client(mock_request, mock_redis):
     """Test that rate limiting handles missing client host gracefully."""
     # Arrange
-    key_prefix = "email_resend"
+    key_prefix = 'email_resend'
     mock_request.client = None  # No client information
 
     with patch(REDIS_PATCH, return_value=mock_redis):
@@ -226,7 +226,7 @@ async def test_rate_limit_ip_with_unknown_client(mock_request, mock_redis):
 
         # Assert
         mock_redis.set.assert_called_once_with(
-            f"{key_prefix}:ip:unknown", 1, nx=True, ex=RATE_LIMIT_IP_SECONDS
+            f'{key_prefix}:ip:unknown', 1, nx=True, ex=RATE_LIMIT_IP_SECONDS
         )
 
 
@@ -236,9 +236,9 @@ async def test_rate_limit_different_users_have_separate_limits(
 ):
     """Test that different user_ids have separate rate limit keys."""
     # Arrange
-    key_prefix = "email_resend"
-    user_id_1 = "user_1"
-    user_id_2 = "user_2"
+    key_prefix = 'email_resend'
+    user_id_1 = 'user_1'
+    user_id_2 = 'user_2'
 
     with patch(REDIS_PATCH, return_value=mock_redis):
         # Act
@@ -253,17 +253,17 @@ async def test_rate_limit_different_users_have_separate_limits(
         assert mock_redis.set.call_count == 2
         # Extract call arguments properly
         call_args_list = [
-            (call[0][0], call[0][1], call[1]["nx"], call[1]["ex"])
+            (call[0][0], call[0][1], call[1]['nx'], call[1]['ex'])
             for call in mock_redis.set.call_args_list
         ]
         assert (
-            f"{key_prefix}:{user_id_1}",
+            f'{key_prefix}:{user_id_1}',
             1,
             True,
             RATE_LIMIT_USER_SECONDS,
         ) in call_args_list
         assert (
-            f"{key_prefix}:{user_id_2}",
+            f'{key_prefix}:{user_id_2}',
             1,
             True,
             RATE_LIMIT_USER_SECONDS,

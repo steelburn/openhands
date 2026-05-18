@@ -4,13 +4,13 @@ from logging.config import fileConfig
 
 # Suppress alembic.runtime.plugins INFO logs during import to prevent non-JSON logs in production
 # These plugin setup messages would otherwise appear before logging is configured
-logging.getLogger("alembic.runtime.plugins").setLevel(logging.WARNING)
+logging.getLogger('alembic.runtime.plugins').setLevel(logging.WARNING)
 
 # Prevent SQLAlchemy engine from logging SQL results at DEBUG level, which can
 # leak sensitive column data (e.g. API keys, tokens) into log aggregators.
 # This is set before any engine is created so it takes effect immediately.
-logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
-logging.getLogger("sqlalchemy.engine.Engine").setLevel(logging.WARNING)
+logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
+logging.getLogger('sqlalchemy.engine.Engine').setLevel(logging.WARNING)
 
 from alembic import context  # noqa: E402
 from google.cloud.sql.connector import Connector  # noqa: E402
@@ -19,18 +19,18 @@ from storage.base import Base  # noqa: E402
 
 target_metadata = Base.metadata
 
-DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASS = os.getenv("DB_PASS", "postgres")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "openhands")
+DB_USER = os.getenv('DB_USER', 'postgres')
+DB_PASS = os.getenv('DB_PASS', 'postgres')
+DB_HOST = os.getenv('DB_HOST', 'localhost')
+DB_PORT = os.getenv('DB_PORT', '5432')
+DB_NAME = os.getenv('DB_NAME', 'openhands')
 
-GCP_DB_INSTANCE = os.getenv("GCP_DB_INSTANCE")
-GCP_PROJECT = os.getenv("GCP_PROJECT")
-GCP_REGION = os.getenv("GCP_REGION")
+GCP_DB_INSTANCE = os.getenv('GCP_DB_INSTANCE')
+GCP_PROJECT = os.getenv('GCP_PROJECT')
+GCP_REGION = os.getenv('GCP_REGION')
 
-POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "25"))
-MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "10"))
+POOL_SIZE = int(os.getenv('DB_POOL_SIZE', '25'))
+MAX_OVERFLOW = int(os.getenv('DB_MAX_OVERFLOW', '10'))
 
 
 def get_engine(database_name=DB_NAME):
@@ -39,24 +39,24 @@ def get_engine(database_name=DB_NAME):
 
         def get_db_connection():
             connector = Connector()
-            instance_string = f"{GCP_PROJECT}:{GCP_REGION}:{GCP_DB_INSTANCE}"
+            instance_string = f'{GCP_PROJECT}:{GCP_REGION}:{GCP_DB_INSTANCE}'
             return connector.connect(
                 instance_string,
-                "pg8000",
+                'pg8000',
                 user=DB_USER,
                 password=DB_PASS.strip(),
                 db=database_name,
             )
 
         return create_engine(
-            "postgresql+pg8000://",
+            'postgresql+pg8000://',
             creator=get_db_connection,
             pool_size=POOL_SIZE,
             max_overflow=MAX_OVERFLOW,
             pool_pre_ping=True,
         )
     else:
-        url = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{database_name}"
+        url = f'postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{database_name}'
         return create_engine(
             url,
             pool_size=POOL_SIZE,
@@ -79,8 +79,8 @@ if config.config_file_name is not None:
 # Re-apply SQLAlchemy engine log suppression after fileConfig, which may override
 # our earlier settings from alembic.ini. This ensures DEBUG-level SQL result logging
 # is always suppressed, preventing sensitive data from leaking into log aggregators.
-logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
-logging.getLogger("sqlalchemy.engine.Engine").setLevel(logging.WARNING)
+logging.getLogger('sqlalchemy.engine').setLevel(logging.WARNING)
+logging.getLogger('sqlalchemy.engine.Engine').setLevel(logging.WARNING)
 
 
 def run_migrations_offline() -> None:
@@ -94,12 +94,12 @@ def run_migrations_offline() -> None:
     Calls to context.execute() here emit the given string to the
     script output.
     """
-    url = config.get_main_option("sqlalchemy.url")
+    url = config.get_main_option('sqlalchemy.url')
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
-        dialect_opts={"paramstyle": "named"},
+        dialect_opts={'paramstyle': 'named'},
     )
 
     with context.begin_transaction():
@@ -123,7 +123,7 @@ def run_migrations_online() -> None:
 
         # Lock number must be unique — md5 hash of 'openhands_enterprise_migrations'
         # Lock is released when the connection context manager exits
-        connection.execute(text("SELECT pg_advisory_lock(3617572382373537863)"))
+        connection.execute(text('SELECT pg_advisory_lock(3617572382373537863)'))
 
         with context.begin_transaction():
             context.run_migrations()

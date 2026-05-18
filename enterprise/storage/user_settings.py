@@ -13,7 +13,7 @@ from storage.encrypt_utils import decrypt_legacy_value, encrypt_legacy_value
 
 
 class UserSettings(Base):
-    __tablename__ = "user_settings"
+    __tablename__ = 'user_settings'
 
     id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     keycloak_user_id: Mapped[str | None] = mapped_column(

@@ -23,12 +23,12 @@ class TestGetCurrentUserGitInfo:
         from openhands.app_server.integrations.service_types import UserGitInfo
 
         expected_git_info = UserGitInfo(
-            id="user-123",
-            login="testuser",
-            avatar_url="https://example.com/avatar.png",
-            company="Test Company",
-            name="Test User",
-            email="test@example.com",
+            id='user-123',
+            login='testuser',
+            avatar_url='https://example.com/avatar.png',
+            company='Test Company',
+            name='Test User',
+            email='test@example.com',
         )
         mock_user_context.get_user_git_info = AsyncMock(return_value=expected_git_info)
 
@@ -38,21 +38,21 @@ class TestGetCurrentUserGitInfo:
         result = await get_current_user_git_info(user_context=mock_user_context)
 
         mock_user_context.get_user_git_info.assert_called_once()
-        assert result.id == "user-123"
-        assert result.login == "testuser"
-        assert result.avatar_url == "https://example.com/avatar.png"
-        assert result.company == "Test Company"
-        assert result.name == "Test User"
-        assert result.email == "test@example.com"
+        assert result.id == 'user-123'
+        assert result.login == 'testuser'
+        assert result.avatar_url == 'https://example.com/avatar.png'
+        assert result.company == 'Test Company'
+        assert result.name == 'Test User'
+        assert result.email == 'test@example.com'
 
     async def test_returns_user_git_info_with_minimal_fields(self, mock_user_context):
         """User git info with only required fields returns successfully."""
         from openhands.app_server.integrations.service_types import UserGitInfo
 
         minimal_git_info = UserGitInfo(
-            id="user-456",
-            login="minimaluser",
-            avatar_url="https://example.com/default.png",
+            id='user-456',
+            login='minimaluser',
+            avatar_url='https://example.com/default.png',
         )
         mock_user_context.get_user_git_info = AsyncMock(return_value=minimal_git_info)
 
@@ -60,9 +60,9 @@ class TestGetCurrentUserGitInfo:
 
         result = await get_current_user_git_info(user_context=mock_user_context)
 
-        assert result.id == "user-456"
-        assert result.login == "minimaluser"
-        assert result.avatar_url == "https://example.com/default.png"
+        assert result.id == 'user-456'
+        assert result.login == 'minimaluser'
+        assert result.avatar_url == 'https://example.com/default.png'
         assert result.company is None
         assert result.name is None
         assert result.email is None
@@ -84,7 +84,7 @@ class TestGetCurrentUserGitInfo:
             await get_current_user_git_info(user_context=mock_user_context)
 
         assert exc_info.value.status_code == 403
-        assert "Git provider not connected" in exc_info.value.detail
+        assert 'Git provider not connected' in exc_info.value.detail
         mock_user_context.get_user_git_info.assert_called_once()
 
     async def test_raises_401_when_user_git_info_returns_none_for_company(
@@ -94,9 +94,9 @@ class TestGetCurrentUserGitInfo:
         from openhands.app_server.integrations.service_types import UserGitInfo
 
         git_info = UserGitInfo(
-            id="user-789",
-            login="companyuser",
-            avatar_url="https://example.com/company.png",
+            id='user-789',
+            login='companyuser',
+            avatar_url='https://example.com/company.png',
             company=None,
             name=None,
             email=None,
@@ -108,18 +108,18 @@ class TestGetCurrentUserGitInfo:
         result = await get_current_user_git_info(user_context=mock_user_context)
 
         # Should NOT raise 401 - None optional fields are valid
-        assert result.id == "user-789"
-        assert result.login == "companyuser"
+        assert result.id == 'user-789'
+        assert result.login == 'companyuser'
 
     async def test_propagates_exceptions_from_user_context(self, mock_user_context):
         """When get_user_git_info raises an exception, it should propagate."""
         mock_user_context.get_user_git_info = AsyncMock(
-            side_effect=Exception("Database error")
+            side_effect=Exception('Database error')
         )
 
         from openhands.app_server.user.user_router import get_current_user_git_info
 
-        with pytest.raises(Exception, match="Database error"):
+        with pytest.raises(Exception, match='Database error'):
             await get_current_user_git_info(user_context=mock_user_context)
 
 
@@ -131,32 +131,32 @@ class TestUserGitInfoModel:
         from openhands.app_server.integrations.service_types import UserGitInfo
 
         git_info = UserGitInfo(
-            id="full-user",
-            login="fulllogin",
-            avatar_url="https://example.com/full.png",
-            company="Full Company",
-            name="Full Name",
-            email="full@example.com",
+            id='full-user',
+            login='fulllogin',
+            avatar_url='https://example.com/full.png',
+            company='Full Company',
+            name='Full Name',
+            email='full@example.com',
         )
 
-        assert git_info.id == "full-user"
-        assert git_info.login == "fulllogin"
-        assert git_info.avatar_url == "https://example.com/full.png"
-        assert git_info.company == "Full Company"
-        assert git_info.name == "Full Name"
-        assert git_info.email == "full@example.com"
+        assert git_info.id == 'full-user'
+        assert git_info.login == 'fulllogin'
+        assert git_info.avatar_url == 'https://example.com/full.png'
+        assert git_info.company == 'Full Company'
+        assert git_info.name == 'Full Name'
+        assert git_info.email == 'full@example.com'
 
     def test_user_git_info_model_dump_json(self):
         """Test UserGitInfo serializes correctly to JSON."""
         from openhands.app_server.integrations.service_types import UserGitInfo
 
         git_info = UserGitInfo(
-            id="json-user",
-            login="jsonlogin",
-            avatar_url="https://example.com/json.png",
-            company="JSON Corp",
-            name="JSON Name",
-            email="json@example.com",
+            id='json-user',
+            login='jsonlogin',
+            avatar_url='https://example.com/json.png',
+            company='JSON Corp',
+            name='JSON Name',
+            email='json@example.com',
         )
 
         json_str = git_info.model_dump_json()
@@ -172,15 +172,15 @@ class TestUserGitInfoModel:
         from openhands.app_server.integrations.service_types import UserGitInfo
 
         git_info = UserGitInfo(
-            id="dump-user",
-            login="dumplogin",
-            avatar_url="https://example.com/dump.png",
+            id='dump-user',
+            login='dumplogin',
+            avatar_url='https://example.com/dump.png',
         )
 
         data = git_info.model_dump()
-        assert data["id"] == "dump-user"
-        assert data["login"] == "dumplogin"
-        assert data["avatar_url"] == "https://example.com/dump.png"
-        assert data["company"] is None
-        assert data["name"] is None
-        assert data["email"] is None
+        assert data['id'] == 'dump-user'
+        assert data['login'] == 'dumplogin'
+        assert data['avatar_url'] == 'https://example.com/dump.png'
+        assert data['company'] is None
+        assert data['name'] is None
+        assert data['email'] is None

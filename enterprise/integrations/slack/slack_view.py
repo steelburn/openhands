@@ -67,19 +67,19 @@ class SlackNewConversationView(SlackViewInterface):
 
     def _get_initial_prompt(self, text: str, blocks: list[dict]):
         bot_id = self._get_bot_id(blocks)
-        text = text.replace(f"<@{bot_id}>", "").strip()
+        text = text.replace(f'<@{bot_id}>', '').strip()
         return text
 
     def _get_bot_id(self, blocks: list[dict]) -> str:
         for block in blocks:
-            type_ = block["type"]
-            if type_ in ("rich_text", "rich_text_section"):
-                bot_id = self._get_bot_id(block["elements"])
+            type_ = block['type']
+            if type_ in ('rich_text', 'rich_text_section'):
+                bot_id = self._get_bot_id(block['elements'])
                 if bot_id:
                     return bot_id
-            if type_ == "user":
-                return block["user_id"]
-        return ""
+            if type_ == 'user':
+                return block['user_id']
+        return ''
 
     async def _get_instructions(self, jinja_env: Environment) -> tuple[str, str]:
         """Instructions passed when conversation is first initialized"""
@@ -97,11 +97,11 @@ class SlackNewConversationView(SlackViewInterface):
                     limit=CONTEXT_LIMIT,  # We can be smarter about getting more context/condensing it even in the future
                 )
             except SlackApiError as e:
-                if e.response.get("error") == "missing_scope":
+                if e.response.get('error') == 'missing_scope':
                     raise SlackError(SlackErrorCode.MISSING_SLACK_SCOPES) from e
                 raise
 
-            messages = result["messages"]
+            messages = result['messages']
 
         else:
             client = WebClient(token=self.bot_access_token)
@@ -113,30 +113,30 @@ class SlackNewConversationView(SlackViewInterface):
                     limit=CONTEXT_LIMIT,
                 )
             except SlackApiError as e:
-                if e.response.get("error") == "missing_scope":
+                if e.response.get('error') == 'missing_scope':
                     raise SlackError(SlackErrorCode.MISSING_SLACK_SCOPES) from e
                 raise
 
-            messages = result["messages"]
+            messages = result['messages']
             messages.reverse()
 
         if not messages:
-            raise ValueError("Failed to fetch information from slack API")
+            raise ValueError('Failed to fetch information from slack API')
 
-        logger.info("got_messages_from_slack", extra={"messages": messages})
+        logger.info('got_messages_from_slack', extra={'messages': messages})
 
         trigger_msg = messages[-1]
         user_message = self._get_initial_prompt(
-            trigger_msg["text"], trigger_msg["blocks"]
+            trigger_msg['text'], trigger_msg['blocks']
         )
 
-        conversation_instructions = ""
+        conversation_instructions = ''
 
         if len(messages) > 1:
             messages.pop()
-            text_messages = [m["text"] for m in messages if m.get("text")]
+            text_messages = [m['text'] for m in messages if m.get('text')]
             conversation_instructions_template = jinja_env.get_template(
-                "user_message_conversation_instructions.j2"
+                'user_message_conversation_instructions.j2'
             )
             conversation_instructions = conversation_instructions_template.render(
                 messages=text_messages,
@@ -149,7 +149,7 @@ class SlackNewConversationView(SlackViewInterface):
     def _verify_necessary_values_are_set(self):
         if not self.selected_repo:
             raise ValueError(
-                "Attempting to start conversation without confirming selected repo from user"
+                'Attempting to start conversation without confirming selected repo from user'
             )
 
     async def save_slack_convo(self):
@@ -157,13 +157,13 @@ class SlackNewConversationView(SlackViewInterface):
             user_info: SlackUser = self.slack_to_openhands_user
 
             logger.info(
-                "Create slack conversation",
+                'Create slack conversation',
                 extra={
-                    "channel_id": self.channel_id,
-                    "conversation_id": self.conversation_id,
-                    "keycloak_user_id": user_info.keycloak_user_id,
-                    "org_id": user_info.org_id,
-                    "parent_id": self.thread_ts or self.message_ts,
+                    'channel_id': self.channel_id,
+                    'conversation_id': self.conversation_id,
+                    'keycloak_user_id': user_info.keycloak_user_id,
+                    'org_id': user_info.org_id,
+                    'parent_id': self.thread_ts or self.message_ts,
                 },
             )
             slack_conversation = SlackConversation(
@@ -181,11 +181,11 @@ class SlackNewConversationView(SlackViewInterface):
         """Create a SlackV1CallbackProcessor for V1 conversation handling."""
         return SlackV1CallbackProcessor(
             slack_view_data={
-                "channel_id": self.channel_id,
-                "message_ts": self.message_ts,
-                "thread_ts": self.thread_ts,
-                "team_id": self.team_id,
-                "slack_user_id": self.slack_user_id,
+                'channel_id': self.channel_id,
+                'message_ts': self.message_ts,
+                'thread_ts': self.thread_ts,
+                'team_id': self.team_id,
+                'slack_user_id': self.slack_user_id,
             }
         )
 
@@ -223,7 +223,7 @@ class SlackNewConversationView(SlackViewInterface):
 
         # Create the initial message request
         initial_message = SendMessageRequest(
-            role="user", content=[TextContent(text=user_instructions)]
+            role='user', content=[TextContent(text=user_instructions)]
         )
 
         # Create the Slack V1 callback processor
@@ -243,7 +243,7 @@ class SlackNewConversationView(SlackViewInterface):
             initial_message=initial_message,
             selected_repository=self.selected_repo,
             git_provider=git_provider,
-            title=f"Slack conversation from {self.slack_to_openhands_user.slack_display_name}",
+            title=f'Slack conversation from {self.slack_to_openhands_user.slack_display_name}',
             trigger=ConversationTrigger.SLACK,
             processors=[
                 slack_callback_processor
@@ -264,12 +264,12 @@ class SlackNewConversationView(SlackViewInterface):
                 start_request
             ):
                 if task.status == AppConversationStartTaskStatus.ERROR:
-                    logger.error(f"Failed to start V1 conversation: {task.detail}")
+                    logger.error(f'Failed to start V1 conversation: {task.detail}')
                     raise RuntimeError(
-                        f"Failed to start V1 conversation: {task.detail}"
+                        f'Failed to start V1 conversation: {task.detail}'
                     )
 
-        logger.info(f"[Slack V1]: Created new conversation: {self.conversation_id}")
+        logger.info(f'[Slack V1]: Created new conversation: {self.conversation_id}')
         await self.save_slack_convo()
 
     def get_response_msg(self) -> str:
@@ -301,16 +301,16 @@ class SlackUpdateExistingConversationView(SlackNewConversationView):
                 limit=1,  # Get exact user message, in future we can be smarter with collecting additional context
             )
         except SlackApiError as e:
-            if e.response.get("error") == "missing_scope":
+            if e.response.get('error') == 'missing_scope':
                 raise SlackError(SlackErrorCode.MISSING_SLACK_SCOPES) from e
             raise
 
-        user_message = result["messages"][0]
+        user_message = result['messages'][0]
         user_message = self._get_initial_prompt(
-            user_message["text"], user_message["blocks"]
+            user_message['text'], user_message['blocks']
         )
 
-        return user_message, ""
+        return user_message, ''
 
     async def send_message_to_v1_conversation(self, jinja: Environment):
         """Send a message to a v1 conversation using the agent server API."""
@@ -355,7 +355,7 @@ class SlackUpdateExistingConversationView(SlackNewConversationView):
 
             if sandbox and sandbox.status == SandboxStatus.PAUSED:
                 # Resume paused sandbox and wait for it to be running
-                logger.info("[Slack V1]: Attempting to resume paused sandbox")
+                logger.info('[Slack V1]: Attempting to resume paused sandbox')
                 await sandbox_service.resume_sandbox(app_conversation_info.sandbox_id)
 
             # Wait for sandbox to be running (handles both fresh start and resume)
@@ -366,9 +366,9 @@ class SlackUpdateExistingConversationView(SlackNewConversationView):
                 httpx_client=httpx_client,
             )
 
-            assert running_sandbox.session_api_key is not None, (
-                f"No session API key for sandbox: {running_sandbox.id}"
-            )
+            assert (
+                running_sandbox.session_api_key is not None
+            ), f'No session API key for sandbox: {running_sandbox.id}'
 
             # 3. Get the agent server URL
             agent_server_url = get_agent_server_url_from_sandbox(running_sandbox)
@@ -378,13 +378,13 @@ class SlackUpdateExistingConversationView(SlackNewConversationView):
 
             # 5. Create the message request
             send_message_request = SendMessageRequest(
-                role="user", content=[TextContent(text=user_msg)], run=True
+                role='user', content=[TextContent(text=user_msg)], run=True
             )
 
             # 6. Send the message to the agent server
-            url = f"{agent_server_url.rstrip('/')}/api/conversations/{UUID(self.conversation_id)}/events"
+            url = f'{agent_server_url.rstrip("/")}/api/conversations/{UUID(self.conversation_id)}/events'
 
-            headers = {"X-Session-API-Key": running_sandbox.session_api_key}
+            headers = {'X-Session-API-Key': running_sandbox.session_api_key}
             payload = send_message_request.model_dump()
 
             try:
@@ -398,12 +398,12 @@ class SlackUpdateExistingConversationView(SlackNewConversationView):
 
             except Exception as e:
                 logger.error(
-                    "[Slack V1] Failed to send message to conversation %s: %s",
+                    '[Slack V1] Failed to send message to conversation %s: %s',
                     self.conversation_id,
                     str(e),
                     exc_info=True,
                 )
-                raise Exception(f"Failed to send message to v1 conversation: {str(e)}")
+                raise Exception(f'Failed to send message to v1 conversation: {str(e)}')
 
     async def create_or_update_conversation(self, jinja: Environment) -> str:
         """Send new user message to conversation."""
@@ -415,7 +415,7 @@ class SlackUpdateExistingConversationView(SlackNewConversationView):
         # For now, only user that created the conversation can send follow up messages to it
         if user_id != self.slack_conversation.keycloak_user_id:
             raise StartingConvoException(
-                f"{user_info.slack_display_name} is not authorized to send messages to this conversation."
+                f'{user_info.slack_display_name} is not authorized to send messages to this conversation.'
             )
 
         # All conversations use V1 app conversation system
@@ -433,15 +433,15 @@ class SlackFactory:
     @staticmethod
     def did_user_select_repo_from_form(message: Message):
         payload = message.message
-        return "selected_repo" in payload
+        return 'selected_repo' in payload
 
     @staticmethod
     async def determine_if_updating_existing_conversation(
         message: Message,
     ) -> SlackConversation | None:
         payload = message.message
-        channel_id = payload.get("channel_id")
-        thread_ts = payload.get("thread_ts")
+        channel_id = payload.get('channel_id')
+        thread_ts = payload.get('thread_ts')
 
         # Follow up conversations must be contained in-thread
         if not thread_ts:
@@ -459,23 +459,23 @@ class SlackFactory:
         message: Message, slack_user: SlackUser | None, saas_user_auth: UserAuth | None
     ):
         payload = message.message
-        slack_user_id = payload["slack_user_id"]
-        channel_id = payload.get("channel_id")
-        message_ts = payload.get("message_ts")
-        thread_ts = payload.get("thread_ts")
-        team_id = payload["team_id"]
-        user_msg = payload.get("user_msg")
+        slack_user_id = payload['slack_user_id']
+        channel_id = payload.get('channel_id')
+        message_ts = payload.get('message_ts')
+        thread_ts = payload.get('thread_ts')
+        team_id = payload['team_id']
+        user_msg = payload.get('user_msg')
 
         bot_access_token = await slack_team_store.get_team_bot_token(team_id)
         if not bot_access_token:
             logger.error(
-                "Did not find slack team",
+                'Did not find slack team',
                 extra={
-                    "slack_user_id": slack_user_id,
-                    "channel_id": channel_id,
+                    'slack_user_id': slack_user_id,
+                    'channel_id': channel_id,
                 },
             )
-            raise Exception("Did not find slack team")
+            raise Exception('Did not find slack team')
 
         # Determine if this is a known slack user by openhands
         # Return SlackMessageView (not SlackViewInterface) for unauthenticated users
@@ -483,8 +483,8 @@ class SlackFactory:
             return SlackMessageView(
                 bot_access_token=bot_access_token,
                 slack_user_id=slack_user_id,
-                channel_id=channel_id or "",
-                message_ts=message_ts or "",
+                channel_id=channel_id or '',
+                message_ts=message_ts or '',
                 thread_ts=thread_ts,
                 team_id=team_id,
             )
@@ -492,7 +492,7 @@ class SlackFactory:
         # At this point, we've verified slack_user, saas_user_auth, channel_id, and message_ts are set
         # user_msg should always be present in Slack payloads
         if not user_msg:
-            raise ValueError("user_msg is required but was not provided in payload")
+            raise ValueError('user_msg is required but was not provided in payload')
         assert channel_id is not None
         assert message_ts is not None
 
@@ -502,10 +502,10 @@ class SlackFactory:
         )
         if conversation:
             logger.info(
-                "Found existing slack conversation",
+                'Found existing slack conversation',
                 extra={
-                    "conversation_id": conversation.conversation_id,
-                    "parent_id": conversation.parent_id,
+                    'conversation_id': conversation.conversation_id,
+                    'parent_id': conversation.parent_id,
                 },
             )
             return SlackUpdateExistingConversationView(
@@ -535,10 +535,10 @@ class SlackFactory:
                 channel_id=channel_id,
                 message_ts=message_ts,
                 thread_ts=thread_ts,
-                selected_repo=payload["selected_repo"],
+                selected_repo=payload['selected_repo'],
                 should_extract=True,
                 send_summary_instruction=True,
-                conversation_id="",
+                conversation_id='',
                 team_id=team_id,
             )
 
@@ -555,7 +555,7 @@ class SlackFactory:
                 selected_repo=None,
                 should_extract=True,
                 send_summary_instruction=True,
-                conversation_id="",
+                conversation_id='',
                 team_id=team_id,
             )
 

@@ -21,9 +21,9 @@ from openhands.sdk.utils.paging import page_iterator
 
 _logger = logging.getLogger(__name__)
 
-SESSION_API_KEY_VARIABLE = "OH_SESSION_API_KEYS_0"
-WEBHOOK_CALLBACK_VARIABLE = "OH_WEBHOOKS_0_BASE_URL"
-ALLOW_CORS_ORIGINS_VARIABLE = "OH_ALLOW_CORS_ORIGINS_0"
+SESSION_API_KEY_VARIABLE = 'OH_SESSION_API_KEYS_0'
+WEBHOOK_CALLBACK_VARIABLE = 'OH_WEBHOOKS_0_BASE_URL'
+ALLOW_CORS_ORIGINS_VARIABLE = 'OH_ALLOW_CORS_ORIGINS_0'
 
 
 class SandboxService(ABC):
@@ -105,10 +105,10 @@ class SandboxService(ABC):
         while time.time() - start <= timeout:
             sandbox = await self.get_sandbox(sandbox_id)
             if sandbox is None:
-                raise SandboxError(f"Sandbox not found: {sandbox_id}")
+                raise SandboxError(f'Sandbox not found: {sandbox_id}')
 
             if sandbox.status == SandboxStatus.ERROR:
-                raise SandboxError(f"Sandbox entered error state: {sandbox_id}")
+                raise SandboxError(f'Sandbox entered error state: {sandbox_id}')
 
             if sandbox.status == SandboxStatus.RUNNING:
                 # Optionally verify agent server is alive to avoid race conditions
@@ -122,7 +122,7 @@ class SandboxService(ABC):
 
             await asyncio.sleep(poll_interval)
 
-        raise SandboxError(f"Sandbox failed to start within {timeout}s: {sandbox_id}")
+        raise SandboxError(f'Sandbox failed to start within {timeout}s: {sandbox_id}')
 
     async def _check_agent_server_alive(
         self, sandbox: SandboxInfo, httpx_client: httpx.AsyncClient
@@ -139,13 +139,13 @@ class SandboxService(ABC):
         url = None
         try:
             agent_server_url = self._get_agent_server_url(sandbox)
-            url = f"{agent_server_url.rstrip('/')}/alive"
+            url = f'{agent_server_url.rstrip("/")}/alive'
             response = await httpx_client.get(url, timeout=5.0)
             return response.is_success
         except Exception as exc:
             _logger.debug(
-                f"Agent server health check failed for sandbox {sandbox.id}"
-                f"{f' at {url}' if url else ''}: {exc}"
+                f'Agent server health check failed for sandbox {sandbox.id}'
+                f'{f" at {url}" if url else ""}: {exc}'
             )
             return False
 
@@ -162,13 +162,13 @@ class SandboxService(ABC):
             SandboxError: If no agent server URL is found
         """
         if not sandbox.exposed_urls:
-            raise SandboxError(f"No exposed URLs for sandbox: {sandbox.id}")
+            raise SandboxError(f'No exposed URLs for sandbox: {sandbox.id}')
 
         for exposed_url in sandbox.exposed_urls:
             if exposed_url.name == AGENT_SERVER:
                 return replace_localhost_hostname_for_docker(exposed_url.url)
 
-        raise SandboxError(f"No agent server URL found for sandbox: {sandbox.id}")
+        raise SandboxError(f'No agent server URL found for sandbox: {sandbox.id}')
 
     @abstractmethod
     async def pause_sandbox(self, sandbox_id: str) -> bool:
@@ -196,7 +196,7 @@ class SandboxService(ABC):
             List of sandbox IDs that were paused
         """
         if max_num_sandboxes <= 0:
-            raise ValueError("max_num_sandboxes must be greater than 0")
+            raise ValueError('max_num_sandboxes must be greater than 0')
 
         # Get all running sandboxes (iterate through all pages)
         running_sandboxes = []

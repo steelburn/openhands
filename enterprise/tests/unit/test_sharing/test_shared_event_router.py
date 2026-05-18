@@ -27,8 +27,8 @@ class TestGetSharedEventServiceInjector:
             {},
             clear=True,
         ):
-            os.environ.pop("SHARED_EVENT_STORAGE_PROVIDER", None)
-            os.environ.pop("FILE_STORE", None)
+            os.environ.pop('SHARED_EVENT_STORAGE_PROVIDER', None)
+            os.environ.pop('FILE_STORE', None)
 
             injector = get_shared_event_service_injector()
 
@@ -40,11 +40,11 @@ class TestGetSharedEventServiceInjector:
         with patch.dict(
             os.environ,
             {
-                "FILE_STORE": "google_cloud",
+                'FILE_STORE': 'google_cloud',
             },
             clear=True,
         ):
-            os.environ.pop("SHARED_EVENT_STORAGE_PROVIDER", None)
+            os.environ.pop('SHARED_EVENT_STORAGE_PROVIDER', None)
 
             injector = get_shared_event_service_injector()
 
@@ -55,7 +55,7 @@ class TestGetSharedEventServiceInjector:
         with patch.dict(
             os.environ,
             {
-                "SHARED_EVENT_STORAGE_PROVIDER": "aws",
+                'SHARED_EVENT_STORAGE_PROVIDER': 'aws',
             },
             clear=True,
         ):
@@ -68,7 +68,7 @@ class TestGetSharedEventServiceInjector:
         with patch.dict(
             os.environ,
             {
-                "SHARED_EVENT_STORAGE_PROVIDER": "gcp",
+                'SHARED_EVENT_STORAGE_PROVIDER': 'gcp',
             },
             clear=True,
         ):
@@ -81,7 +81,7 @@ class TestGetSharedEventServiceInjector:
         with patch.dict(
             os.environ,
             {
-                "SHARED_EVENT_STORAGE_PROVIDER": "google_cloud",
+                'SHARED_EVENT_STORAGE_PROVIDER': 'google_cloud',
             },
             clear=True,
         ):
@@ -94,8 +94,8 @@ class TestGetSharedEventServiceInjector:
         with patch.dict(
             os.environ,
             {
-                "SHARED_EVENT_STORAGE_PROVIDER": "aws",
-                "FILE_STORE": "google_cloud",
+                'SHARED_EVENT_STORAGE_PROVIDER': 'aws',
+                'FILE_STORE': 'google_cloud',
             },
             clear=True,
         ):
@@ -109,8 +109,8 @@ class TestGetSharedEventServiceInjector:
         with patch.dict(
             os.environ,
             {
-                "SHARED_EVENT_STORAGE_PROVIDER": "gcp",
-                "FILE_STORE": "s3",
+                'SHARED_EVENT_STORAGE_PROVIDER': 'gcp',
+                'FILE_STORE': 's3',
             },
             clear=True,
         ):
@@ -124,7 +124,7 @@ class TestGetSharedEventServiceInjector:
         with patch.dict(
             os.environ,
             {
-                "SHARED_EVENT_STORAGE_PROVIDER": "AWS",
+                'SHARED_EVENT_STORAGE_PROVIDER': 'AWS',
             },
             clear=True,
         ):
@@ -137,7 +137,7 @@ class TestGetSharedEventServiceInjector:
         with patch.dict(
             os.environ,
             {
-                "SHARED_EVENT_STORAGE_PROVIDER": "GCP",
+                'SHARED_EVENT_STORAGE_PROVIDER': 'GCP',
             },
             clear=True,
         ):
@@ -150,7 +150,7 @@ class TestGetSharedEventServiceInjector:
         with patch.dict(
             os.environ,
             {
-                "SHARED_EVENT_STORAGE_PROVIDER": "unknown_provider",
+                'SHARED_EVENT_STORAGE_PROVIDER': 'unknown_provider',
             },
             clear=True,
         ):
@@ -164,8 +164,8 @@ class TestGetSharedEventServiceInjector:
         with patch.dict(
             os.environ,
             {
-                "SHARED_EVENT_STORAGE_PROVIDER": "",
-                "FILE_STORE": "google_cloud",
+                'SHARED_EVENT_STORAGE_PROVIDER': '',
+                'FILE_STORE': 'google_cloud',
             },
             clear=True,
         ):
@@ -179,8 +179,8 @@ class TestGetSharedEventServiceInjector:
         with patch.dict(
             os.environ,
             {
-                "SHARED_EVENT_STORAGE_PROVIDER": "",
-                "FILE_STORE": "s3",
+                'SHARED_EVENT_STORAGE_PROVIDER': '',
+                'FILE_STORE': 's3',
             },
             clear=True,
         ):
@@ -194,8 +194,8 @@ class TestGetSharedEventServiceInjector:
         with patch.dict(
             os.environ,
             {
-                "SHARED_EVENT_STORAGE_PROVIDER": "",
-                "FILE_STORE": "filesystem",
+                'SHARED_EVENT_STORAGE_PROVIDER': '',
+                'FILE_STORE': 'filesystem',
             },
             clear=True,
         ):

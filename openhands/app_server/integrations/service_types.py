@@ -14,26 +14,26 @@ class TokenResponse(BaseModel):
 
 
 class ProviderType(Enum):
-    GITHUB = "github"
-    GITLAB = "gitlab"
-    BITBUCKET = "bitbucket"
-    BITBUCKET_DATA_CENTER = "bitbucket_data_center"
-    FORGEJO = "forgejo"
-    AZURE_DEVOPS = "azure_devops"
-    ENTERPRISE_SSO = "enterprise_sso"
+    GITHUB = 'github'
+    GITLAB = 'gitlab'
+    BITBUCKET = 'bitbucket'
+    BITBUCKET_DATA_CENTER = 'bitbucket_data_center'
+    FORGEJO = 'forgejo'
+    AZURE_DEVOPS = 'azure_devops'
+    ENTERPRISE_SSO = 'enterprise_sso'
 
 
 class TaskType(str, Enum):
-    MERGE_CONFLICTS = "MERGE_CONFLICTS"
-    FAILING_CHECKS = "FAILING_CHECKS"
-    UNRESOLVED_COMMENTS = "UNRESOLVED_COMMENTS"
-    OPEN_ISSUE = "OPEN_ISSUE"
-    OPEN_PR = "OPEN_PR"
+    MERGE_CONFLICTS = 'MERGE_CONFLICTS'
+    FAILING_CHECKS = 'FAILING_CHECKS'
+    UNRESOLVED_COMMENTS = 'UNRESOLVED_COMMENTS'
+    OPEN_ISSUE = 'OPEN_ISSUE'
+    OPEN_PR = 'OPEN_PR'
 
 
 class OwnerType(str, Enum):
-    USER = "user"
-    ORGANIZATION = "organization"
+    USER = 'user'
+    ORGANIZATION = 'organization'
 
 
 class SuggestedTask(BaseModel):
@@ -46,46 +46,46 @@ class SuggestedTask(BaseModel):
     def get_provider_terms(self) -> dict:
         if self.git_provider == ProviderType.GITHUB:
             return {
-                "requestType": "Pull Request",
-                "requestTypeShort": "PR",
-                "apiName": "GitHub API",
-                "tokenEnvVar": "GITHUB_TOKEN",
-                "ciSystem": "GitHub Actions",
-                "ciProvider": "GitHub",
-                "requestVerb": "pull request",
+                'requestType': 'Pull Request',
+                'requestTypeShort': 'PR',
+                'apiName': 'GitHub API',
+                'tokenEnvVar': 'GITHUB_TOKEN',
+                'ciSystem': 'GitHub Actions',
+                'ciProvider': 'GitHub',
+                'requestVerb': 'pull request',
             }
         elif self.git_provider == ProviderType.GITLAB:
             return {
-                "requestType": "Merge Request",
-                "requestTypeShort": "MR",
-                "apiName": "GitLab API",
-                "tokenEnvVar": "GITLAB_TOKEN",
-                "ciSystem": "CI pipelines",
-                "ciProvider": "GitLab",
-                "requestVerb": "merge request",
+                'requestType': 'Merge Request',
+                'requestTypeShort': 'MR',
+                'apiName': 'GitLab API',
+                'tokenEnvVar': 'GITLAB_TOKEN',
+                'ciSystem': 'CI pipelines',
+                'ciProvider': 'GitLab',
+                'requestVerb': 'merge request',
             }
         elif self.git_provider == ProviderType.BITBUCKET:
             return {
-                "requestType": "Pull Request",
-                "requestTypeShort": "PR",
-                "apiName": "Bitbucket API",
-                "tokenEnvVar": "BITBUCKET_TOKEN",
-                "ciSystem": "Bitbucket Pipelines",
-                "ciProvider": "Bitbucket",
-                "requestVerb": "pull request",
+                'requestType': 'Pull Request',
+                'requestTypeShort': 'PR',
+                'apiName': 'Bitbucket API',
+                'tokenEnvVar': 'BITBUCKET_TOKEN',
+                'ciSystem': 'Bitbucket Pipelines',
+                'ciProvider': 'Bitbucket',
+                'requestVerb': 'pull request',
             }
         elif self.git_provider == ProviderType.BITBUCKET_DATA_CENTER:
             return {
-                "requestType": "Pull Request",
-                "requestTypeShort": "PR",
-                "apiName": "Bitbucket Data Center API",
-                "tokenEnvVar": "BITBUCKET_DATA_CENTER_TOKEN",
-                "ciSystem": "Bitbucket Pipelines",
-                "ciProvider": "Bitbucket Data Center",
-                "requestVerb": "pull request",
+                'requestType': 'Pull Request',
+                'requestTypeShort': 'PR',
+                'apiName': 'Bitbucket Data Center API',
+                'tokenEnvVar': 'BITBUCKET_DATA_CENTER_TOKEN',
+                'ciSystem': 'Bitbucket Pipelines',
+                'ciProvider': 'Bitbucket Data Center',
+                'requestVerb': 'pull request',
             }
 
-        raise ValueError(f"Provider {self.git_provider} for suggested task prompts")
+        raise ValueError(f'Provider {self.git_provider} for suggested task prompts')
 
     def get_prompt_for_task(
         self,
@@ -96,21 +96,21 @@ class SuggestedTask(BaseModel):
 
         env = Environment(
             loader=FileSystemLoader(
-                "openhands/app_server/integrations/templates/suggested_task"
+                'openhands/app_server/integrations/templates/suggested_task'
             )
         )
 
         template = None
         if task_type == TaskType.MERGE_CONFLICTS:
-            template = env.get_template("merge_conflict_prompt.j2")
+            template = env.get_template('merge_conflict_prompt.j2')
         elif task_type == TaskType.FAILING_CHECKS:
-            template = env.get_template("failing_checks_prompt.j2")
+            template = env.get_template('failing_checks_prompt.j2')
         elif task_type == TaskType.UNRESOLVED_COMMENTS:
-            template = env.get_template("unresolved_comments_prompt.j2")
+            template = env.get_template('unresolved_comments_prompt.j2')
         elif task_type == TaskType.OPEN_ISSUE:
-            template = env.get_template("open_issue_prompt.j2")
+            template = env.get_template('open_issue_prompt.j2')
         else:
-            raise ValueError(f"Unsupported task type: {task_type}")
+            raise ValueError(f'Unsupported task type: {task_type}')
 
         terms = self.get_provider_terms()
 
@@ -199,14 +199,14 @@ class ResourceNotFoundError(ValueError):
 
 
 class RequestMethod(Enum):
-    POST = "post"
-    GET = "get"
+    POST = 'post'
+    GET = 'get'
 
 
 class BaseGitService(ABC):
     @property
     def provider(self) -> str:
-        raise NotImplementedError("Subclasses must implement the provider property")
+        raise NotImplementedError('Subclasses must implement the provider property')
 
     # Method used to satisfy mypy for abstract class definition
     @abstractmethod
@@ -222,7 +222,7 @@ class BaseGitService(ABC):
     ) -> str:
         """Truncate comment body to a maximum length."""
         if len(comment_body) > max_comment_length:
-            return comment_body[:max_comment_length] + "..."
+            return comment_body[:max_comment_length] + '...'
         return comment_body
 
 

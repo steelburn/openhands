@@ -58,19 +58,19 @@ class VerifyWebhookStatus:
         )
 
         logger.info(
-            "Does webhook already exist",
+            'Does webhook already exist',
             extra={
-                "does_webhook_exist_on_resource": does_webhook_exist_on_resource,
-                "status": status,
-                "resource_id": resource_id,
-                "resource_type": resource_type,
+                'does_webhook_exist_on_resource': does_webhook_exist_on_resource,
+                'status': status,
+                'resource_id': resource_id,
+                'resource_type': resource_type,
             },
         )
 
         self.determine_if_rate_limited(status)
         if does_webhook_exist_on_resource != webhook.webhook_exists:
             await webhook_store.update_webhook(
-                webhook, {"webhook_exists": does_webhook_exist_on_resource}
+                webhook, {'webhook_exists': does_webhook_exist_on_resource}
             )
 
         if does_webhook_exist_on_resource:
@@ -145,8 +145,8 @@ class VerifyWebhookStatus:
 
         if not table_exists:
             logger.info(
-                "gitlab_webhook table does not exist yet, "
-                "waiting for database migrations to complete"
+                'gitlab_webhook table does not exist yet, '
+                'waiting for database migrations to complete'
             )
             return
 
@@ -157,8 +157,8 @@ class VerifyWebhookStatus:
         webhooks_to_process = await self.fetch_rows(webhook_store)
 
         logger.info(
-            "Processing webhook chunks",
-            extra={"webhooks_to_process": webhooks_to_process},
+            'Processing webhook chunks',
+            extra={'webhooks_to_process': webhooks_to_process},
         )
 
         for webhook in webhooks_to_process:
@@ -201,16 +201,16 @@ class VerifyWebhookStatus:
                     await webhook_store.update_last_synced(webhook)
                 except Exception as e:
                     logger.warning(
-                        "Failed to update last_synced for webhook",
+                        'Failed to update last_synced for webhook',
                         extra={
-                            "webhook_id": getattr(webhook, "id", None),
-                            "project_id": getattr(webhook, "project_id", None),
-                            "group_id": getattr(webhook, "group_id", None),
-                            "error": str(e),
+                            'webhook_id': getattr(webhook, 'id', None),
+                            'project_id': getattr(webhook, 'project_id', None),
+                            'group_id': getattr(webhook, 'group_id', None),
+                            'error': str(e),
                         },
                     )
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     status_verifier = VerifyWebhookStatus()
     asyncio.run(status_verifier.install_webhooks())

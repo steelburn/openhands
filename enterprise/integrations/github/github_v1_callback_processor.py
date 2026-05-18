@@ -47,18 +47,18 @@ class GithubV1CallbackProcessor(EventCallbackProcessor):
         if not isinstance(event, ConversationStateUpdateEvent):
             return None
 
-        if event.key != "execution_status":
+        if event.key != 'execution_status':
             return None
 
         # Log ALL terminal states for monitoring (finished, error, stuck)
-        _logger.info("[GitHub V1] Callback agent state was %s", event)
+        _logger.info('[GitHub V1] Callback agent state was %s', event)
 
         # Only request summary when execution has finished successfully
-        if event.value != "finished":
+        if event.value != 'finished':
             return None
 
         _logger.info(
-            "[GitHub V1] Should request summary: %s", self.should_request_summary
+            '[GitHub V1] Should request summary: %s', self.should_request_summary
         )
 
         if not self.should_request_summary:
@@ -67,11 +67,11 @@ class GithubV1CallbackProcessor(EventCallbackProcessor):
         self.should_request_summary = False
 
         try:
-            _logger.info(f"[GitHub V1] Requesting summary {conversation_id}")
+            _logger.info(f'[GitHub V1] Requesting summary {conversation_id}')
             summary = await self._request_summary(conversation_id)
             _logger.info(
-                f"[GitHub V1] Posting summary {conversation_id}",
-                extra={"summary": summary},
+                f'[GitHub V1] Posting summary {conversation_id}',
+                extra={'summary': summary},
             )
             await self._post_summary_to_github(summary)
 
@@ -85,14 +85,14 @@ class GithubV1CallbackProcessor(EventCallbackProcessor):
         except Exception as e:
             # Check if we have installation ID and credentials before posting
             can_post_error = bool(
-                self.github_view_data.get("installation_id")
+                self.github_view_data.get('installation_id')
                 and GITHUB_APP_CLIENT_ID
                 and GITHUB_APP_PRIVATE_KEY
             )
             await handle_callback_error(
                 error=e,
                 conversation_id=conversation_id,
-                service_name="GitHub",
+                service_name='GitHub',
                 service_logger=_logger,
                 can_post_error=can_post_error,
                 post_error_func=self._post_summary_to_github,
@@ -111,15 +111,15 @@ class GithubV1CallbackProcessor(EventCallbackProcessor):
     # -------------------------------------------------------------------------
 
     def _get_installation_access_token(self) -> str:
-        installation_id = self.github_view_data.get("installation_id")
+        installation_id = self.github_view_data.get('installation_id')
 
         if not installation_id:
             raise ValueError(
-                f"Missing installation ID for GitHub payload: {self.github_view_data}"
+                f'Missing installation ID for GitHub payload: {self.github_view_data}'
             )
 
         if not GITHUB_APP_CLIENT_ID or not GITHUB_APP_PRIVATE_KEY:
-            raise ValueError("GitHub App credentials are not configured")
+            raise ValueError('GitHub App credentials are not configured')
 
         github_integration = GithubIntegration(
             auth=Auth.AppAuth(GITHUB_APP_CLIENT_ID, GITHUB_APP_PRIVATE_KEY),
@@ -132,10 +132,10 @@ class GithubV1CallbackProcessor(EventCallbackProcessor):
         installation_token = self._get_installation_access_token()
 
         if not installation_token:
-            raise RuntimeError("Missing GitHub credentials")
+            raise RuntimeError('Missing GitHub credentials')
 
-        full_repo_name = self.github_view_data["full_repo_name"]
-        issue_number = self.github_view_data["issue_number"]
+        full_repo_name = self.github_view_data['full_repo_name']
+        issue_number = self.github_view_data['issue_number']
 
         try:
             if self.inline_pr_comment:
@@ -143,7 +143,7 @@ class GithubV1CallbackProcessor(EventCallbackProcessor):
                     repo = github_client.get_repo(full_repo_name)
                     pr = repo.get_pull(issue_number)
                     pr.create_review_comment_reply(
-                        comment_id=self.github_view_data.get("comment_id", ""),
+                        comment_id=self.github_view_data.get('comment_id', ''),
                         body=summary,
                     )
                 return
@@ -155,7 +155,7 @@ class GithubV1CallbackProcessor(EventCallbackProcessor):
         except GithubException as e:
             if e.status == 410:
                 _logger.info(
-                    "[GitHub V1] Issue/PR %s#%s was deleted, skipping summary post",
+                    '[GitHub V1] Issue/PR %s#%s was deleted, skipping summary post',
                     full_repo_name,
                     issue_number,
                 )
@@ -181,7 +181,7 @@ class GithubV1CallbackProcessor(EventCallbackProcessor):
             f"{agent_server_url.rstrip('/')}"
             f"/api/conversations/{conversation_id}/ask_agent"
         )
-        headers = {"X-Session-API-Key": session_api_key}
+        headers = {'X-Session-API-Key': session_api_key}
         payload = send_message_request.model_dump()
 
         try:
@@ -197,29 +197,29 @@ class GithubV1CallbackProcessor(EventCallbackProcessor):
             return agent_response.response
 
         except httpx.HTTPStatusError as e:
-            error_detail = f"HTTP {e.response.status_code} error"
+            error_detail = f'HTTP {e.response.status_code} error'
             try:
                 error_body = e.response.text
                 if error_body:
-                    error_detail += f": {error_body}"
+                    error_detail += f': {error_body}'
             except Exception:  # noqa: BLE001
                 pass
 
             _logger.error(
-                "[GitHub V1] HTTP error sending message to %s: %s. "
-                "Request payload: %s. Response headers: %s",
+                '[GitHub V1] HTTP error sending message to %s: %s. '
+                'Request payload: %s. Response headers: %s',
                 url,
                 error_detail,
                 payload,
                 dict(e.response.headers),
                 exc_info=True,
             )
-            raise Exception(f"Failed to send message to agent server: {error_detail}")
+            raise Exception(f'Failed to send message to agent server: {error_detail}')
 
         except httpx.TimeoutException:
-            error_detail = f"Request timeout after 30 seconds to {url}"
+            error_detail = f'Request timeout after 30 seconds to {url}'
             _logger.error(
-                "[GitHub V1] %s. Request payload: %s",
+                '[GitHub V1] %s. Request payload: %s',
                 error_detail,
                 payload,
                 exc_info=True,
@@ -227,9 +227,9 @@ class GithubV1CallbackProcessor(EventCallbackProcessor):
             raise Exception(error_detail)
 
         except httpx.RequestError as e:
-            error_detail = f"Request error to {url}: {str(e)}"
+            error_detail = f'Request error to {url}: {str(e)}'
             _logger.error(
-                "[GitHub V1] %s. Request payload: %s",
+                '[GitHub V1] %s. Request payload: %s',
                 error_detail,
                 payload,
                 exc_info=True,
@@ -282,9 +282,9 @@ class GithubV1CallbackProcessor(EventCallbackProcessor):
                 app_conversation_info.sandbox_id,
             )
 
-            assert sandbox.session_api_key is not None, (
-                f"No session API key for sandbox: {sandbox.id}"
-            )
+            assert (
+                sandbox.session_api_key is not None
+            ), f'No session API key for sandbox: {sandbox.id}'
 
             # 3. URL + instruction
             agent_server_url = get_agent_server_url_from_sandbox(sandbox)

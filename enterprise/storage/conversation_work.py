@@ -6,7 +6,7 @@ from storage.base import Base
 
 
 class ConversationWork(Base):
-    __tablename__ = "conversation_work"
+    __tablename__ = 'conversation_work'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     conversation_id: Mapped[str] = mapped_column(
@@ -26,5 +26,5 @@ class ConversationWork(Base):
 
     # Create composite index for efficient queries
     __table_args__ = (
-        Index("ix_conversation_work_user_conversation", "user_id", "conversation_id"),
+        Index('ix_conversation_work_user_conversation', 'user_id', 'conversation_id'),
     )

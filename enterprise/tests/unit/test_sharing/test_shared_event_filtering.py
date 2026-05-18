@@ -31,13 +31,13 @@ from openhands.sdk.llm import Message, TextContent
 
 def _make_message_event() -> MessageEvent:
     return MessageEvent(
-        source="user",
-        llm_message=Message(role="user", content=[TextContent(text="Hello")]),
+        source='user',
+        llm_message=Message(role='user', content=[TextContent(text='Hello')]),
     )
 
 
 def _make_state_event(
-    key: str = "full_state", value: dict | str = "idle"
+    key: str = 'full_state', value: dict | str = 'idle'
 ) -> ConversationStateUpdateEvent:
     return ConversationStateUpdateEvent(key=key, value=value)
 
@@ -52,13 +52,13 @@ class TestIsViewable:
         assert _is_viewable(_make_message_event()) is True
 
     def test_full_state_event_is_not_viewable(self):
-        assert _is_viewable(_make_state_event("full_state", {"agent": {}})) is False
+        assert _is_viewable(_make_state_event('full_state', {'agent': {}})) is False
 
     def test_execution_status_event_is_not_viewable(self):
-        assert _is_viewable(_make_state_event("execution_status", "running")) is False
+        assert _is_viewable(_make_state_event('execution_status', 'running')) is False
 
     def test_stats_event_is_not_viewable(self):
-        assert _is_viewable(_make_state_event("stats", {})) is False
+        assert _is_viewable(_make_state_event('stats', {})) is False
 
 
 # ---------------------------------------------------------------------------
@@ -109,7 +109,7 @@ class TestSearchSharedEvents:
         mock_service = AsyncMock()
         mock_service.search_shared_events.side_effect = [
             # Page 1: only state events — all filtered out
-            EventPage(items=[state, state, state], next_page_id="page2"),
+            EventPage(items=[state, state, state], next_page_id='page2'),
             # Page 2: all viewable
             EventPage(items=[msg, msg, msg], next_page_id=None),
         ]
@@ -131,9 +131,9 @@ class TestSearchSharedEvents:
         state = _make_state_event()
         mock_service = AsyncMock()
         mock_service.search_shared_events.side_effect = [
-            EventPage(items=[msg, state], next_page_id="p2"),
-            EventPage(items=[state, msg], next_page_id="p3"),
-            EventPage(items=[msg], next_page_id="p4"),
+            EventPage(items=[msg, state], next_page_id='p2'),
+            EventPage(items=[state, msg], next_page_id='p3'),
+            EventPage(items=[msg], next_page_id='p4'),
         ]
 
         result = await search_shared_events(
@@ -143,7 +143,7 @@ class TestSearchSharedEvents:
         )
 
         assert len(result.items) == 3
-        assert result.next_page_id == "p4"
+        assert result.next_page_id == 'p4'
         assert mock_service.search_shared_events.call_count == 3
 
     @pytest.mark.asyncio
@@ -153,7 +153,7 @@ class TestSearchSharedEvents:
         state = _make_state_event()
         mock_service = AsyncMock()
         mock_service.search_shared_events.side_effect = [
-            EventPage(items=[msg, state], next_page_id="p2"),
+            EventPage(items=[msg, state], next_page_id='p2'),
             EventPage(items=[state], next_page_id=None),
         ]
 
@@ -175,7 +175,7 @@ class TestSearchSharedEvents:
         mock_service = AsyncMock()
         mock_service.search_shared_events.side_effect = [
             # First call: limit=3, returns 1 viewable
-            EventPage(items=[msg, state, state], next_page_id="p2"),
+            EventPage(items=[msg, state, state], next_page_id='p2'),
             # Second call: limit should be 2 (remaining)
             EventPage(items=[msg, msg], next_page_id=None),
         ]
@@ -187,8 +187,8 @@ class TestSearchSharedEvents:
         )
 
         calls = mock_service.search_shared_events.call_args_list
-        assert calls[0].kwargs["limit"] == 3
-        assert calls[1].kwargs["limit"] == 2
+        assert calls[0].kwargs['limit'] == 3
+        assert calls[1].kwargs['limit'] == 2
 
     @pytest.mark.asyncio
     async def test_preserves_next_page_id_when_all_filtered(self):
@@ -197,8 +197,8 @@ class TestSearchSharedEvents:
         state = _make_state_event()
         mock_service = AsyncMock()
         mock_service.search_shared_events.side_effect = [
-            EventPage(items=[state], next_page_id="p2"),
-            EventPage(items=[msg], next_page_id="p3"),
+            EventPage(items=[state], next_page_id='p2'),
+            EventPage(items=[msg], next_page_id='p3'),
         ]
 
         result = await search_shared_events(
@@ -208,7 +208,7 @@ class TestSearchSharedEvents:
         )
 
         assert len(result.items) == 1
-        assert result.next_page_id == "p3"
+        assert result.next_page_id == 'p3'
 
 
 # ---------------------------------------------------------------------------

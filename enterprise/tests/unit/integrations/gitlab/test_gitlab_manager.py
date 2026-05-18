@@ -16,22 +16,22 @@ from integrations.types import UserData
 def mock_gitlab_view():
     """Create a mock GitlabIssue view."""
     return GitlabIssue(
-        installation_id="test_installation",
+        installation_id='test_installation',
         issue_number=42,
         project_id=12345,
-        full_repo_name="test-group/test-repo",
+        full_repo_name='test-group/test-repo',
         is_public_repo=True,
         user_info=UserData(
-            user_id="123",
-            username="test_user",
-            keycloak_user_id="keycloak_test_user",
+            user_id='123',
+            username='test_user',
+            keycloak_user_id='keycloak_test_user',
         ),
-        raw_payload={"source": "gitlab", "message": {"test": "data"}},
-        conversation_id="test_conversation",
+        raw_payload={'source': 'gitlab', 'message': {'test': 'data'}},
+        conversation_id='test_conversation',
         should_extract=True,
         send_summary_instruction=True,
-        title="Test Issue",
-        description="Test description",
+        title='Test Issue',
+        description='Test description',
         previous_comments=[],
         is_mr=False,
     )
@@ -41,9 +41,9 @@ def mock_gitlab_view():
 def mock_token_manager():
     """Create a mock TokenManager."""
     token_manager = MagicMock()
-    token_manager.get_idp_token_from_idp_user_id = AsyncMock(return_value="test_token")
+    token_manager.get_idp_token_from_idp_user_id = AsyncMock(return_value='test_token')
     token_manager.get_user_id_from_idp_user_id = AsyncMock(
-        return_value="keycloak_test_user"
+        return_value='keycloak_test_user'
     )
     return token_manager
 
@@ -64,9 +64,9 @@ class TestGitlabManagerJobCreation:
     """Test job creation flow in GitlabManager.start_job()."""
 
     @pytest.mark.asyncio
-    @patch("integrations.gitlab.gitlab_manager.get_saas_user_auth")
+    @patch('integrations.gitlab.gitlab_manager.get_saas_user_auth')
     @patch(
-        "integrations.gitlab.gitlab_manager.GitlabManager.send_message",
+        'integrations.gitlab.gitlab_manager.GitlabManager.send_message',
         new_callable=AsyncMock,
     )
     async def test_start_job_creates_conversation_and_sends_message(
@@ -104,4 +104,4 @@ class TestGitlabManagerJobCreation:
         mock_send_message.assert_called_once()
         msg_arg = mock_send_message.call_args[0][0]
         assert "I'm on it!" in msg_arg
-        assert "test_user" in msg_arg
+        assert 'test_user' in msg_arg

@@ -15,7 +15,7 @@ from storage.user import User
 
 @pytest.fixture
 def engine():
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine('sqlite:///:memory:')
     Base.metadata.create_all(engine)
     return engine
 
@@ -29,13 +29,13 @@ def test_user_model(session_maker):
     """Test that the User model works correctly."""
     with session_maker() as session:
         # Create a test org
-        org = Org(name="test_org")
+        org = Org(name='test_org')
         session.add(org)
         session.flush()
 
         # Create a test user
         test_user_id = uuid4()
-        user = User(id=test_user_id, current_org_id=org.id, language="en")
+        user = User(id=test_user_id, current_org_id=org.id, language='en')
         session.add(user)
         session.flush()
 
@@ -44,8 +44,8 @@ def test_user_model(session_maker):
             org_id=org.id,
             user_id=user.id,
             role_id=1,
-            llm_api_key="test-api-key",
-            status="active",
+            llm_api_key='test-api-key',
+            status='active',
         )
         session.add(org_member)
         session.commit()
@@ -53,12 +53,12 @@ def test_user_model(session_maker):
         # Query the user
         queried_user = session.query(User).filter(User.id == test_user_id).first()
         assert queried_user is not None
-        assert queried_user.language == "en"
+        assert queried_user.language == 'en'
 
         # Query the org
         queried_org = session.query(Org).filter(Org.id == org.id).first()
         assert queried_org is not None
-        assert queried_org.name == "test_org"
+        assert queried_org.name == 'test_org'
 
         # Query the org_member relationship
         queried_org_member = (
@@ -67,14 +67,14 @@ def test_user_model(session_maker):
             .first()
         )
         assert queried_org_member is not None
-        assert queried_org_member.llm_api_key.get_secret_value() == "test-api-key"
+        assert queried_org_member.llm_api_key.get_secret_value() == 'test-api-key'
 
 
 def test_user_model_git_user_fields(session_maker):
     """Test that git_user_name and git_user_email columns exist and work correctly."""
     with session_maker() as session:
         # Arrange
-        org = Org(name="test_org_git")
+        org = Org(name='test_org_git')
         session.add(org)
         session.flush()
 
@@ -84,23 +84,23 @@ def test_user_model_git_user_fields(session_maker):
         user = User(
             id=test_user_id,
             current_org_id=org.id,
-            git_user_name="Test Git Author",
-            git_user_email="git@example.com",
+            git_user_name='Test Git Author',
+            git_user_email='git@example.com',
         )
         session.add(user)
         session.commit()
 
         # Assert
         queried_user = session.query(User).filter(User.id == test_user_id).first()
-        assert queried_user.git_user_name == "Test Git Author"
-        assert queried_user.git_user_email == "git@example.com"
+        assert queried_user.git_user_name == 'Test Git Author'
+        assert queried_user.git_user_email == 'git@example.com'
 
 
 def test_user_model_git_user_fields_nullable(session_maker):
     """Test that git_user_name and git_user_email can be null."""
     with session_maker() as session:
         # Arrange
-        org = Org(name="test_org_nullable")
+        org = Org(name='test_org_nullable')
         session.add(org)
         session.flush()
 
@@ -126,8 +126,8 @@ def test_user_model_git_user_fields_in_table_columns():
     column_names = [c.name for c in User.__table__.columns]
 
     # Assert
-    assert "git_user_name" in column_names
-    assert "git_user_email" in column_names
+    assert 'git_user_name' in column_names
+    assert 'git_user_email' in column_names
 
 
 def test_user_model_git_user_fields_hasattr(session_maker):
@@ -138,7 +138,7 @@ def test_user_model_git_user_fields_hasattr(session_maker):
     """
     with session_maker() as session:
         # Arrange
-        org = Org(name="test_org_hasattr")
+        org = Org(name='test_org_hasattr')
         session.add(org)
         session.flush()
 
@@ -147,5 +147,5 @@ def test_user_model_git_user_fields_hasattr(session_maker):
         session.flush()
 
         # Assert - hasattr must return True for store() to work
-        assert hasattr(user, "git_user_name")
-        assert hasattr(user, "git_user_email")
+        assert hasattr(user, 'git_user_name')
+        assert hasattr(user, 'git_user_email')

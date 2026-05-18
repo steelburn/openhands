@@ -45,7 +45,7 @@ class SpecifyUserContext(UserContext):
         raise NotImplementedError()
 
 
-USER_CONTEXT_ATTR = "user_context"
+USER_CONTEXT_ATTR = 'user_context'
 ADMIN = SpecifyUserContext(user_id=None)
 
 
@@ -55,8 +55,8 @@ def as_admin(request: Request):
     user_context = getattr(request.state, USER_CONTEXT_ATTR, None)
     if user_context not in (None, ADMIN):
         raise OpenHandsError(
-            "Non admin context already present! "
-            "(Do you need to move the as_admin dependency to the start of the args?)"
+            'Non admin context already present! '
+            '(Do you need to move the as_admin dependency to the start of the args?)'
         )
     setattr(request.state, USER_CONTEXT_ATTR, ADMIN)
     return ADMIN

@@ -10,16 +10,16 @@ if TYPE_CHECKING:
 
 
 class StoredCustomSecrets(Base):
-    __tablename__ = "custom_secrets"
+    __tablename__ = 'custom_secrets'
 
     id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     keycloak_user_id: Mapped[str | None] = mapped_column(
         String, nullable=True, index=True
     )
-    org_id: Mapped[UUID | None] = mapped_column(ForeignKey("org.id"), nullable=True)
+    org_id: Mapped[UUID | None] = mapped_column(ForeignKey('org.id'), nullable=True)
     secret_name: Mapped[str] = mapped_column(String, nullable=False)
     secret_value: Mapped[str] = mapped_column(String, nullable=False)
     description: Mapped[str | None] = mapped_column(String, nullable=True)
 
     # Relationships
-    org: Mapped["Org | None"] = relationship("Org", back_populates="user_secrets")
+    org: Mapped['Org | None'] = relationship('Org', back_populates='user_secrets')

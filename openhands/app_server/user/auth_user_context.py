@@ -18,7 +18,7 @@ from openhands.app_server.user.user_models import UserInfo
 from openhands.app_server.user_auth.user_auth import UserAuth, get_user_auth
 from openhands.sdk.secret import SecretSource, StaticSecret
 
-USER_AUTH_ATTR = "user_auth"
+USER_AUTH_ATTR = 'user_auth'
 
 
 @dataclass
@@ -44,7 +44,7 @@ class AuthUserContext(UserContext):
             assert settings is not None
             user_info = UserInfo(
                 id=user_id,
-                **settings.model_dump(context={"expose_secrets": True}),
+                **settings.model_dump(context={'expose_secrets': True}),
             )
             self._user_info = user_info
         return user_info
@@ -124,7 +124,7 @@ class AuthUserContext(UserContext):
         return await self.user_auth.get_user_git_info()
 
 
-USER_ID_ATTR = "user_id"
+USER_ID_ATTR = 'user_id'
 
 
 class AuthUserContextInjector(UserContextInjector):

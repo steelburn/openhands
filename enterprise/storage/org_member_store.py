@@ -150,18 +150,18 @@ class OrgMemberStore:
     def get_kwargs_from_settings(settings: Settings) -> dict[str, Any]:
         """Return kwargs for OrgMember construction (keys match column names)."""
         return {
-            "llm_api_key": settings.agent_settings.llm.api_key,
-            "agent_settings_diff": {},
-            "conversation_settings_diff": {},
+            'llm_api_key': settings.agent_settings.llm.api_key,
+            'agent_settings_diff': {},
+            'conversation_settings_diff': {},
         }
 
     @staticmethod
     def get_kwargs_from_user_settings(user_settings: UserSettings) -> dict[str, Any]:
         """Return kwargs for OrgMember construction (keys match column names)."""
         return {
-            "llm_api_key": user_settings.llm_api_key,
-            "agent_settings_diff": dict(user_settings.agent_settings),
-            "conversation_settings_diff": dict(user_settings.conversation_settings),
+            'llm_api_key': user_settings.llm_api_key,
+            'agent_settings_diff': dict(user_settings.agent_settings),
+            'conversation_settings_diff': dict(user_settings.conversation_settings),
         }
 
     @staticmethod
@@ -185,7 +185,7 @@ class OrgMemberStore:
 
             if email_filter:
                 query = query.join(User, User.id == OrgMember.user_id).filter(
-                    User.email.ilike(f"%{email_filter}%")
+                    User.email.ilike(f'%{email_filter}%')
                 )
 
             result = await session.execute(query)
@@ -221,7 +221,7 @@ class OrgMemberStore:
 
             # Apply email filter if provided
             if email_filter:
-                query = query.filter(User.email.ilike(f"%{email_filter}%"))
+                query = query.filter(User.email.ilike(f'%{email_filter}%'))
 
             query = query.order_by(OrgMember.user_id).offset(offset).limit(limit + 1)
 
@@ -258,9 +258,9 @@ class OrgMemberStore:
         )
         org_members = list(result.scalars().all())
 
-        raw_key = values.pop("llm_api_key", None)
-        agent_settings_diff = values.pop("agent_settings_diff", None)
-        conversation_settings_diff = values.pop("conversation_settings_diff", None)
+        raw_key = values.pop('llm_api_key', None)
+        agent_settings_diff = values.pop('agent_settings_diff', None)
+        conversation_settings_diff = values.pop('conversation_settings_diff', None)
 
         for org_member in org_members:
             if raw_key is not None:

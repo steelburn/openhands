@@ -10,7 +10,7 @@ from unittest.mock import patch
 class TestGetPosthogClientKey:
     """Test cases for _get_posthog_client_key helper function."""
 
-    OSS_DEFAULT_KEY = "phc_3ESMmY9SgqEAGBB6sMGK5ayYHkeUuknH2vP6FmWH9RA"
+    OSS_DEFAULT_KEY = 'phc_3ESMmY9SgqEAGBB6sMGK5ayYHkeUuknH2vP6FmWH9RA'
 
     def test_returns_env_var_when_set(self):
         """When POSTHOG_CLIENT_KEY is set, return that value."""
@@ -18,9 +18,9 @@ class TestGetPosthogClientKey:
             _get_posthog_client_key,
         )
 
-        with patch.dict(os.environ, {"POSTHOG_CLIENT_KEY": "phc_saas_key_123"}):
+        with patch.dict(os.environ, {'POSTHOG_CLIENT_KEY': 'phc_saas_key_123'}):
             result = _get_posthog_client_key()
-            assert result == "phc_saas_key_123"
+            assert result == 'phc_saas_key_123'
 
     def test_returns_oss_default_when_env_var_unset(self):
         """When POSTHOG_CLIENT_KEY is not set, return the OSS default key."""
@@ -30,7 +30,7 @@ class TestGetPosthogClientKey:
 
         with patch.dict(os.environ, {}, clear=True):
             # Ensure POSTHOG_CLIENT_KEY is not in environment
-            os.environ.pop("POSTHOG_CLIENT_KEY", None)
+            os.environ.pop('POSTHOG_CLIENT_KEY', None)
             result = _get_posthog_client_key()
             assert result == self.OSS_DEFAULT_KEY
 
@@ -40,7 +40,7 @@ class TestGetPosthogClientKey:
             _get_posthog_client_key,
         )
 
-        with patch.dict(os.environ, {"POSTHOG_CLIENT_KEY": ""}):
+        with patch.dict(os.environ, {'POSTHOG_CLIENT_KEY': ''}):
             result = _get_posthog_client_key()
             assert result == self.OSS_DEFAULT_KEY
 
@@ -50,9 +50,9 @@ class TestGetPosthogClientKey:
             _get_posthog_client_key,
         )
 
-        with patch.dict(os.environ, {"POSTHOG_CLIENT_KEY": "  phc_trimmed_key  "}):
+        with patch.dict(os.environ, {'POSTHOG_CLIENT_KEY': '  phc_trimmed_key  '}):
             result = _get_posthog_client_key()
-            assert result == "phc_trimmed_key"
+            assert result == 'phc_trimmed_key'
 
     def test_returns_oss_default_when_env_var_only_whitespace(self):
         """When POSTHOG_CLIENT_KEY is only whitespace, return the OSS default key."""
@@ -60,7 +60,7 @@ class TestGetPosthogClientKey:
             _get_posthog_client_key,
         )
 
-        with patch.dict(os.environ, {"POSTHOG_CLIENT_KEY": "   "}):
+        with patch.dict(os.environ, {'POSTHOG_CLIENT_KEY': '   '}):
             result = _get_posthog_client_key()
             assert result == self.OSS_DEFAULT_KEY
 
@@ -74,9 +74,9 @@ class TestGetAuthUrl:
             _get_auth_url,
         )
 
-        with patch.dict(os.environ, {"AUTH_URL": "https://auth.example.com"}):
+        with patch.dict(os.environ, {'AUTH_URL': 'https://auth.example.com'}):
             result = _get_auth_url()
-            assert result == "https://auth.example.com"
+            assert result == 'https://auth.example.com'
 
     def test_returns_none_when_env_var_unset(self):
         """When AUTH_URL is not set, return None."""
@@ -85,7 +85,7 @@ class TestGetAuthUrl:
         )
 
         with patch.dict(os.environ, {}, clear=True):
-            os.environ.pop("AUTH_URL", None)
+            os.environ.pop('AUTH_URL', None)
             result = _get_auth_url()
             assert result is None
 
@@ -95,7 +95,7 @@ class TestGetAuthUrl:
             _get_auth_url,
         )
 
-        with patch.dict(os.environ, {"AUTH_URL": ""}):
+        with patch.dict(os.environ, {'AUTH_URL': ''}):
             result = _get_auth_url()
             assert result is None
 
@@ -105,9 +105,9 @@ class TestGetAuthUrl:
             _get_auth_url,
         )
 
-        with patch.dict(os.environ, {"AUTH_URL": "  https://auth.example.com  "}):
+        with patch.dict(os.environ, {'AUTH_URL': '  https://auth.example.com  '}):
             result = _get_auth_url()
-            assert result == "https://auth.example.com"
+            assert result == 'https://auth.example.com'
 
     def test_returns_none_when_env_var_only_whitespace(self):
         """When AUTH_URL is only whitespace, return None."""
@@ -115,7 +115,7 @@ class TestGetAuthUrl:
             _get_auth_url,
         )
 
-        with patch.dict(os.environ, {"AUTH_URL": "   "}):
+        with patch.dict(os.environ, {'AUTH_URL': '   '}):
             result = _get_auth_url()
             assert result is None
 
@@ -132,11 +132,11 @@ class TestGetFeatureFlags:
         with patch.dict(os.environ, {}, clear=True):
             # Remove any existing feature flag env vars
             for var in [
-                "ENABLE_BILLING",
-                "HIDE_LLM_SETTINGS",
-                "ENABLE_JIRA",
-                "ENABLE_JIRA_DC",
-                "ENABLE_LINEAR",
+                'ENABLE_BILLING',
+                'HIDE_LLM_SETTINGS',
+                'ENABLE_JIRA',
+                'ENABLE_JIRA_DC',
+                'ENABLE_LINEAR',
             ]:
                 os.environ.pop(var, None)
             result = _get_feature_flags()
@@ -152,7 +152,7 @@ class TestGetFeatureFlags:
             _get_feature_flags,
         )
 
-        with patch.dict(os.environ, {"ENABLE_BILLING": "true"}):
+        with patch.dict(os.environ, {'ENABLE_BILLING': 'true'}):
             result = _get_feature_flags()
             assert result.enable_billing is True
 
@@ -162,7 +162,7 @@ class TestGetFeatureFlags:
             _get_feature_flags,
         )
 
-        with patch.dict(os.environ, {"ENABLE_BILLING": "false"}):
+        with patch.dict(os.environ, {'ENABLE_BILLING': 'false'}):
             result = _get_feature_flags()
             assert result.enable_billing is False
 
@@ -172,7 +172,7 @@ class TestGetFeatureFlags:
             _get_feature_flags,
         )
 
-        with patch.dict(os.environ, {"ENABLE_BILLING": "yes"}):
+        with patch.dict(os.environ, {'ENABLE_BILLING': 'yes'}):
             result = _get_feature_flags()
             assert result.enable_billing is False
 
@@ -182,7 +182,7 @@ class TestGetFeatureFlags:
             _get_feature_flags,
         )
 
-        with patch.dict(os.environ, {"HIDE_LLM_SETTINGS": "true"}):
+        with patch.dict(os.environ, {'HIDE_LLM_SETTINGS': 'true'}):
             result = _get_feature_flags()
             assert result.hide_llm_settings is True
 
@@ -192,7 +192,7 @@ class TestGetFeatureFlags:
             _get_feature_flags,
         )
 
-        with patch.dict(os.environ, {"ENABLE_JIRA": "true"}):
+        with patch.dict(os.environ, {'ENABLE_JIRA': 'true'}):
             result = _get_feature_flags()
             assert result.enable_jira is True
 
@@ -202,7 +202,7 @@ class TestGetFeatureFlags:
             _get_feature_flags,
         )
 
-        with patch.dict(os.environ, {"ENABLE_JIRA_DC": "true"}):
+        with patch.dict(os.environ, {'ENABLE_JIRA_DC': 'true'}):
             result = _get_feature_flags()
             assert result.enable_jira_dc is True
 
@@ -212,7 +212,7 @@ class TestGetFeatureFlags:
             _get_feature_flags,
         )
 
-        with patch.dict(os.environ, {"ENABLE_LINEAR": "true"}):
+        with patch.dict(os.environ, {'ENABLE_LINEAR': 'true'}):
             result = _get_feature_flags()
             assert result.enable_linear is True
 
@@ -225,10 +225,10 @@ class TestGetFeatureFlags:
         with patch.dict(
             os.environ,
             {
-                "ENABLE_BILLING": "true",
-                "HIDE_LLM_SETTINGS": "true",
-                "ENABLE_JIRA": "false",
-                "ENABLE_LINEAR": "true",
+                'ENABLE_BILLING': 'true',
+                'HIDE_LLM_SETTINGS': 'true',
+                'ENABLE_JIRA': 'false',
+                'ENABLE_LINEAR': 'true',
             },
         ):
             result = _get_feature_flags()
@@ -250,7 +250,7 @@ class TestGetMaintenanceStartTime:
             _get_maintenance_start_time,
         )
 
-        with patch.dict(os.environ, {"MAINTENANCE_START_TIME": "2026-03-15T10:00:00Z"}):
+        with patch.dict(os.environ, {'MAINTENANCE_START_TIME': '2026-03-15T10:00:00Z'}):
             result = _get_maintenance_start_time()
             assert result == datetime(2026, 3, 15, 10, 0, 0, tzinfo=timezone.utc)
 
@@ -261,7 +261,7 @@ class TestGetMaintenanceStartTime:
         )
 
         with patch.dict(os.environ, {}, clear=True):
-            os.environ.pop("MAINTENANCE_START_TIME", None)
+            os.environ.pop('MAINTENANCE_START_TIME', None)
             result = _get_maintenance_start_time()
             assert result is None
 
@@ -271,7 +271,7 @@ class TestGetMaintenanceStartTime:
             _get_maintenance_start_time,
         )
 
-        with patch.dict(os.environ, {"MAINTENANCE_START_TIME": ""}):
+        with patch.dict(os.environ, {'MAINTENANCE_START_TIME': ''}):
             result = _get_maintenance_start_time()
             assert result is None
 
@@ -282,7 +282,7 @@ class TestGetMaintenanceStartTime:
         )
 
         with patch.dict(
-            os.environ, {"MAINTENANCE_START_TIME": "not-a-valid-timestamp"}
+            os.environ, {'MAINTENANCE_START_TIME': 'not-a-valid-timestamp'}
         ):
             result = _get_maintenance_start_time()
             assert result is None
@@ -296,7 +296,7 @@ class TestGetMaintenanceStartTime:
         )
 
         with patch.dict(
-            os.environ, {"MAINTENANCE_START_TIME": "  2026-03-15T10:00:00Z  "}
+            os.environ, {'MAINTENANCE_START_TIME': '  2026-03-15T10:00:00Z  '}
         ):
             result = _get_maintenance_start_time()
             assert result == datetime(2026, 3, 15, 10, 0, 0, tzinfo=timezone.utc)
@@ -314,10 +314,10 @@ class TestGetProvidersConfigured:
         with patch.dict(os.environ, {}, clear=True):
             # Remove any existing provider env vars
             for var in [
-                "GITHUB_APP_CLIENT_ID",
-                "GITLAB_APP_CLIENT_ID",
-                "BITBUCKET_APP_CLIENT_ID",
-                "ENABLE_ENTERPRISE_SSO",
+                'GITHUB_APP_CLIENT_ID',
+                'GITLAB_APP_CLIENT_ID',
+                'BITBUCKET_APP_CLIENT_ID',
+                'ENABLE_ENTERPRISE_SSO',
             ]:
                 os.environ.pop(var, None)
             result = _get_providers_configured()
@@ -330,7 +330,7 @@ class TestGetProvidersConfigured:
             _get_providers_configured,
         )
 
-        with patch.dict(os.environ, {"GITHUB_APP_CLIENT_ID": "some-client-id"}):
+        with patch.dict(os.environ, {'GITHUB_APP_CLIENT_ID': 'some-client-id'}):
             result = _get_providers_configured()
             assert ProviderType.GITHUB in result
 
@@ -341,7 +341,7 @@ class TestGetProvidersConfigured:
             _get_providers_configured,
         )
 
-        with patch.dict(os.environ, {"GITLAB_APP_CLIENT_ID": "some-client-id"}):
+        with patch.dict(os.environ, {'GITLAB_APP_CLIENT_ID': 'some-client-id'}):
             result = _get_providers_configured()
             assert ProviderType.GITLAB in result
 
@@ -352,7 +352,7 @@ class TestGetProvidersConfigured:
             _get_providers_configured,
         )
 
-        with patch.dict(os.environ, {"BITBUCKET_APP_CLIENT_ID": "some-client-id"}):
+        with patch.dict(os.environ, {'BITBUCKET_APP_CLIENT_ID': 'some-client-id'}):
             result = _get_providers_configured()
             assert ProviderType.BITBUCKET in result
 
@@ -363,7 +363,7 @@ class TestGetProvidersConfigured:
             _get_providers_configured,
         )
 
-        with patch.dict(os.environ, {"ENABLE_ENTERPRISE_SSO": "true"}):
+        with patch.dict(os.environ, {'ENABLE_ENTERPRISE_SSO': 'true'}):
             result = _get_providers_configured()
             assert ProviderType.ENTERPRISE_SSO in result
 
@@ -374,7 +374,7 @@ class TestGetProvidersConfigured:
             _get_providers_configured,
         )
 
-        with patch.dict(os.environ, {"GITHUB_APP_CLIENT_ID": ""}):
+        with patch.dict(os.environ, {'GITHUB_APP_CLIENT_ID': ''}):
             result = _get_providers_configured()
             assert ProviderType.GITHUB not in result
 
@@ -385,7 +385,7 @@ class TestGetProvidersConfigured:
             _get_providers_configured,
         )
 
-        with patch.dict(os.environ, {"GITHUB_APP_CLIENT_ID": "   "}):
+        with patch.dict(os.environ, {'GITHUB_APP_CLIENT_ID': '   '}):
             result = _get_providers_configured()
             assert ProviderType.GITHUB not in result
 
@@ -399,10 +399,10 @@ class TestGetProvidersConfigured:
         with patch.dict(
             os.environ,
             {
-                "GITHUB_APP_CLIENT_ID": "github-id",
-                "GITLAB_APP_CLIENT_ID": "gitlab-id",
-                "BITBUCKET_APP_CLIENT_ID": "",
-                "ENABLE_ENTERPRISE_SSO": "enabled",
+                'GITHUB_APP_CLIENT_ID': 'github-id',
+                'GITLAB_APP_CLIENT_ID': 'gitlab-id',
+                'BITBUCKET_APP_CLIENT_ID': '',
+                'ENABLE_ENTERPRISE_SSO': 'enabled',
             },
         ):
             result = _get_providers_configured()
@@ -422,9 +422,9 @@ class TestGetGithubAppSlug:
             _get_github_app_slug,
         )
 
-        with patch.dict(os.environ, {"GITHUB_APP_SLUG": "openhands-app"}):
+        with patch.dict(os.environ, {'GITHUB_APP_SLUG': 'openhands-app'}):
             result = _get_github_app_slug()
-            assert result == "openhands-app"
+            assert result == 'openhands-app'
 
     def test_returns_none_when_env_var_unset(self):
         """When GITHUB_APP_SLUG is not set, return None."""
@@ -433,7 +433,7 @@ class TestGetGithubAppSlug:
         )
 
         with patch.dict(os.environ, {}, clear=True):
-            os.environ.pop("GITHUB_APP_SLUG", None)
+            os.environ.pop('GITHUB_APP_SLUG', None)
             result = _get_github_app_slug()
             assert result is None
 
@@ -443,7 +443,7 @@ class TestGetGithubAppSlug:
             _get_github_app_slug,
         )
 
-        with patch.dict(os.environ, {"GITHUB_APP_SLUG": ""}):
+        with patch.dict(os.environ, {'GITHUB_APP_SLUG': ''}):
             result = _get_github_app_slug()
             assert result is None
 
@@ -453,9 +453,9 @@ class TestGetGithubAppSlug:
             _get_github_app_slug,
         )
 
-        with patch.dict(os.environ, {"GITHUB_APP_SLUG": "  openhands-app  "}):
+        with patch.dict(os.environ, {'GITHUB_APP_SLUG': '  openhands-app  '}):
             result = _get_github_app_slug()
-            assert result == "openhands-app"
+            assert result == 'openhands-app'
 
     def test_returns_none_when_env_var_only_whitespace(self):
         """When GITHUB_APP_SLUG is only whitespace, return None."""
@@ -463,7 +463,7 @@ class TestGetGithubAppSlug:
             _get_github_app_slug,
         )
 
-        with patch.dict(os.environ, {"GITHUB_APP_SLUG": "   "}):
+        with patch.dict(os.environ, {'GITHUB_APP_SLUG': '   '}):
             result = _get_github_app_slug()
             assert result is None
 
@@ -477,7 +477,7 @@ class TestIsGitlabEnabled:
             _is_gitlab_enabled,
         )
 
-        with patch.dict(os.environ, {"GITLAB_APP_CLIENT_ID": "gitlab-client-id"}):
+        with patch.dict(os.environ, {'GITLAB_APP_CLIENT_ID': 'gitlab-client-id'}):
             assert _is_gitlab_enabled() is True
 
     def test_returns_false_when_gitlab_client_id_is_missing(self):
@@ -495,7 +495,7 @@ class TestIsGitlabEnabled:
             _is_gitlab_enabled,
         )
 
-        with patch.dict(os.environ, {"GITLAB_APP_CLIENT_ID": "   "}):
+        with patch.dict(os.environ, {'GITLAB_APP_CLIENT_ID': '   '}):
             assert _is_gitlab_enabled() is False
 
 
@@ -511,10 +511,10 @@ class TestGetSlackEnabled:
         with patch.dict(
             os.environ,
             {
-                "SLACK_WEBHOOKS_ENABLED": "true",
-                "SLACK_CLIENT_ID": "client-id",
-                "SLACK_CLIENT_SECRET": "client-secret",
-                "SLACK_SIGNING_SECRET": "signing-secret",
+                'SLACK_WEBHOOKS_ENABLED': 'true',
+                'SLACK_CLIENT_ID': 'client-id',
+                'SLACK_CLIENT_SECRET': 'client-secret',
+                'SLACK_SIGNING_SECRET': 'signing-secret',
             },
             clear=True,
         ):
@@ -529,10 +529,10 @@ class TestGetSlackEnabled:
         with patch.dict(
             os.environ,
             {
-                "SLACK_WEBHOOKS_ENABLED": "false",
-                "SLACK_CLIENT_ID": "client-id",
-                "SLACK_CLIENT_SECRET": "client-secret",
-                "SLACK_SIGNING_SECRET": "signing-secret",
+                'SLACK_WEBHOOKS_ENABLED': 'false',
+                'SLACK_CLIENT_ID': 'client-id',
+                'SLACK_CLIENT_SECRET': 'client-secret',
+                'SLACK_SIGNING_SECRET': 'signing-secret',
             },
             clear=True,
         ):
@@ -547,10 +547,10 @@ class TestGetSlackEnabled:
         with patch.dict(
             os.environ,
             {
-                "SLACK_WEBHOOKS_ENABLED": "1",
-                "SLACK_CLIENT_ID": "client-id",
-                "SLACK_CLIENT_SECRET": "client-secret",
-                "SLACK_SIGNING_SECRET": "signing-secret",
+                'SLACK_WEBHOOKS_ENABLED': '1',
+                'SLACK_CLIENT_ID': 'client-id',
+                'SLACK_CLIENT_SECRET': 'client-secret',
+                'SLACK_SIGNING_SECRET': 'signing-secret',
             },
             clear=True,
         ):
@@ -565,10 +565,10 @@ class TestGetSlackEnabled:
         with patch.dict(
             os.environ,
             {
-                "SLACK_WEBHOOKS_ENABLED": "true",
-                "SLACK_CLIENT_ID": "client-id",
-                "SLACK_CLIENT_SECRET": "",
-                "SLACK_SIGNING_SECRET": "signing-secret",
+                'SLACK_WEBHOOKS_ENABLED': 'true',
+                'SLACK_CLIENT_ID': 'client-id',
+                'SLACK_CLIENT_SECRET': '',
+                'SLACK_SIGNING_SECRET': 'signing-secret',
             },
             clear=True,
         ):

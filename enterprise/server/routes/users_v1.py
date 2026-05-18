@@ -27,7 +27,7 @@ from openhands.app_server.utils.dependencies import get_dependencies
 _logger = logging.getLogger(__name__)
 
 saas_users_v1_router = APIRouter(
-    prefix="/api/v1/users", tags=["User"], dependencies=get_dependencies()
+    prefix='/api/v1/users', tags=['User'], dependencies=get_dependencies()
 )
 user_dependency = depends_user_context()
 
@@ -46,24 +46,24 @@ def _inject_sdk_compat_fields(
     The canonical representation is ``agent_settings``; these flat fields
     exist solely for SDK backward compatibility.
     """
-    agent_settings = content.get("agent_settings") or {}
-    llm = agent_settings.get("llm") or {}
-    model = llm.get("model")
-    content["llm_model"] = model
-    content["llm_base_url"] = resolve_provider_llm_base_url(model, llm.get("base_url"))
+    agent_settings = content.get('agent_settings') or {}
+    llm = agent_settings.get('llm') or {}
+    model = llm.get('model')
+    content['llm_model'] = model
+    content['llm_base_url'] = resolve_provider_llm_base_url(model, llm.get('base_url'))
     if include_api_key:
-        content["llm_api_key"] = llm.get("api_key")
-    content["mcp_config"] = agent_settings.get("mcp_config")
+        content['llm_api_key'] = llm.get('api_key')
+    content['mcp_config'] = agent_settings.get('mcp_config')
 
 
-@saas_users_v1_router.get("/me")
+@saas_users_v1_router.get('/me')
 async def get_current_user_saas(
     user_context: UserContext = user_dependency,
     expose_secrets: bool = Query(
         default=False,
-        description="If true, return unmasked secret values (e.g. llm_api_key). "
-        "Requires a valid X-Session-API-Key header for an active sandbox "
-        "owned by the authenticated user.",
+        description='If true, return unmasked secret values (e.g. llm_api_key). '
+        'Requires a valid X-Session-API-Key header for an active sandbox '
+        'owned by the authenticated user.',
     ),
     x_session_api_key: str | None = Header(default=None),
 ) -> SaasUserInfo:
@@ -78,11 +78,11 @@ async def get_current_user_saas(
     # Get base user info from the context
     base_user_info = await user_context.get_user_info()
     if base_user_info is None:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail='Not authenticated')
 
     # Build SAAS user info from base settings
     user_info_data = base_user_info.model_dump(
-        mode="json", context={"expose_secrets": True}
+        mode='json', context={'expose_secrets': True}
     )
 
     # Add org info if available (from SaasUserAuth)
@@ -94,16 +94,16 @@ async def get_current_user_saas(
 
     if expose_secrets:
         await validate_session_key_ownership(user_context, x_session_api_key)
-        content = user_info.model_dump(mode="json", context={"expose_secrets": True})
+        content = user_info.model_dump(mode='json', context={'expose_secrets': True})
         _inject_sdk_compat_fields(content, include_api_key=True)
         return JSONResponse(content=content)  # type: ignore[return-value]
 
-    content = user_info.model_dump(mode="json")
+    content = user_info.model_dump(mode='json')
     _inject_sdk_compat_fields(content, include_api_key=False)
     return JSONResponse(content=content)  # type: ignore[return-value]
 
 
-@saas_users_v1_router.get("/git-organizations")
+@saas_users_v1_router.get('/git-organizations')
 async def get_current_user_git_organizations(
     user_context: UserContext = user_dependency,
 ) -> GitOrganizationsResponse:
@@ -117,7 +117,7 @@ async def get_current_user_git_organizations(
     if not provider_tokens:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,  # 403 not 401 to avoid frontend logout
-            detail="Git provider token required.",
+            detail='Git provider token required.',
         )
 
     user_id = await user_context.get_user_id()
@@ -167,13 +167,13 @@ def override_users_me_endpoint(app: FastAPI) -> None:
     # Find and remove the OSS /api/v1/users/me route
     routes_to_remove = []
     for route in app.routes:
-        if hasattr(route, "path") and route.path == "/api/v1/users/me":
+        if hasattr(route, 'path') and route.path == '/api/v1/users/me':
             routes_to_remove.append(route)
 
     for route in routes_to_remove:
         app.routes.remove(route)
-        _logger.debug("Removed OSS route: %s", route.path)
+        _logger.debug('Removed OSS route: %s', route.path)
 
     # Add the SAAS version
     app.include_router(saas_users_v1_router)
-    _logger.debug("Added SAAS /api/v1/users/me endpoint")
+    _logger.debug('Added SAAS /api/v1/users/me endpoint')

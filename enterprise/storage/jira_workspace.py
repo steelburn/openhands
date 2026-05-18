@@ -6,7 +6,7 @@ from storage.base import Base
 
 
 class JiraWorkspace(Base):
-    __tablename__ = "jira_workspaces"
+    __tablename__ = 'jira_workspaces'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, nullable=False)
@@ -18,12 +18,12 @@ class JiraWorkspace(Base):
     status: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
-        server_default=text("CURRENT_TIMESTAMP"),
+        server_default=text('CURRENT_TIMESTAMP'),
         nullable=False,
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime,
-        server_default=text("CURRENT_TIMESTAMP"),
-        onupdate=text("CURRENT_TIMESTAMP"),
+        server_default=text('CURRENT_TIMESTAMP'),
+        onupdate=text('CURRENT_TIMESTAMP'),
         nullable=False,
     )

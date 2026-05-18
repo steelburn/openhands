@@ -27,11 +27,11 @@ class SlackMessageView:
     def to_log_context(self) -> dict:
         """Return dict suitable for structured logging."""
         return {
-            "slack_channel_id": self.channel_id,
-            "slack_user_id": self.slack_user_id,
-            "slack_team_id": self.team_id,
-            "slack_thread_ts": self.thread_ts,
-            "slack_message_ts": self.message_ts,
+            'slack_channel_id': self.channel_id,
+            'slack_user_id': self.slack_user_id,
+            'slack_team_id': self.team_id,
+            'slack_thread_ts': self.thread_ts,
+            'slack_message_ts': self.message_ts,
         }
 
     @classmethod
@@ -39,7 +39,7 @@ class SlackMessageView:
         cls,
         payload: dict,
         slack_team_store,
-    ) -> "SlackMessageView | None":
+    ) -> 'SlackMessageView | None':
         """Create a view from a raw Slack payload.
 
         This factory method handles the various payload formats from different
@@ -55,24 +55,24 @@ class SlackMessageView:
         """
         from openhands.app_server.utils.logger import openhands_logger as logger
 
-        team_id = payload.get("team", {}).get("id") or payload.get("team_id")
+        team_id = payload.get('team', {}).get('id') or payload.get('team_id')
         channel_id = (
-            payload.get("container", {}).get("channel_id")
-            or payload.get("channel", {}).get("id")
-            or payload.get("channel_id")
+            payload.get('container', {}).get('channel_id')
+            or payload.get('channel', {}).get('id')
+            or payload.get('channel_id')
         )
-        user_id = payload.get("user", {}).get("id") or payload.get("slack_user_id")
-        message_ts = payload.get("message_ts", "")
-        thread_ts = payload.get("thread_ts")
+        user_id = payload.get('user', {}).get('id') or payload.get('slack_user_id')
+        message_ts = payload.get('message_ts', '')
+        thread_ts = payload.get('thread_ts')
 
         if not team_id or not channel_id or not user_id:
             logger.warning(
-                "slack_message_view_from_payload_missing_fields",
+                'slack_message_view_from_payload_missing_fields',
                 extra={
-                    "has_team_id": bool(team_id),
-                    "has_channel_id": bool(channel_id),
-                    "has_user_id": bool(user_id),
-                    "payload_keys": list(payload.keys()),
+                    'has_team_id': bool(team_id),
+                    'has_channel_id': bool(channel_id),
+                    'has_user_id': bool(user_id),
+                    'payload_keys': list(payload.keys()),
                 },
             )
             return None
@@ -80,8 +80,8 @@ class SlackMessageView:
         bot_token = await slack_team_store.get_team_bot_token(team_id)
         if not bot_token:
             logger.warning(
-                "slack_message_view_from_payload_no_bot_token",
-                extra={"team_id": team_id},
+                'slack_message_view_from_payload_no_bot_token',
+                extra={'team_id': team_id},
             )
             return None
 

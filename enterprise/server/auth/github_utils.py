@@ -8,17 +8,17 @@ from openhands.app_server.utils.logger import openhands_logger as logger
 
 def is_user_allowed(user_login: str):
     if user_verifier.is_active() and not user_verifier.is_user_allowed(user_login):
-        logger.warning(f"GitHub user {user_login} not in allow list")
+        logger.warning(f'GitHub user {user_login} not in allow list')
         return False
 
     return True
 
 
 async def authenticate_github_user_id(auth_user_id: str) -> GitHubUser | None:
-    logger.debug("Checking auth status for GitHub user")
+    logger.debug('Checking auth status for GitHub user')
 
     if not auth_user_id:
-        logger.warning("No GitHub User ID provided")
+        logger.warning('No GitHub User ID provided')
         return None
 
     gh_service = SaaSGitHubService(user_id=auth_user_id)
@@ -35,7 +35,7 @@ async def authenticate_github_user_id(auth_user_id: str) -> GitHubUser | None:
 
 async def authenticate_github_user_token(access_token: str):
     if not access_token:
-        logger.warning("No GitHub User ID provided")
+        logger.warning('No GitHub User ID provided')
         return None
 
     gh_service = SaaSGitHubService(token=SecretStr(access_token))

@@ -11,10 +11,10 @@ from storage.base import Base
 class DeviceCodeStatus(Enum):
     """Status of a device code authorization request."""
 
-    PENDING = "pending"
-    AUTHORIZED = "authorized"
-    EXPIRED = "expired"
-    DENIED = "denied"
+    PENDING = 'pending'
+    AUTHORIZED = 'authorized'
+    EXPIRED = 'expired'
+    DENIED = 'denied'
 
 
 class DeviceCode(Base):
@@ -24,7 +24,7 @@ class DeviceCode(Base):
     along with their status and associated user information once authorized.
     """
 
-    __tablename__ = "device_codes"
+    __tablename__ = 'device_codes'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     device_code: Mapped[str] = mapped_column(

@@ -32,7 +32,7 @@ class ResolverUserContext(UserContext):
         if user_settings:
             return UserInfo(
                 id=user_id,
-                **user_settings.model_dump(context={"expose_secrets": True}),
+                **user_settings.model_dump(context={'expose_secrets': True}),
             )
 
         return UserInfo(id=user_id)
@@ -42,7 +42,7 @@ class ResolverUserContext(UserContext):
         if self._provider_handler is None:
             provider_tokens = await self.saas_user_auth.get_provider_tokens()
             if provider_tokens is None:
-                raise ValueError("No provider tokens available")
+                raise ValueError('No provider tokens available')
             user_id = await self.saas_user_auth.get_user_id()
             self._provider_handler = ProviderHandler(
                 provider_tokens=provider_tokens, external_auth_id=user_id

@@ -24,9 +24,9 @@ import pytest
 from storage.saas_secrets_store import SaasSecretsStore
 from storage.saas_settings_store import SaasSettingsStore
 
-USER_ID = "00000000-0000-0000-0000-00000000aaaa"
-CURRENT_ORG_ID = UUID("00000000-0000-0000-0000-00000000bbbb")
-EFFECTIVE_ORG_ID = UUID("00000000-0000-0000-0000-00000000cccc")
+USER_ID = '00000000-0000-0000-0000-00000000aaaa'
+CURRENT_ORG_ID = UUID('00000000-0000-0000-0000-00000000bbbb')
+EFFECTIVE_ORG_ID = UUID('00000000-0000-0000-0000-00000000cccc')
 
 
 # --------------------------------------------------------------------- #
@@ -88,7 +88,7 @@ async def test_settings_store_load_returns_none_when_user_not_member_of_effectiv
     store = SaasSettingsStore(user_id=USER_ID, effective_org_id=EFFECTIVE_ORG_ID)
 
     with patch(
-        "storage.saas_settings_store.UserStore.get_user_by_id",
+        'storage.saas_settings_store.UserStore.get_user_by_id',
         new=AsyncMock(return_value=user),
     ):
         result = await store.load()
@@ -132,7 +132,7 @@ def test_secrets_store_default_effective_org_id_is_none():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "effective_org_id,expected_org_id",
+    'effective_org_id,expected_org_id',
     [
         (EFFECTIVE_ORG_ID, EFFECTIVE_ORG_ID),  # uses effective override
         (None, CURRENT_ORG_ID),  # falls back to user.current_org_id
@@ -170,27 +170,27 @@ async def test_secrets_store_load_filters_by_resolved_org_id(
 
     with (
         patch(
-            "storage.saas_secrets_store.UserStore.get_user_by_id",
+            'storage.saas_secrets_store.UserStore.get_user_by_id',
             new=AsyncMock(return_value=user),
         ),
         patch(
-            "storage.saas_secrets_store.a_session_maker",
+            'storage.saas_secrets_store.a_session_maker',
             return_value=_FakeSession(),
         ),
     ):
         result = await store.load()
 
     assert result is not None
-    assert captured_queries, "load() should have executed at least one query"
+    assert captured_queries, 'load() should have executed at least one query'
 
     # Compile the SELECT with literal binds so we can read the org id
     # value out of the WHERE clause without needing a real DB driver.
     # SQLAlchemy renders UUID literals as the 32-char hex form (no
     # hyphens), so compare against `.hex` rather than `str(...)`.
-    compiled = str(captured_queries[-1].compile(compile_kwargs={"literal_binds": True}))
+    compiled = str(captured_queries[-1].compile(compile_kwargs={'literal_binds': True}))
     assert expected_org_id.hex in compiled, (
-        f"Expected query to filter by org_id={expected_org_id!s} "
-        f"(hex={expected_org_id.hex}), compiled SQL was: {compiled}"
+        f'Expected query to filter by org_id={expected_org_id!s} '
+        f'(hex={expected_org_id.hex}), compiled SQL was: {compiled}'
     )
 
 
@@ -228,7 +228,7 @@ async def test_secrets_store_store_uses_effective_org_id_when_set():
 
     item = Secrets(
         custom_secrets={
-            "API_KEY": CustomSecret(secret=SecretStr("shh"), description="example"),
+            'API_KEY': CustomSecret(secret=SecretStr('shh'), description='example'),
         }
     )
 
@@ -236,19 +236,19 @@ async def test_secrets_store_store_uses_effective_org_id_when_set():
 
     with (
         patch(
-            "storage.saas_secrets_store.UserStore.get_user_by_id",
+            'storage.saas_secrets_store.UserStore.get_user_by_id',
             new=AsyncMock(return_value=user),
         ),
         patch(
-            "storage.saas_secrets_store.a_session_maker",
+            'storage.saas_secrets_store.a_session_maker',
             return_value=_FakeSession(),
         ),
     ):
         await store.store(item)
 
-    assert captured_org_ids == [EFFECTIVE_ORG_ID], (
-        f"store() wrote under {captured_org_ids[0]!s}, expected {EFFECTIVE_ORG_ID!s}"
-    )
+    assert captured_org_ids == [
+        EFFECTIVE_ORG_ID
+    ], f'store() wrote under {captured_org_ids[0]!s}, expected {EFFECTIVE_ORG_ID!s}'
 
 
 @pytest.mark.asyncio
@@ -281,7 +281,7 @@ async def test_secrets_store_store_falls_back_to_current_org_when_unset():
 
     item = Secrets(
         custom_secrets={
-            "API_KEY": CustomSecret(secret=SecretStr("shh"), description="example"),
+            'API_KEY': CustomSecret(secret=SecretStr('shh'), description='example'),
         }
     )
 
@@ -289,11 +289,11 @@ async def test_secrets_store_store_falls_back_to_current_org_when_unset():
 
     with (
         patch(
-            "storage.saas_secrets_store.UserStore.get_user_by_id",
+            'storage.saas_secrets_store.UserStore.get_user_by_id',
             new=AsyncMock(return_value=user),
         ),
         patch(
-            "storage.saas_secrets_store.a_session_maker",
+            'storage.saas_secrets_store.a_session_maker',
             return_value=_FakeSession(),
         ),
     ):
@@ -305,7 +305,7 @@ async def test_secrets_store_store_falls_back_to_current_org_when_unset():
 @pytest.mark.asyncio
 async def test_secrets_store_get_instance_propagates_effective_org_id():
     with patch(
-        "storage.encrypt_utils.get_jwt_service",
+        'storage.encrypt_utils.get_jwt_service',
         return_value=MagicMock(),
     ):
         store = await SaasSecretsStore.get_instance(
@@ -317,7 +317,7 @@ async def test_secrets_store_get_instance_propagates_effective_org_id():
 @pytest.mark.asyncio
 async def test_secrets_store_get_instance_defaults_to_none():
     with patch(
-        "storage.encrypt_utils.get_jwt_service",
+        'storage.encrypt_utils.get_jwt_service',
         return_value=MagicMock(),
     ):
         store = await SaasSecretsStore.get_instance(USER_ID)
@@ -333,7 +333,7 @@ def _make_saas_user_auth():
     from pydantic import SecretStr
     from server.auth.saas_user_auth import SaasUserAuth
 
-    return SaasUserAuth(refresh_token=SecretStr("test-refresh"), user_id=USER_ID)
+    return SaasUserAuth(refresh_token=SecretStr('test-refresh'), user_id=USER_ID)
 
 
 @pytest.mark.asyncio
@@ -346,7 +346,7 @@ async def test_saas_user_auth_get_user_settings_store_passes_effective_org():
 
     with patch.object(
         SaasUserAuth,
-        "get_effective_org_id",
+        'get_effective_org_id',
         new=AsyncMock(return_value=EFFECTIVE_ORG_ID),
     ):
         store = await auth.get_user_settings_store()
@@ -368,11 +368,11 @@ async def test_saas_user_auth_get_secrets_store_passes_effective_org():
     with (
         patch.object(
             SaasUserAuth,
-            "get_effective_org_id",
+            'get_effective_org_id',
             new=AsyncMock(return_value=EFFECTIVE_ORG_ID),
         ),
         patch(
-            "storage.encrypt_utils.get_jwt_service",
+            'storage.encrypt_utils.get_jwt_service',
             return_value=MagicMock(),
         ),
     ):

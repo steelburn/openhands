@@ -21,7 +21,7 @@ class SaaSGitHubService(GitHubService):
         base_domain: str | None = None,
     ):
         logger.debug(
-            f"SaaSGitHubService created with user_id {user_id}, external_auth_id {external_auth_id}, external_auth_token {'set' if external_auth_token else 'None'}, github_token {'set' if token else 'None'}, external_token_manager {external_token_manager}"
+            f'SaaSGitHubService created with user_id {user_id}, external_auth_id {external_auth_id}, external_auth_token {'set' if external_auth_token else 'None'}, github_token {'set' if token else 'None'}, external_token_manager {external_token_manager}'
         )
         super().__init__(
             user_id=user_id,
@@ -45,7 +45,7 @@ class SaaSGitHubService(GitHubService):
                 )
             )
             logger.debug(
-                f"Got GitHub token {github_token} from access token: {self.external_auth_token}"
+                f'Got GitHub token {github_token} from access token: {self.external_auth_token}'
             )
         elif self.external_auth_id:
             offline_token = await self.token_manager.load_offline_token(
@@ -57,7 +57,7 @@ class SaaSGitHubService(GitHubService):
                 )
             )
             logger.debug(
-                f"Got GitHub token {github_token} from external auth user ID: {self.external_auth_id}"
+                f'Got GitHub token {github_token} from external auth user ID: {self.external_auth_id}'
             )
         elif self.user_id:
             github_token = SecretStr(
@@ -66,10 +66,10 @@ class SaaSGitHubService(GitHubService):
                 )
             )
             logger.debug(
-                f"Got GitHub token {github_token} from user ID: {self.user_id}"
+                f'Got GitHub token {github_token} from user ID: {self.user_id}'
             )
         else:
-            logger.warning("external_auth_token and user_id not set!")
+            logger.warning('external_auth_token and user_id not set!')
         return github_token
 
     async def get_pr_patches(
@@ -84,21 +84,21 @@ class SaaSGitHubService(GitHubService):
             per_page: Number of files per page (default: 30, max: 100)
             page: Page number to fetch (default: 1)
         """
-        url = f"https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}/files"
-        params = {"per_page": min(per_page, 100), "page": page}  # GitHub max is 100
+        url = f'https://api.github.com/repos/{owner}/{repo}/pulls/{pr_number}/files'
+        params = {'per_page': min(per_page, 100), 'page': page}  # GitHub max is 100
         response, headers = await self._make_request(url, params)
 
         # Parse pagination info from headers
-        has_next_page = "next" in headers.get("link", "")
-        total_count = int(headers.get("total", 0))
+        has_next_page = 'next' in headers.get('link', '')
+        total_count = int(headers.get('total', 0))
 
         return {
-            "files": response,
-            "pagination": {
-                "has_next_page": has_next_page,
-                "total_count": total_count,
-                "current_page": page,
-                "per_page": per_page,
+            'files': response,
+            'pagination': {
+                'has_next_page': has_next_page,
+                'total_count': total_count,
+                'current_page': page,
+                'per_page': per_page,
             },
         }
 
@@ -115,11 +115,11 @@ class SaaSGitHubService(GitHubService):
         Raises:
             Exception: If the API request fails or node_id is not found
         """
-        url = f"https://api.github.com/repositories/{repo_id}"
+        url = f'https://api.github.com/repositories/{repo_id}'
         response, _ = await self._make_request(url)
-        node_id = response.get("node_id")
+        node_id = response.get('node_id')
         if not node_id:
-            raise Exception(f"No node_id found for repository {repo_id}")
+            raise Exception(f'No node_id found for repository {repo_id}')
         return node_id
 
     async def _get_external_auth_id(self) -> str | None:
@@ -134,12 +134,12 @@ class SaaSGitHubService(GitHubService):
                 )
                 self.external_auth_id = user_info.sub
                 logger.info(
-                    f"Determined external_auth_id from Keycloak token: {self.external_auth_id}"
+                    f'Determined external_auth_id from Keycloak token: {self.external_auth_id}'
                 )
                 return self.external_auth_id
             except Exception as e:
                 logger.warning(
-                    f"Could not determine external_auth_id from token: {e}",
+                    f'Could not determine external_auth_id from token: {e}',
                     exc_info=True,
                 )
         return None

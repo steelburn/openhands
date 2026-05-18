@@ -15,28 +15,28 @@ from openhands.app_server.settings.settings_models import Settings
 
 def test_provider_token_immutability():
     """Test that ProviderToken is immutable"""
-    token = ProviderToken(token=SecretStr("test"), user_id="user1")
+    token = ProviderToken(token=SecretStr('test'), user_id='user1')
 
     # Test direct attribute modification
     with pytest.raises(ValidationError):
-        token.token = SecretStr("new")
+        token.token = SecretStr('new')
 
     with pytest.raises(ValidationError):
-        token.user_id = "new_user"
+        token.user_id = 'new_user'
 
     # Test that __setattr__ is blocked
     with pytest.raises(ValidationError):
-        setattr(token, "token", SecretStr("new"))
+        setattr(token, 'token', SecretStr('new'))
 
     # Verify original values are unchanged
-    assert token.token.get_secret_value() == "test"
-    assert token.user_id == "user1"
+    assert token.token.get_secret_value() == 'test'
+    assert token.user_id == 'user1'
 
 
 def test_secret_store_immutability():
     """Test that Secrets is immutable"""
     store = Secrets(
-        provider_tokens={ProviderType.GITHUB: ProviderToken(token=SecretStr("test"))}
+        provider_tokens={ProviderType.GITHUB: ProviderToken(token=SecretStr('test'))}
     )
 
     # Test direct attribute modification
@@ -46,7 +46,7 @@ def test_secret_store_immutability():
     # Test dictionary mutation attempts
     with pytest.raises((TypeError, AttributeError)):
         store.provider_tokens[ProviderType.GITHUB] = ProviderToken(
-            token=SecretStr("new")
+            token=SecretStr('new')
         )
 
     with pytest.raises((TypeError, AttributeError)):
@@ -54,16 +54,16 @@ def test_secret_store_immutability():
 
     with pytest.raises((TypeError, AttributeError)):
         store.provider_tokens.update(
-            {ProviderType.GITLAB: ProviderToken(token=SecretStr("test"))}
+            {ProviderType.GITLAB: ProviderToken(token=SecretStr('test'))}
         )
 
     # Test nested immutability
     github_token = store.provider_tokens[ProviderType.GITHUB]
     with pytest.raises(ValidationError):
-        github_token.token = SecretStr("new")
+        github_token.token = SecretStr('new')
 
     # Verify original values are unchanged
-    assert store.provider_tokens[ProviderType.GITHUB].token.get_secret_value() == "test"
+    assert store.provider_tokens[ProviderType.GITHUB].token.get_secret_value() == 'test'
 
 
 def test_settings_immutability():
@@ -71,7 +71,7 @@ def test_settings_immutability():
     settings = Settings(
         secrets_store=Secrets(
             provider_tokens={
-                ProviderType.GITHUB: ProviderToken(token=SecretStr("test"))
+                ProviderType.GITHUB: ProviderToken(token=SecretStr('test'))
             }
         )
     )
@@ -83,42 +83,42 @@ def test_settings_immutability():
     # Test nested modification attempts
     with pytest.raises((TypeError, AttributeError)):
         settings.secrets_store.provider_tokens[ProviderType.GITHUB] = ProviderToken(
-            token=SecretStr("new")
+            token=SecretStr('new')
         )
 
     # Test model_copy creates new instance
     new_store = Secrets(
         provider_tokens={
-            ProviderType.GITHUB: ProviderToken(token=SecretStr("new_token"))
+            ProviderType.GITHUB: ProviderToken(token=SecretStr('new_token'))
         }
     )
-    new_settings = settings.model_copy(update={"secrets_store": new_store})
+    new_settings = settings.model_copy(update={'secrets_store': new_store})
 
     # Verify original is unchanged and new has updated values
     assert (
         settings.secrets_store.provider_tokens[
             ProviderType.GITHUB
         ].token.get_secret_value()
-        == "test"
+        == 'test'
     )
     assert (
         new_settings.secrets_store.provider_tokens[
             ProviderType.GITHUB
         ].token.get_secret_value()
-        == "new_token"
+        == 'new_token'
     )
 
     with pytest.raises(ValidationError):
         new_settings.secrets_store.provider_tokens[
             ProviderType.GITHUB
-        ].token = SecretStr("")
+        ].token = SecretStr('')
 
 
 def test_provider_handler_immutability():
     """Test that ProviderHandler maintains token immutability"""
     # Create initial tokens
     tokens = MappingProxyType(
-        {ProviderType.GITHUB: ProviderToken(token=SecretStr("test"))}
+        {ProviderType.GITHUB: ProviderToken(token=SecretStr('test'))}
     )
 
     handler = ProviderHandler(provider_tokens=tokens)
@@ -126,7 +126,7 @@ def test_provider_handler_immutability():
     # Try to modify tokens (should raise TypeError due to frozen dict)
     with pytest.raises((TypeError, AttributeError)):
         handler.provider_tokens[ProviderType.GITHUB] = ProviderToken(
-            token=SecretStr("new")
+            token=SecretStr('new')
         )
 
     # Try to modify the handler's tokens property
@@ -135,7 +135,7 @@ def test_provider_handler_immutability():
 
     # Original token should be unchanged
     assert (
-        handler.provider_tokens[ProviderType.GITHUB].token.get_secret_value() == "test"
+        handler.provider_tokens[ProviderType.GITHUB].token.get_secret_value() == 'test'
     )
 
 
@@ -145,7 +145,7 @@ def test_token_conversion():
     store1 = Settings(
         secrets_store=Secrets(
             provider_tokens={
-                ProviderType.GITHUB: ProviderToken(token=SecretStr("test_token"))
+                ProviderType.GITHUB: ProviderToken(token=SecretStr('test_token'))
             }
         )
     )
@@ -154,28 +154,28 @@ def test_token_conversion():
         store1.secrets_store.provider_tokens[
             ProviderType.GITHUB
         ].token.get_secret_value()
-        == "test_token"
+        == 'test_token'
     )
     assert store1.secrets_store.provider_tokens[ProviderType.GITHUB].user_id is None
 
     # Test with dict token
     store2 = Secrets(
-        provider_tokens={"github": {"token": "test_token", "user_id": "user1"}}
+        provider_tokens={'github': {'token': 'test_token', 'user_id': 'user1'}}
     )
     assert (
         store2.provider_tokens[ProviderType.GITHUB].token.get_secret_value()
-        == "test_token"
+        == 'test_token'
     )
-    assert store2.provider_tokens[ProviderType.GITHUB].user_id == "user1"
+    assert store2.provider_tokens[ProviderType.GITHUB].user_id == 'user1'
 
     # Test with ProviderToken
-    token = ProviderToken(token=SecretStr("test_token"), user_id="user2")
+    token = ProviderToken(token=SecretStr('test_token'), user_id='user2')
     store3 = Secrets(provider_tokens={ProviderType.GITHUB: token})
     assert (
         store3.provider_tokens[ProviderType.GITHUB].token.get_secret_value()
-        == "test_token"
+        == 'test_token'
     )
-    assert store3.provider_tokens[ProviderType.GITHUB].user_id == "user2"
+    assert store3.provider_tokens[ProviderType.GITHUB].user_id == 'user2'
 
     store4 = Secrets(
         provider_tokens={
@@ -191,7 +191,7 @@ def test_token_conversion():
 
     store6 = Secrets(
         provider_tokens={
-            "invalid_provider": "test_token"  # Invalid provider type
+            'invalid_provider': 'test_token'  # Invalid provider type
         }
     )
 
@@ -200,32 +200,32 @@ def test_token_conversion():
 
 def test_provider_handler_type_enforcement():
     with pytest.raises((TypeError)):
-        ProviderHandler(provider_tokens={"a": "b"})
+        ProviderHandler(provider_tokens={'a': 'b'})
 
 
 def test_get_provider_env_key():
     """Test provider environment key generation"""
-    assert ProviderHandler.get_provider_env_key(ProviderType.GITHUB) == "github_token"
-    assert ProviderHandler.get_provider_env_key(ProviderType.GITLAB) == "gitlab_token"
+    assert ProviderHandler.get_provider_env_key(ProviderType.GITHUB) == 'github_token'
+    assert ProviderHandler.get_provider_env_key(ProviderType.GITLAB) == 'gitlab_token'
 
 
 @pytest.mark.asyncio
 async def test_get_github_organizations_delegates_to_service():
     """Test that get_github_organizations calls get_organizations_from_installations on the GitHub service."""
     tokens = MappingProxyType(
-        {ProviderType.GITHUB: ProviderToken(token=SecretStr("gh-token"))}
+        {ProviderType.GITHUB: ProviderToken(token=SecretStr('gh-token'))}
     )
     handler = ProviderHandler(provider_tokens=tokens)
 
-    with patch.object(handler, "get_service") as mock_get_service:
+    with patch.object(handler, 'get_service') as mock_get_service:
         mock_service = mock_get_service.return_value
         mock_service.get_organizations_from_installations = AsyncMock(
-            return_value=["org1", "org2"]
+            return_value=['org1', 'org2']
         )
 
         result = await handler.get_github_organizations()
 
-        assert result == ["org1", "org2"]
+        assert result == ['org1', 'org2']
         mock_get_service.assert_called_once_with(ProviderType.GITHUB)
 
 
@@ -233,14 +233,14 @@ async def test_get_github_organizations_delegates_to_service():
 async def test_get_github_organizations_returns_empty_on_error():
     """Test that get_github_organizations returns empty list when the service call fails."""
     tokens = MappingProxyType(
-        {ProviderType.GITHUB: ProviderToken(token=SecretStr("gh-token"))}
+        {ProviderType.GITHUB: ProviderToken(token=SecretStr('gh-token'))}
     )
     handler = ProviderHandler(provider_tokens=tokens)
 
-    with patch.object(handler, "get_service") as mock_get_service:
+    with patch.object(handler, 'get_service') as mock_get_service:
         mock_service = mock_get_service.return_value
         mock_service.get_organizations_from_installations = AsyncMock(
-            side_effect=Exception("API error")
+            side_effect=Exception('API error')
         )
 
         result = await handler.get_github_organizations()
@@ -252,15 +252,15 @@ async def test_get_github_organizations_returns_empty_on_error():
 async def test_get_gitlab_groups_delegates_to_service():
     """Test that get_gitlab_groups calls get_user_groups on the GitLab service."""
     tokens = MappingProxyType(
-        {ProviderType.GITLAB: ProviderToken(token=SecretStr("gl-token"))}
+        {ProviderType.GITLAB: ProviderToken(token=SecretStr('gl-token'))}
     )
     handler = ProviderHandler(provider_tokens=tokens)
 
-    with patch.object(handler, "get_service") as mock_get_service:
+    with patch.object(handler, 'get_service') as mock_get_service:
         mock_service = mock_get_service.return_value
-        mock_service.get_user_groups = AsyncMock(return_value=["group-a", "group-b"])
+        mock_service.get_user_groups = AsyncMock(return_value=['group-a', 'group-b'])
 
         result = await handler.get_gitlab_groups()
 
-        assert result == ["group-a", "group-b"]
+        assert result == ['group-a', 'group-b']
         mock_get_service.assert_called_once_with(ProviderType.GITLAB)

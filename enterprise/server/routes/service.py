@@ -20,9 +20,9 @@ from storage.user_store import UserStore
 from openhands.app_server.utils.logger import openhands_logger as logger
 
 # Environment variable for the service API key
-AUTOMATIONS_SERVICE_KEY = os.getenv("AUTOMATIONS_SERVICE_KEY", "").strip()
+AUTOMATIONS_SERVICE_KEY = os.getenv('AUTOMATIONS_SERVICE_KEY', '').strip()
 
-service_router = APIRouter(prefix="/api/service", tags=["Service"])
+service_router = APIRouter(prefix='/api/service', tags=['Service'])
 
 
 class CreateUserApiKeyRequest(BaseModel):
@@ -30,11 +30,11 @@ class CreateUserApiKeyRequest(BaseModel):
 
     name: str  # Required - used to identify the key
 
-    @field_validator("name")
+    @field_validator('name')
     @classmethod
     def validate_name(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("name is required and cannot be empty")
+            raise ValueError('name is required and cannot be empty')
         return v.strip()
 
 
@@ -55,7 +55,7 @@ class ServiceInfoResponse(BaseModel):
 
 
 async def validate_service_api_key(
-    x_service_api_key: str | None = Header(default=None, alias="X-Service-API-Key"),
+    x_service_api_key: str | None = Header(default=None, alias='X-Service-API-Key'),
 ) -> str:
     """
     Validate the service API key from the request header.
@@ -72,30 +72,30 @@ async def validate_service_api_key(
     """
     if not AUTOMATIONS_SERVICE_KEY:
         logger.warning(
-            "Service authentication not configured (AUTOMATIONS_SERVICE_KEY not set)"
+            'Service authentication not configured (AUTOMATIONS_SERVICE_KEY not set)'
         )
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Service authentication not configured",
+            detail='Service authentication not configured',
         )
 
     if not x_service_api_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="X-Service-API-Key header is required",
+            detail='X-Service-API-Key header is required',
         )
 
     if x_service_api_key != AUTOMATIONS_SERVICE_KEY:
-        logger.warning("Invalid service API key attempted")
+        logger.warning('Invalid service API key attempted')
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid service API key",
+            detail='Invalid service API key',
         )
 
-    return "automations-service"
+    return 'automations-service'
 
 
-@service_router.get("/health")
+@service_router.get('/health')
 async def service_health() -> dict:
     """Health check endpoint for the service API.
 
@@ -103,17 +103,17 @@ async def service_health() -> dict:
     to verify the service routes are accessible.
     """
     return {
-        "status": "ok",
-        "service_auth_configured": bool(AUTOMATIONS_SERVICE_KEY),
+        'status': 'ok',
+        'service_auth_configured': bool(AUTOMATIONS_SERVICE_KEY),
     }
 
 
-@service_router.post("/users/{user_id}/orgs/{org_id}/api-keys")
+@service_router.post('/users/{user_id}/orgs/{org_id}/api-keys')
 async def get_or_create_api_key_for_user(
     user_id: str,
     org_id: UUID,
     request: CreateUserApiKeyRequest,
-    x_service_api_key: str | None = Header(default=None, alias="X-Service-API-Key"),
+    x_service_api_key: str | None = Header(default=None, alias='X-Service-API-Key'),
 ) -> CreateUserApiKeyResponse:
     """
     Get or create an API key for a user on behalf of the automations service.
@@ -147,27 +147,27 @@ async def get_or_create_api_key_for_user(
     user = await UserStore.get_user_by_id(user_id)
     if not user:
         logger.warning(
-            "Service attempted to create key for non-existent user",
-            extra={"user_id": user_id},
+            'Service attempted to create key for non-existent user',
+            extra={'user_id': user_id},
         )
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User {user_id} not found",
+            detail=f'User {user_id} not found',
         )
 
     # Verify user is a member of the specified org
     org_member = await OrgMemberStore.get_org_member(org_id, UUID(user_id))
     if not org_member:
         logger.warning(
-            "Service attempted to create key for user not in org",
+            'Service attempted to create key for user not in org',
             extra={
-                "user_id": user_id,
-                "org_id": str(org_id),
+                'user_id': user_id,
+                'org_id': str(org_id),
             },
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"User {user_id} is not a member of org {org_id}",
+            detail=f'User {user_id} is not a member of org {org_id}',
         )
 
     # Get or create the system API key
@@ -181,25 +181,25 @@ async def get_or_create_api_key_for_user(
         )
     except Exception as e:
         logger.exception(
-            "Failed to get or create system API key",
+            'Failed to get or create system API key',
             extra={
-                "user_id": user_id,
-                "org_id": str(org_id),
-                "error": str(e),
+                'user_id': user_id,
+                'org_id': str(org_id),
+                'error': str(e),
             },
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get or create API key",
+            detail='Failed to get or create API key',
         )
 
     logger.info(
-        "Service created API key for user",
+        'Service created API key for user',
         extra={
-            "service_id": service_id,
-            "user_id": user_id,
-            "org_id": str(org_id),
-            "key_name": request.name,
+            'service_id': service_id,
+            'user_id': user_id,
+            'org_id': str(org_id),
+            'key_name': request.name,
         },
     )
 
@@ -211,12 +211,12 @@ async def get_or_create_api_key_for_user(
     )
 
 
-@service_router.delete("/users/{user_id}/orgs/{org_id}/api-keys/{key_name}")
+@service_router.delete('/users/{user_id}/orgs/{org_id}/api-keys/{key_name}')
 async def delete_user_api_key(
     user_id: str,
     org_id: UUID,
     key_name: str,
-    x_service_api_key: str | None = Header(default=None, alias="X-Service-API-Key"),
+    x_service_api_key: str | None = Header(default=None, alias='X-Service-API-Key'),
 ) -> dict:
     """
     Delete a system API key created by the service.
@@ -258,13 +258,13 @@ async def delete_user_api_key(
         )
 
     logger.info(
-        "Service deleted API key for user",
+        'Service deleted API key for user',
         extra={
-            "service_id": service_id,
-            "user_id": user_id,
-            "org_id": str(org_id),
-            "key_name": key_name,
+            'service_id': service_id,
+            'user_id': user_id,
+            'org_id': str(org_id),
+            'key_name': key_name,
         },
     )
 
-    return {"message": "API key deleted successfully"}
+    return {'message': 'API key deleted successfully'}

@@ -10,17 +10,17 @@ if TYPE_CHECKING:
 
 
 class SlackConversation(Base):
-    __tablename__ = "slack_conversation"
+    __tablename__ = 'slack_conversation'
 
     id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     conversation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
     channel_id: Mapped[str] = mapped_column(String, nullable=False)
     keycloak_user_id: Mapped[str] = mapped_column(String, nullable=False)
-    org_id: Mapped[UUID | None] = mapped_column(ForeignKey("org.id"), nullable=True)
+    org_id: Mapped[UUID | None] = mapped_column(ForeignKey('org.id'), nullable=True)
     parent_id: Mapped[str | None] = mapped_column(String, nullable=True, index=True)
     v1_enabled: Mapped[bool | None] = mapped_column(nullable=True)
 
     # Relationships
-    org: Mapped["Org | None"] = relationship(
-        "Org", back_populates="slack_conversations"
+    org: Mapped['Org | None'] = relationship(
+        'Org', back_populates='slack_conversations'
     )

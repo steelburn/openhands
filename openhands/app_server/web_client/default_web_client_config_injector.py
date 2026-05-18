@@ -18,12 +18,12 @@ from openhands.sdk.settings import ACP_PROVIDERS
 
 def _get_recaptcha_site_key() -> str | None:
     """Get reCAPTCHA site key from environment variable."""
-    key = os.getenv("RECAPTCHA_SITE_KEY", "").strip()
+    key = os.getenv('RECAPTCHA_SITE_KEY', '').strip()
     return key if key else None
 
 
 # OSS default PostHog key - used when no environment variable is configured
-_OSS_POSTHOG_KEY = "phc_3ESMmY9SgqEAGBB6sMGK5ayYHkeUuknH2vP6FmWH9RA"
+_OSS_POSTHOG_KEY = 'phc_3ESMmY9SgqEAGBB6sMGK5ayYHkeUuknH2vP6FmWH9RA'
 
 
 def _get_posthog_client_key() -> str:
@@ -32,7 +32,7 @@ def _get_posthog_client_key() -> str:
     Reads POSTHOG_CLIENT_KEY from environment. If not set or empty,
     returns the OSS default key for backwards compatibility.
     """
-    key = os.getenv("POSTHOG_CLIENT_KEY", "").strip()
+    key = os.getenv('POSTHOG_CLIENT_KEY', '').strip()
     return key if key else _OSS_POSTHOG_KEY
 
 
@@ -41,7 +41,7 @@ def _get_auth_url() -> str | None:
 
     Reads AUTH_URL from environment. If not set or empty, returns None.
     """
-    url = os.getenv("AUTH_URL", "").strip()
+    url = os.getenv('AUTH_URL', '').strip()
     return url if url else None
 
 
@@ -52,7 +52,7 @@ def _get_maintenance_start_time() -> datetime | None:
     timestamp, returns the parsed datetime. If empty, unset, or invalid,
     returns None (graceful fallback).
     """
-    value = os.getenv("MAINTENANCE_START_TIME", "").strip()
+    value = os.getenv('MAINTENANCE_START_TIME', '').strip()
     if not value:
         return None
     try:
@@ -63,7 +63,7 @@ def _get_maintenance_start_time() -> datetime | None:
 
 def _is_gitlab_enabled() -> bool:
     """Return whether GitLab OAuth is configured for the web client."""
-    return bool(os.getenv("GITLAB_APP_CLIENT_ID", "").strip())
+    return bool(os.getenv('GITLAB_APP_CLIENT_ID', '').strip())
 
 
 def _get_providers_configured() -> list[ProviderType]:
@@ -74,16 +74,16 @@ def _get_providers_configured() -> list[ProviderType]:
     """
     providers: list[ProviderType] = []
 
-    if os.getenv("GITHUB_APP_CLIENT_ID", "").strip():
+    if os.getenv('GITHUB_APP_CLIENT_ID', '').strip():
         providers.append(ProviderType.GITHUB)
 
     if _is_gitlab_enabled():
         providers.append(ProviderType.GITLAB)
 
-    if os.getenv("BITBUCKET_APP_CLIENT_ID", "").strip():
+    if os.getenv('BITBUCKET_APP_CLIENT_ID', '').strip():
         providers.append(ProviderType.BITBUCKET)
 
-    if os.getenv("ENABLE_ENTERPRISE_SSO", "").strip():
+    if os.getenv('ENABLE_ENTERPRISE_SSO', '').strip():
         providers.append(ProviderType.ENTERPRISE_SSO)
 
     return providers
@@ -95,17 +95,17 @@ def _get_github_app_slug() -> str | None:
     Reads GITHUB_APP_SLUG from environment. If set, returns the value.
     If empty or unset, returns None.
     """
-    slug = os.getenv("GITHUB_APP_SLUG", "").strip()
+    slug = os.getenv('GITHUB_APP_SLUG', '').strip()
     return slug if slug else None
 
 
 def _get_slack_enabled() -> bool:
     """Return whether Slack integration is fully configured for the web client."""
     return (
-        os.getenv("SLACK_WEBHOOKS_ENABLED", "false").lower() in ("true", "1")
-        and bool(os.getenv("SLACK_CLIENT_ID", "").strip())
-        and bool(os.getenv("SLACK_CLIENT_SECRET", "").strip())
-        and bool(os.getenv("SLACK_SIGNING_SECRET", "").strip())
+        os.getenv('SLACK_WEBHOOKS_ENABLED', 'false').lower() in ('true', '1')
+        and bool(os.getenv('SLACK_CLIENT_ID', '').strip())
+        and bool(os.getenv('SLACK_CLIENT_SECRET', '').strip())
+        and bool(os.getenv('SLACK_SIGNING_SECRET', '').strip())
     )
 
 
@@ -118,16 +118,16 @@ def _get_feature_flags() -> WebClientFeatureFlags:
     only if the corresponding env var is exactly 'true', otherwise False.
     """
     return WebClientFeatureFlags(
-        enable_billing=os.getenv("ENABLE_BILLING", "false") == "true",
-        hide_llm_settings=os.getenv("HIDE_LLM_SETTINGS", "false") == "true",
-        enable_jira=os.getenv("ENABLE_JIRA", "false") == "true",
-        enable_jira_dc=os.getenv("ENABLE_JIRA_DC", "false") == "true",
-        enable_linear=os.getenv("ENABLE_LINEAR", "false") == "true",
-        hide_users_page=os.getenv("HIDE_USERS_PAGE", "false") == "true",
-        hide_billing_page=os.getenv("HIDE_BILLING_PAGE", "false") == "true",
-        hide_integrations_page=os.getenv("HIDE_INTEGRATIONS_PAGE", "false") == "true",
-        enable_acp=os.getenv("ENABLE_ACP", "false") == "true",
-        enable_onboarding=os.getenv("OH_ENABLE_ONBOARDING", "false") == "true",
+        enable_billing=os.getenv('ENABLE_BILLING', 'false') == 'true',
+        hide_llm_settings=os.getenv('HIDE_LLM_SETTINGS', 'false') == 'true',
+        enable_jira=os.getenv('ENABLE_JIRA', 'false') == 'true',
+        enable_jira_dc=os.getenv('ENABLE_JIRA_DC', 'false') == 'true',
+        enable_linear=os.getenv('ENABLE_LINEAR', 'false') == 'true',
+        hide_users_page=os.getenv('HIDE_USERS_PAGE', 'false') == 'true',
+        hide_billing_page=os.getenv('HIDE_BILLING_PAGE', 'false') == 'true',
+        hide_integrations_page=os.getenv('HIDE_INTEGRATIONS_PAGE', 'false') == 'true',
+        enable_acp=os.getenv('ENABLE_ACP', 'false') == 'true',
+        enable_onboarding=os.getenv('OH_ENABLE_ONBOARDING', 'false') == 'true',
     )
 
 
@@ -145,11 +145,11 @@ class DefaultWebClientConfigInjector(WebClientConfigInjector):
     faulty_models: list[str] = Field(default_factory=list)
     error_message: str | None = None
     updated_at: datetime = Field(
-        default=datetime.fromisoformat("2026-01-01T00:00:00Z"),
+        default=datetime.fromisoformat('2026-01-01T00:00:00Z'),
         description=(
-            "The timestamp when error messages and faulty models were last updated. "
-            "The frontend uses this value to determine whether error messages are "
-            "new and should be displayed. (Default to start of 2026)"
+            'The timestamp when error messages and faulty models were last updated. '
+            'The frontend uses this value to determine whether error messages are '
+            'new and should be displayed. (Default to start of 2026)'
         ),
     )
     github_app_slug: str | None = Field(default_factory=_get_github_app_slug)

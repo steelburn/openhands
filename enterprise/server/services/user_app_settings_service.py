@@ -43,11 +43,11 @@ class UserAppSettingsService:
         """
         user_id = await self.user_context.get_user_id()
         if not user_id:
-            raise ValueError("User is not authenticated")
+            raise ValueError('User is not authenticated')
 
         logger.info(
-            "Getting user app settings",
-            extra={"user_id": user_id},
+            'Getting user app settings',
+            extra={'user_id': user_id},
         )
 
         user = await self.store.get_user_by_id(user_id)
@@ -79,11 +79,11 @@ class UserAppSettingsService:
         """
         user_id = await self.user_context.get_user_id()
         if not user_id:
-            raise ValueError("User is not authenticated")
+            raise ValueError('User is not authenticated')
 
         logger.info(
-            "Updating user app settings",
-            extra={"user_id": user_id},
+            'Updating user app settings',
+            extra={'user_id': user_id},
         )
 
         # Check if any fields are provided
@@ -102,8 +102,8 @@ class UserAppSettingsService:
             raise UserNotFoundError(user_id)
 
         logger.info(
-            "User app settings updated successfully",
-            extra={"user_id": user_id, "updated_fields": list(update_dict.keys())},
+            'User app settings updated successfully',
+            extra={'user_id': user_id, 'updated_fields': list(update_dict.keys())},
         )
 
         return UserAppSettingsResponse.from_user(user)

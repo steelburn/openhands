@@ -28,10 +28,10 @@ class TestAliveEndpoint:
 
     def test_alive_returns_ok_status(self, test_client):
         """Test that /alive returns status: ok."""
-        response = test_client.get("/alive")
+        response = test_client.get('/alive')
 
         assert response.status_code == 200
-        assert response.json() == {"status": "ok"}
+        assert response.json() == {'status': 'ok'}
 
 
 class TestHealthEndpoint:
@@ -39,11 +39,11 @@ class TestHealthEndpoint:
 
     def test_health_returns_ok(self, test_client):
         """Test that /health returns 'OK' string."""
-        response = test_client.get("/health")
+        response = test_client.get('/health')
 
         assert response.status_code == 200
         # FastAPI returns JSON-encoded string, so response.json() gives 'OK'
-        assert response.json() == "OK"
+        assert response.json() == 'OK'
 
 
 class TestServerInfoEndpoint:
@@ -51,7 +51,7 @@ class TestServerInfoEndpoint:
 
     def test_server_info_returns_system_info(self, test_client):
         """Test that /server_info returns system information."""
-        response = test_client.get("/server_info")
+        response = test_client.get('/server_info')
 
         assert response.status_code == 200
         # Should return a dict with system info
@@ -63,11 +63,11 @@ class TestReadyEndpoint:
 
     def test_ready_returns_ok(self, test_client):
         """Test that /ready returns 'OK' string."""
-        response = test_client.get("/ready")
+        response = test_client.get('/ready')
 
         assert response.status_code == 200
         # FastAPI returns JSON-encoded string, so response.json() gives 'OK'
-        assert response.json() == "OK"
+        assert response.json() == 'OK'
 
 
 class TestAllStatusEndpoints:
@@ -75,10 +75,10 @@ class TestAllStatusEndpoints:
 
     def test_all_endpoints_accessible(self, test_client):
         """Test that all status endpoints are accessible and return 200."""
-        endpoints = ["/alive", "/health", "/server_info", "/ready"]
+        endpoints = ['/alive', '/health', '/server_info', '/ready']
 
         for endpoint in endpoints:
             response = test_client.get(endpoint)
             assert response.status_code == 200, (
-                f"Endpoint {endpoint} returned {response.status_code}"
+                f'Endpoint {endpoint} returned {response.status_code}'
             )

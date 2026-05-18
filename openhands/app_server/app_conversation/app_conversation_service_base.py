@@ -44,8 +44,8 @@ from openhands.sdk.skills import Skill
 from openhands.sdk.workspace.remote.async_remote_workspace import AsyncRemoteWorkspace
 
 _logger = logging.getLogger(__name__)
-PRE_COMMIT_HOOK = ".git/hooks/pre-commit"
-PRE_COMMIT_LOCAL = ".git/hooks/pre-commit.local"
+PRE_COMMIT_HOOK = '.git/hooks/pre-commit'
+PRE_COMMIT_LOCAL = '.git/hooks/pre-commit.local'
 
 
 def get_project_dir(
@@ -77,8 +77,8 @@ def get_project_dir(
         The project root directory path.
     """
     if selected_repository:
-        repo_name = selected_repository.split("/")[-1]
-        return f"{working_dir}/{repo_name}"
+        repo_name = selected_repository.split('/')[-1]
+        return f'{working_dir}/{repo_name}'
     return working_dir
 
 
@@ -119,10 +119,10 @@ class AppConversationServiceBase(AppConversationService, ABC):
             List of merged Skill objects from all sources, or empty list on failure
         """
         try:
-            _logger.debug("Loading skills for V1 conversation via agent-server")
+            _logger.debug('Loading skills for V1 conversation via agent-server')
 
             if not agent_server_url:
-                _logger.warning("No agent-server URL available, cannot load skills")
+                _logger.warning('No agent-server URL available, cannot load skills')
                 return []
 
             # Build org config (authentication handled by app-server)
@@ -145,14 +145,14 @@ class AppConversationServiceBase(AppConversationService, ABC):
             )
 
             _logger.info(
-                f"Loaded {len(all_skills)} total skills from agent-server: "
-                f"{[s.name for s in all_skills]}"
+                f'Loaded {len(all_skills)} total skills from agent-server: '
+                f'{[s.name for s in all_skills]}'
             )
 
             return all_skills
 
         except Exception as e:
-            _logger.warning(f"Failed to load skills: {e}", exc_info=True)
+            _logger.warning(f'Failed to load skills: {e}', exc_info=True)
             # Return empty list on failure - skills will be loaded again later if needed
             return []
 
@@ -172,15 +172,15 @@ class AppConversationServiceBase(AppConversationService, ABC):
             all_skills = self._merge_skills([existing_skills, skills])
             agent = agent.model_copy(
                 update={
-                    "agent_context": agent.agent_context.model_copy(
-                        update={"skills": all_skills}
+                    'agent_context': agent.agent_context.model_copy(
+                        update={'skills': all_skills}
                     )
                 }
             )
         else:
             # Create new context
             agent_context = AgentContext(skills=skills)
-            agent = agent.model_copy(update={"agent_context": agent_context})
+            agent = agent.model_copy(update={'agent_context': agent_context})
 
         return agent
 
@@ -296,23 +296,23 @@ class AppConversationServiceBase(AppConversationService, ABC):
                 cmd = f'git config --global user.name "{user_info.git_user_name}"'
                 result = await workspace.execute_command(cmd, workspace.working_dir)
                 if result.exit_code:
-                    _logger.warning(f"Git config user.name failed: {result.stderr}")
+                    _logger.warning(f'Git config user.name failed: {result.stderr}')
                 else:
                     _logger.info(
-                        f"Git configured with user.name={user_info.git_user_name}"
+                        f'Git configured with user.name={user_info.git_user_name}'
                     )
 
             if user_info.git_user_email:
                 cmd = f'git config --global user.email "{user_info.git_user_email}"'
                 result = await workspace.execute_command(cmd, workspace.working_dir)
                 if result.exit_code:
-                    _logger.warning(f"Git config user.email failed: {result.stderr}")
+                    _logger.warning(f'Git config user.email failed: {result.stderr}')
                 else:
                     _logger.info(
-                        f"Git configured with user.email={user_info.git_user_email}"
+                        f'Git configured with user.email={user_info.git_user_email}'
                     )
         except Exception as e:
-            _logger.warning(f"Failed to configure git user settings: {e}")
+            _logger.warning(f'Failed to configure git user settings: {e}')
 
     async def clone_or_init_git_repo(
         self,
@@ -324,61 +324,61 @@ class AppConversationServiceBase(AppConversationService, ABC):
         # Create the projects directory if it does not exist yet
         parent = Path(workspace.working_dir).parent
         result = await workspace.execute_command(
-            f"mkdir -p {workspace.working_dir}", parent
+            f'mkdir -p {workspace.working_dir}', parent
         )
         if result.exit_code:
-            _logger.warning(f"mkdir failed: {result.stderr}")
+            _logger.warning(f'mkdir failed: {result.stderr}')
 
         # Configure git user settings from user preferences
         await self._configure_git_user_settings(workspace)
 
         if not request.selected_repository:
             if self.init_git_in_empty_workspace:
-                _logger.debug("Initializing a new git repository in the workspace.")
+                _logger.debug('Initializing a new git repository in the workspace.')
                 cmd = (
-                    "git init && git config --global "
-                    f"--add safe.directory {workspace.working_dir}"
+                    'git init && git config --global '
+                    f'--add safe.directory {workspace.working_dir}'
                 )
                 result = await workspace.execute_command(cmd, workspace.working_dir)
                 if result.exit_code:
-                    _logger.warning(f"Git init failed: {result.stderr}")
+                    _logger.warning(f'Git init failed: {result.stderr}')
             else:
-                _logger.info("Not initializing a new git repository.")
+                _logger.info('Not initializing a new git repository.')
             return
 
         remote_repo_url: str = await self.user_context.get_authenticated_git_url(
             request.selected_repository
         )
         if not remote_repo_url:
-            raise ValueError("Missing either Git token or valid repository")
+            raise ValueError('Missing either Git token or valid repository')
 
-        dir_name = request.selected_repository.split("/")[-1]
+        dir_name = request.selected_repository.split('/')[-1]
         quoted_remote_repo_url = shlex.quote(remote_repo_url)
         quoted_dir_name = shlex.quote(dir_name)
 
         # Clone the repo - this is the slow part!
-        clone_command = f"git clone {quoted_remote_repo_url} {quoted_dir_name}"
+        clone_command = f'git clone {quoted_remote_repo_url} {quoted_dir_name}'
         result = await workspace.execute_command(
             clone_command, workspace.working_dir, 120
         )
         if result.exit_code:
-            _logger.warning(f"Git clone failed: {result.stderr}")
+            _logger.warning(f'Git clone failed: {result.stderr}')
 
         # Checkout the appropriate branch
         if request.selected_branch:
             ensure_valid_git_branch_name(request.selected_branch)
-            checkout_command = f"git checkout {shlex.quote(request.selected_branch)}"
+            checkout_command = f'git checkout {shlex.quote(request.selected_branch)}'
         else:
             # Generate a random branch name to avoid conflicts
             random_str = base62.encodebytes(os.urandom(16))
-            openhands_workspace_branch = f"openhands-workspace-{random_str}"
+            openhands_workspace_branch = f'openhands-workspace-{random_str}'
             checkout_command = (
-                f"git checkout -b {shlex.quote(openhands_workspace_branch)}"
+                f'git checkout -b {shlex.quote(openhands_workspace_branch)}'
             )
         git_dir = Path(workspace.working_dir) / dir_name
         result = await workspace.execute_command(checkout_command, git_dir)
         if result.exit_code:
-            _logger.warning(f"Git checkout failed: {result.stderr}")
+            _logger.warning(f'Git checkout failed: {result.stderr}')
 
     async def maybe_run_setup_script(
         self,
@@ -391,10 +391,10 @@ class AppConversationServiceBase(AppConversationService, ABC):
             workspace: Remote workspace for command execution.
             project_dir: Project root directory (repo root when a repo is selected).
         """
-        setup_script = project_dir + "/.openhands/setup.sh"
+        setup_script = project_dir + '/.openhands/setup.sh'
 
         await workspace.execute_command(
-            f"chmod +x {setup_script} && source {setup_script}",
+            f'chmod +x {setup_script} && source {setup_script}',
             cwd=project_dir,
             timeout=600,
         )
@@ -410,7 +410,7 @@ class AppConversationServiceBase(AppConversationService, ABC):
             workspace: Remote workspace for command execution.
             project_dir: Project root directory (repo root when a repo is selected).
         """
-        command = "mkdir -p .git/hooks && chmod +x .openhands/pre-commit.sh"
+        command = 'mkdir -p .git/hooks && chmod +x .openhands/pre-commit.sh'
         pre_commit_command_result = await workspace.execute_command(
             command, project_dir
         )
@@ -418,43 +418,43 @@ class AppConversationServiceBase(AppConversationService, ABC):
             return
 
         # Check if there's an existing pre-commit hook
-        with tempfile.TemporaryFile(mode="w+t") as temp_file:
+        with tempfile.TemporaryFile(mode='w+t') as temp_file:
             download_result = await workspace.file_download(
                 PRE_COMMIT_HOOK, str(temp_file)
             )
             if download_result.success:
-                _logger.info("Preserving existing pre-commit hook")
+                _logger.info('Preserving existing pre-commit hook')
                 # an existing pre-commit hook exists
-                if "This hook was installed by OpenHands" not in temp_file.read():
+                if 'This hook was installed by OpenHands' not in temp_file.read():
                     # Move the existing hook to pre-commit.local
                     command = (
-                        f"mv {PRE_COMMIT_HOOK} {PRE_COMMIT_LOCAL} &&"
-                        f"chmod +x {PRE_COMMIT_LOCAL}"
+                        f'mv {PRE_COMMIT_HOOK} {PRE_COMMIT_LOCAL} &&'
+                        f'chmod +x {PRE_COMMIT_LOCAL}'
                     )
                     mv_chmod_result = await workspace.execute_command(
                         command, project_dir
                     )
                     if mv_chmod_result.exit_code != 0:
                         _logger.error(
-                            f"Failed to preserve existing pre-commit hook: {mv_chmod_result.stderr}",
+                            f'Failed to preserve existing pre-commit hook: {mv_chmod_result.stderr}',
                         )
                         return
 
         # write the pre-commit hook
         await workspace.file_upload(
-            source_path=Path(__file__).parent / "git" / "pre-commit.sh",
+            source_path=Path(__file__).parent / 'git' / 'pre-commit.sh',
             destination_path=PRE_COMMIT_HOOK,
         )
 
         # Make the pre-commit hook executable
-        chmod_result = await workspace.execute_command(f"chmod +x {PRE_COMMIT_HOOK}")
+        chmod_result = await workspace.execute_command(f'chmod +x {PRE_COMMIT_HOOK}')
         if chmod_result.exit_code:
             _logger.error(
-                f"Failed to make pre-commit hook executable: {chmod_result.stderr}"
+                f'Failed to make pre-commit hook executable: {chmod_result.stderr}'
             )
             return
 
-        _logger.info("Git pre-commit hook installed successfully")
+        _logger.info('Git pre-commit hook installed successfully')
 
     def _create_condenser(
         self,
@@ -474,19 +474,19 @@ class AppConversationServiceBase(AppConversationService, ABC):
         """
         # LLMSummarizingCondenser SDK defaults: max_size=240, keep_first=2
         condenser_kwargs: dict[str, Any] = {
-            "llm": llm.model_copy(
+            'llm': llm.model_copy(
                 update={
-                    "usage_id": (
-                        "condenser"
+                    'usage_id': (
+                        'condenser'
                         if agent_type == AgentType.DEFAULT
-                        else "planning_condenser"
+                        else 'planning_condenser'
                     )
                 }
             ),
         }
         # Only override max_size if user has a custom value
         if condenser_max_size is not None:
-            condenser_kwargs["max_size"] = condenser_max_size
+            condenser_kwargs['max_size'] = condenser_max_size
 
         condenser = LLMSummarizingCondenser(**condenser_kwargs)
 
@@ -506,15 +506,15 @@ class AppConversationServiceBase(AppConversationService, ABC):
         Returns:
             SecurityAnalyzerBase instance or None
         """
-        if not security_analyzer_str or security_analyzer_str.lower() == "none":
+        if not security_analyzer_str or security_analyzer_str.lower() == 'none':
             return None
 
-        if security_analyzer_str.lower() == "llm":
+        if security_analyzer_str.lower() == 'llm':
             return LLMSecurityAnalyzer()
 
         # For unknown values, log a warning and return None
         _logger.warning(
-            f"Unknown security analyzer value: {security_analyzer_str}. "
+            f'Unknown security analyzer value: {security_analyzer_str}. '
             'Supported values: "llm", "none". Defaulting to None.'
         )
         return None
@@ -526,8 +526,8 @@ class AppConversationServiceBase(AppConversationService, ABC):
         if not confirmation_mode:
             return NeverConfirm()
 
-        analyzer_kind = (security_analyzer or "").lower()
-        if analyzer_kind == "llm":
+        analyzer_kind = (security_analyzer or '').lower()
+        if analyzer_kind == 'llm':
             return ConfirmRisky()
 
         return AlwaysConfirm()
@@ -538,7 +538,7 @@ class AppConversationServiceBase(AppConversationService, ABC):
         session_api_key: str | None,
         conversation_id: UUID,
         security_analyzer_str: str | None,
-        httpx_client: "httpx.AsyncClient",
+        httpx_client: 'httpx.AsyncClient',
     ) -> None:
         """Set security analyzer on conversation using only the analyzer string.
 
@@ -563,22 +563,22 @@ class AppConversationServiceBase(AppConversationService, ABC):
 
         try:
             # Prepare the request payload
-            payload = {"security_analyzer": security_analyzer.model_dump()}
+            payload = {'security_analyzer': security_analyzer.model_dump()}
 
             # Call agent server API to set security analyzer
             response = await httpx_client.post(
-                f"{agent_server_url}/api/conversations/{conversation_id}/security_analyzer",
+                f'{agent_server_url}/api/conversations/{conversation_id}/security_analyzer',
                 json=payload,
-                headers={"X-Session-API-Key": session_api_key},
+                headers={'X-Session-API-Key': session_api_key},
                 timeout=30.0,
             )
             response.raise_for_status()
             _logger.info(
-                f"Successfully set security analyzer for conversation {conversation_id}"
+                f'Successfully set security analyzer for conversation {conversation_id}'
             )
         except Exception as e:
             # Log error but don't fail conversation creation
             _logger.warning(
-                f"Failed to set security analyzer for conversation {conversation_id}: {e}",
+                f'Failed to set security analyzer for conversation {conversation_id}: {e}',
                 exc_info=True,
             )

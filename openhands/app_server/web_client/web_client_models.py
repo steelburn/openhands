@@ -25,8 +25,8 @@ class WebClientFeatureFlags(BaseModel):
     enable_onboarding: bool = False
 
     # This can be removed / replaced when a DeploymentMode (or similar) env var is created.
-    @model_validator(mode="after")
-    def set_deployment_mode(self) -> "WebClientFeatureFlags":
+    @model_validator(mode='after')
+    def set_deployment_mode(self) -> 'WebClientFeatureFlags':
         if self.deployment_mode is None:
             self.deployment_mode = get_deployment_mode()
         return self

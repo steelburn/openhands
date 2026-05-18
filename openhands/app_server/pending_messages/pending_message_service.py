@@ -27,11 +27,11 @@ _content_type_adapter = TypeAdapter(list[TextContent | ImageContent])
 class StoredPendingMessage(Base):
     """SQLAlchemy model for pending messages."""
 
-    __tablename__ = "pending_messages"
+    __tablename__ = 'pending_messages'
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     conversation_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    role: Mapped[str] = mapped_column(String(20), nullable=False, default="user")
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default='user')
     content: Mapped[list[Any]] = mapped_column(JSON, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         UtcDateTime, server_default=func.now(), index=True
@@ -46,7 +46,7 @@ class PendingMessageService(ABC):
         self,
         conversation_id: str,
         content: list[TextContent | ImageContent],
-        role: str = "user",
+        role: str = 'user',
     ) -> PendingMessageResponse:
         """Queue a message for delivery when conversation becomes ready."""
 
@@ -82,7 +82,7 @@ class SQLPendingMessageService(PendingMessageService):
         self,
         conversation_id: str,
         content: list[TextContent | ImageContent],
-        role: str = "user",
+        role: str = 'user',
     ) -> PendingMessageResponse:
         """Queue a message for delivery when conversation becomes ready."""
         # Create the pending message

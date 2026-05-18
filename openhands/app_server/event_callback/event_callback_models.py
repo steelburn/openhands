@@ -31,10 +31,10 @@ else:
 
 
 class EventCallbackStatus(Enum):
-    ACTIVE = "ACTIVE"
-    DISABLED = "DISABLED"
-    COMPLETED = "COMPLETED"
-    ERROR = "ERROR"
+    ACTIVE = 'ACTIVE'
+    DISABLED = 'DISABLED'
+    COMPLETED = 'COMPLETED'
+    ERROR = 'ERROR'
 
 
 class EventCallbackProcessor(DiscriminatedUnionMixin, ABC):
@@ -58,7 +58,7 @@ class LoggingCallbackProcessor(EventCallbackProcessor):
         event: Event,
     ) -> EventCallbackResult:
         _logger.info(
-            "Callback %s Invoked for event %s",
+            'Callback %s Invoked for event %s',
             callback.id,
             redact_text_secrets(str(event)),
         )
@@ -74,14 +74,14 @@ class CreateEventCallbackRequest(OpenHandsModel):
     conversation_id: OpenHandsUUID | None = Field(
         default=None,
         description=(
-            "Optional filter on the conversation to which this callback applies"
+            'Optional filter on the conversation to which this callback applies'
         ),
     )
     processor: EventCallbackProcessor
     event_kind: EventKind | None = Field(
         default=None,
         description=(
-            "Optional filter on the type of events to which this callback applies"
+            'Optional filter on the type of events to which this callback applies'
         ),
     )
 

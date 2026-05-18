@@ -12,4 +12,4 @@ from openhands.app_server.app import (
     mcp_app,
 )
 
-__all__ = ["app", "mcp_app", "combine_lifespans", "authentication_error_handler"]
+__all__ = ['app', 'mcp_app', 'combine_lifespans', 'authentication_error_handler']

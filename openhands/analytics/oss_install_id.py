@@ -18,7 +18,7 @@ def get_or_create_install_id(persistence_dir: Path) -> str:
     On any IOError (e.g., read-only filesystem), returns an ephemeral UUID
     without crashing — the caller still gets a usable ID.
     """
-    id_file = persistence_dir / "analytics_id.txt"
+    id_file = persistence_dir / 'analytics_id.txt'
 
     try:
         if id_file.exists():

@@ -27,24 +27,24 @@ class LocalhostCORSMiddleware(CORSMiddleware):
             app,
             allow_origins=allow_origins,
             allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
+            allow_methods=['*'],
+            allow_headers=['*'],
         )
 
     def is_allowed_origin(self, origin: str) -> bool:
         if origin and not self.allow_origins and not self.allow_origin_regex:
             parsed = urlparse(origin)
-            hostname = parsed.hostname or ""
+            hostname = parsed.hostname or ''
 
             # Allow any localhost/127.0.0.1 origin regardless of port
-            if hostname in ["localhost", "127.0.0.1"]:
+            if hostname in ['localhost', '127.0.0.1']:
                 return True
 
             # Allow any origin when no specific origins are configured (development mode)
             # WARNING: This disables CORS protection. Use explicit CORS origins in production.
             logging.getLogger(__name__).warning(
-                f"No CORS origins configured, allowing origin: {origin}. "
-                "Set OH_PERMITTED_CORS_ORIGINS for production environments."
+                f'No CORS origins configured, allowing origin: {origin}. '
+                'Set OH_PERMITTED_CORS_ORIGINS for production environments.'
             )
             return True
 
@@ -60,15 +60,15 @@ class CacheControlMiddleware(BaseHTTPMiddleware):
         self, request: Request, call_next: RequestResponseEndpoint
     ) -> Response:
         response = await call_next(request)
-        if request.url.path.startswith("/assets"):
+        if request.url.path.startswith('/assets'):
             # The content of the assets directory has fingerprinted file names so we cache aggressively
-            response.headers["Cache-Control"] = "public, max-age=2592000, immutable"
+            response.headers['Cache-Control'] = 'public, max-age=2592000, immutable'
         else:
-            response.headers["Cache-Control"] = (
-                "no-cache, no-store, must-revalidate, max-age=0"
+            response.headers['Cache-Control'] = (
+                'no-cache, no-store, must-revalidate, max-age=0'
             )
-            response.headers["Pragma"] = "no-cache"
-            response.headers["Expires"] = "0"
+            response.headers['Pragma'] = 'no-cache'
+            response.headers['Expires'] = '0'
         return response
 
 
@@ -124,13 +124,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if not ok:
             return JSONResponse(
                 status_code=429,
-                content={"message": "Too many requests"},
-                headers={"Retry-After": "1"},
+                content={'message': 'Too many requests'},
+                headers={'Retry-After': '1'},
             )
         return await call_next(request)
 
     def is_rate_limited_request(self, request: StarletteRequest) -> bool:
-        if request.url.path.startswith("/assets"):
+        if request.url.path.startswith('/assets'):
             return False
         # Put Other non rate limited checks here
         return True

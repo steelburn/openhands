@@ -96,7 +96,7 @@ async def validate_provider_token(
         azure_devops_error = e
 
     logger.debug(
-        f"Failed to validate token: {github_error} \n {gitlab_error} \n {forgejo_error} \n {bitbucket_error} \n {bitbucket_dc_error} \n {azure_devops_error}"
+        f'Failed to validate token: {github_error} \n {gitlab_error} \n {forgejo_error} \n {bitbucket_error} \n {bitbucket_dc_error} \n {azure_devops_error}'
     )
 
     return None

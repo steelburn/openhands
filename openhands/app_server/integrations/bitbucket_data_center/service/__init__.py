@@ -5,9 +5,9 @@ from .repos import BitbucketDCReposMixin
 from .resolver import BitbucketDCResolverMixin
 
 __all__ = [
-    "BitbucketDCMixinBase",
-    "BitbucketDCBranchesMixin",
-    "BitbucketDCPRsMixin",
-    "BitbucketDCReposMixin",
-    "BitbucketDCResolverMixin",
+    'BitbucketDCMixinBase',
+    'BitbucketDCBranchesMixin',
+    'BitbucketDCPRsMixin',
+    'BitbucketDCReposMixin',
+    'BitbucketDCResolverMixin',
 ]

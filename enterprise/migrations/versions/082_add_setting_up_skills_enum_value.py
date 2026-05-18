@@ -12,8 +12,8 @@ from alembic import op
 from sqlalchemy import text
 
 # revision identifiers, used by Alembic.
-revision: str = "082"
-down_revision: Union[str, Sequence[str], None] = "081"
+revision: str = '082'
+down_revision: Union[str, Sequence[str], None] = '081'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

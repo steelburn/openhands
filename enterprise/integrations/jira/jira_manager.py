@@ -51,7 +51,7 @@ from openhands.app_server.user_auth.user_auth import UserAuth
 from openhands.app_server.utils.http_session import httpx_verify_option
 from openhands.app_server.utils.logger import openhands_logger as logger
 
-JIRA_CLOUD_API_URL = "https://api.atlassian.com/ex/jira"
+JIRA_CLOUD_API_URL = 'https://api.atlassian.com/ex/jira'
 
 # Get OH labels for this environment
 OH_LABEL, INLINE_OH_LABEL = get_oh_labels(HOST)
@@ -68,7 +68,7 @@ class JiraManager(Manager[JiraViewInterface]):
         self.token_manager = token_manager
         self.integration_store = JiraIntegrationStore.get_instance()
         self.jinja_env = Environment(
-            loader=FileSystemLoader(OPENHANDS_RESOLVER_TEMPLATES_DIR + "jira")
+            loader=FileSystemLoader(OPENHANDS_RESOLVER_TEMPLATES_DIR + 'jira')
         )
         self.payload_parser = JiraPayloadParser(
             oh_label=OH_LABEL,
@@ -87,35 +87,35 @@ class JiraManager(Manager[JiraViewInterface]):
 
         Each step has clear logging for traceability.
         """
-        raw_payload = message.message.get("payload", {})
+        raw_payload = message.message.get('payload', {})
 
         # Step 1: Parse webhook payload
         logger.info(
-            "[Jira] Received webhook",
-            extra={"raw_payload": raw_payload},
+            '[Jira] Received webhook',
+            extra={'raw_payload': raw_payload},
         )
 
         parse_result = self.payload_parser.parse(raw_payload)
 
         if isinstance(parse_result, JiraPayloadSkipped):
             logger.info(
-                "[Jira] Webhook skipped", extra={"reason": parse_result.skip_reason}
+                '[Jira] Webhook skipped', extra={'reason': parse_result.skip_reason}
             )
             return
 
         if isinstance(parse_result, JiraPayloadError):
             logger.warning(
-                "[Jira] Webhook parse failed", extra={"error": parse_result.error}
+                '[Jira] Webhook parse failed', extra={'error': parse_result.error}
             )
             return
 
         payload = parse_result.payload
         logger.info(
-            "[Jira] Processing webhook",
+            '[Jira] Processing webhook',
             extra={
-                "event_type": payload.event_type.value,
-                "issue_key": payload.issue_key,
-                "user_email": payload.user_email,
+                'event_type': payload.event_type.value,
+                'issue_key': payload.issue_key,
+                'user_email': payload.user_email,
             },
         )
 
@@ -142,28 +142,28 @@ class JiraManager(Manager[JiraViewInterface]):
             )
         except RepositoryNotFoundError as e:
             logger.warning(
-                "[Jira] Repository not found",
-                extra={"issue_key": payload.issue_key, "error": str(e)},
+                '[Jira] Repository not found',
+                extra={'issue_key': payload.issue_key, 'error': str(e)},
             )
             await self._send_error_from_payload(payload, workspace, str(e))
             return
         except StartingConvoException as e:
             logger.warning(
-                "[Jira] View creation failed",
-                extra={"issue_key": payload.issue_key, "error": str(e)},
+                '[Jira] View creation failed',
+                extra={'issue_key': payload.issue_key, 'error': str(e)},
             )
             await self._send_error_from_payload(payload, workspace, str(e))
             return
         except Exception as e:
             logger.error(
-                "[Jira] Unexpected error creating view",
-                extra={"issue_key": payload.issue_key, "error": str(e)},
+                '[Jira] Unexpected error creating view',
+                extra={'issue_key': payload.issue_key, 'error': str(e)},
                 exc_info=True,
             )
             await self._send_error_from_payload(
                 payload,
                 workspace,
-                "Failed to initialize conversation. Please try again.",
+                'Failed to initialize conversation. Please try again.',
             )
             return
 
@@ -186,8 +186,8 @@ class JiraManager(Manager[JiraViewInterface]):
 
         if not workspace:
             logger.warning(
-                "[Jira] Workspace not found",
-                extra={"workspace_name": payload.workspace_name},
+                '[Jira] Workspace not found',
+                extra={'workspace_name': payload.workspace_name},
             )
             # Can't send error without workspace credentials
             return None
@@ -195,18 +195,18 @@ class JiraManager(Manager[JiraViewInterface]):
         # Prevent recursive triggers from service account
         if payload.user_email == workspace.svc_acc_email:
             logger.debug(
-                "[Jira] Ignoring service account trigger",
-                extra={"workspace_name": payload.workspace_name},
+                '[Jira] Ignoring service account trigger',
+                extra={'workspace_name': payload.workspace_name},
             )
             return None
 
-        if workspace.status != "active":
+        if workspace.status != 'active':
             logger.warning(
-                "[Jira] Workspace inactive",
-                extra={"workspace_id": workspace.id, "status": workspace.status},
+                '[Jira] Workspace inactive',
+                extra={'workspace_id': workspace.id, 'status': workspace.status},
             )
             await self._send_error_from_payload(
-                payload, workspace, "Jira integration is not active for your workspace."
+                payload, workspace, 'Jira integration is not active for your workspace.'
             )
             return None
 
@@ -222,17 +222,17 @@ class JiraManager(Manager[JiraViewInterface]):
 
         if not jira_user:
             logger.warning(
-                "[Jira] User not found or inactive",
+                '[Jira] User not found or inactive',
                 extra={
-                    "account_id": payload.account_id,
-                    "user_email": payload.user_email,
-                    "workspace_id": workspace.id,
+                    'account_id': payload.account_id,
+                    'user_email': payload.user_email,
+                    'workspace_id': workspace.id,
                 },
             )
             await self._send_error_from_payload(
                 payload,
                 workspace,
-                f"User {payload.user_email} is not authenticated or active in the Jira integration.",
+                f'User {payload.user_email} is not authenticated or active in the Jira integration.',
             )
             return None, None
 
@@ -242,16 +242,16 @@ class JiraManager(Manager[JiraViewInterface]):
 
         if not saas_user_auth:
             logger.warning(
-                "[Jira] Failed to get OpenHands auth",
+                '[Jira] Failed to get OpenHands auth',
                 extra={
-                    "keycloak_user_id": jira_user.keycloak_user_id,
-                    "user_email": payload.user_email,
+                    'keycloak_user_id': jira_user.keycloak_user_id,
+                    'user_email': payload.user_email,
                 },
             )
             await self._send_error_from_payload(
                 payload,
                 workspace,
-                f"User {payload.user_email} is not authenticated with OpenHands.",
+                f'User {payload.user_email} is not authenticated with OpenHands.',
             )
             return None, None
 
@@ -261,11 +261,11 @@ class JiraManager(Manager[JiraViewInterface]):
         """Start a Jira job/conversation."""
         try:
             logger.info(
-                "[Jira] Starting job",
+                '[Jira] Starting job',
                 extra={
-                    "issue_key": view.payload.issue_key,
-                    "user_id": view.jira_user.keycloak_user_id,
-                    "selected_repo": view.selected_repo,
+                    'issue_key': view.payload.issue_key,
+                    'user_id': view.jira_user.keycloak_user_id,
+                    'selected_repo': view.selected_repo,
                 },
             )
 
@@ -273,10 +273,10 @@ class JiraManager(Manager[JiraViewInterface]):
             conversation_id = await view.create_or_update_conversation(self.jinja_env)
 
             logger.info(
-                "[Jira] Conversation created",
+                '[Jira] Conversation created',
                 extra={
-                    "conversation_id": conversation_id,
-                    "issue_key": view.payload.issue_key,
+                    'conversation_id': conversation_id,
+                    'issue_key': view.payload.issue_key,
                 },
             )
 
@@ -285,39 +285,39 @@ class JiraManager(Manager[JiraViewInterface]):
 
         except MissingSettingsError as e:
             logger.warning(
-                "[Jira] Missing settings error",
-                extra={"issue_key": view.payload.issue_key, "error": str(e)},
+                '[Jira] Missing settings error',
+                extra={'issue_key': view.payload.issue_key, 'error': str(e)},
             )
-            msg_info = f"Please re-login into [OpenHands Cloud]({HOST_URL}) before starting a job."
+            msg_info = f'Please re-login into [OpenHands Cloud]({HOST_URL}) before starting a job.'
 
         except LLMAuthenticationError as e:
             logger.warning(
-                "[Jira] LLM authentication error",
-                extra={"issue_key": view.payload.issue_key, "error": str(e)},
+                '[Jira] LLM authentication error',
+                extra={'issue_key': view.payload.issue_key, 'error': str(e)},
             )
-            msg_info = f"Please set a valid LLM API key in [OpenHands Cloud]({HOST_URL}) before starting a job."
+            msg_info = f'Please set a valid LLM API key in [OpenHands Cloud]({HOST_URL}) before starting a job.'
 
         except SessionExpiredError as e:
             logger.warning(
-                "[Jira] Session expired",
-                extra={"issue_key": view.payload.issue_key, "error": str(e)},
+                '[Jira] Session expired',
+                extra={'issue_key': view.payload.issue_key, 'error': str(e)},
             )
             msg_info = get_session_expired_message()
 
         except StartingConvoException as e:
             logger.warning(
-                "[Jira] Conversation start failed",
-                extra={"issue_key": view.payload.issue_key, "error": str(e)},
+                '[Jira] Conversation start failed',
+                extra={'issue_key': view.payload.issue_key, 'error': str(e)},
             )
             msg_info = str(e)
 
         except Exception as e:
             logger.error(
-                "[Jira] Unexpected error starting job",
-                extra={"issue_key": view.payload.issue_key, "error": str(e)},
+                '[Jira] Unexpected error starting job',
+                extra={'issue_key': view.payload.issue_key, 'error': str(e)},
                 exc_info=True,
             )
-            msg_info = "Sorry, there was an unexpected error starting the job. Please try again."
+            msg_info = 'Sorry, there was an unexpected error starting the job. Please try again.'
 
         # Send response comment
         await self._send_comment(view, msg_info)
@@ -340,7 +340,7 @@ class JiraManager(Manager[JiraViewInterface]):
             svc_acc_api_key: Service account API key for authentication
         """
         url = (
-            f"{JIRA_CLOUD_API_URL}/{jira_cloud_id}/rest/api/2/issue/{issue_key}/comment"
+            f'{JIRA_CLOUD_API_URL}/{jira_cloud_id}/rest/api/2/issue/{issue_key}/comment'
         )
         data = format_jira_comment_body(message)
         async with httpx.AsyncClient(verify=httpx_verify_option()) as client:
@@ -365,8 +365,8 @@ class JiraManager(Manager[JiraViewInterface]):
             )
         except Exception as e:
             logger.error(
-                "[Jira] Failed to send comment",
-                extra={"issue_key": view.payload.issue_key, "error": str(e)},
+                '[Jira] Failed to send comment',
+                extra={'issue_key': view.payload.issue_key, 'error': str(e)},
             )
 
     async def _send_error_from_payload(
@@ -387,8 +387,8 @@ class JiraManager(Manager[JiraViewInterface]):
             )
         except Exception as e:
             logger.error(
-                "[Jira] Failed to send error comment",
-                extra={"issue_key": payload.issue_key, "error": str(e)},
+                '[Jira] Failed to send error comment',
+                extra={'issue_key': payload.issue_key, 'error': str(e)},
             )
 
     def get_workspace_name_from_payload(self, payload: dict) -> str | None:

@@ -28,11 +28,11 @@ def mock_user(user_id):
     """Create a mock user with app settings."""
     user = MagicMock(spec=User)
     user.id = uuid.UUID(user_id)
-    user.language = "en"
+    user.language = 'en'
     user.user_consents_to_analytics = True
     user.enable_sound_notifications = False
-    user.git_user_name = "testuser"
-    user.git_user_email = "test@example.com"
+    user.git_user_name = 'testuser'
+    user.git_user_email = 'test@example.com'
     return user
 
 
@@ -68,11 +68,11 @@ async def test_get_user_app_settings_success(
 
     # Assert
     assert isinstance(result, UserAppSettingsResponse)
-    assert result.language == "en"
+    assert result.language == 'en'
     assert result.user_consents_to_analytics is True
     assert result.enable_sound_notifications is False
-    assert result.git_user_name == "testuser"
-    assert result.git_user_email == "test@example.com"
+    assert result.git_user_name == 'testuser'
+    assert result.git_user_email == 'test@example.com'
     mock_store.get_user_by_id.assert_called_once_with(user_id)
 
 
@@ -106,11 +106,11 @@ async def test_update_user_app_settings_success(
     THEN: UserAppSettingsResponse is returned with updated data
     """
     # Arrange
-    mock_user.language = "es"
+    mock_user.language = 'es'
     mock_user.user_consents_to_analytics = False
 
     update_data = UserAppSettingsUpdate(
-        language="es",
+        language='es',
         user_consents_to_analytics=False,
     )
 
@@ -122,7 +122,7 @@ async def test_update_user_app_settings_success(
 
     # Assert
     assert isinstance(result, UserAppSettingsResponse)
-    assert result.language == "es"
+    assert result.language == 'es'
     assert result.user_consents_to_analytics is False
     mock_store.update_user_app_settings.assert_called_once_with(
         user_id=user_id, update_data=update_data
@@ -164,7 +164,7 @@ async def test_update_user_app_settings_user_not_found(
     THEN: UserNotFoundError is raised
     """
     # Arrange
-    update_data = UserAppSettingsUpdate(language="en")
+    update_data = UserAppSettingsUpdate(language='en')
 
     mock_store.update_user_app_settings = AsyncMock(return_value=None)
     service = UserAppSettingsService(store=mock_store, user_context=mock_user_context)

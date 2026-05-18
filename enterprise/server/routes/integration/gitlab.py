@@ -24,7 +24,7 @@ from openhands.app_server.integrations.gitlab.gitlab_service import GitLabServic
 from openhands.app_server.user_auth import get_user_id
 from openhands.app_server.utils.logger import openhands_logger as logger
 
-gitlab_integration_router = APIRouter(prefix="/integration")
+gitlab_integration_router = APIRouter(prefix='/integration')
 webhook_store = GitlabWebhookStore()
 
 token_manager = TokenManager()
@@ -66,10 +66,10 @@ async def verify_gitlab_signature(
     header_webhook_secret: str, webhook_uuid: str, user_id: str
 ):
     if not header_webhook_secret or not webhook_uuid or not user_id:
-        raise HTTPException(status_code=403, detail="Required payload headers missing!")
+        raise HTTPException(status_code=403, detail='Required payload headers missing!')
 
     if IS_LOCAL_DEPLOYMENT:
-        webhook_secret: str | None = "localdeploymentwebhooktesttoken"
+        webhook_secret: str | None = 'localdeploymentwebhooktesttoken'
     else:
         webhook_secret = await webhook_store.get_webhook_secret(
             webhook_uuid=webhook_uuid, user_id=user_id
@@ -79,7 +79,7 @@ async def verify_gitlab_signature(
         raise HTTPException(status_code=403, detail="Request signatures didn't match!")
 
 
-@gitlab_integration_router.post("/gitlab/events")
+@gitlab_integration_router.post('/gitlab/events')
 async def gitlab_events(
     request: Request,
     x_gitlab_token: str = Header(None),
@@ -94,29 +94,29 @@ async def gitlab_events(
         )
 
         payload_data = await request.json()
-        object_attributes = payload_data.get("object_attributes", {})
-        dedup_key = object_attributes.get("id")
+        object_attributes = payload_data.get('object_attributes', {})
+        dedup_key = object_attributes.get('id')
 
         if not dedup_key:
             # Hash entire payload if payload doesn't contain payload ID
             dedup_json = json.dumps(payload_data, sort_keys=True)
             dedup_hash = hashlib.sha256(dedup_json.encode()).hexdigest()
-            dedup_key = f"gitlab_msg: {dedup_hash}"
+            dedup_key = f'gitlab_msg: {dedup_hash}'
 
         redis = get_redis_client_async()
         created = await redis.set(dedup_key, 1, nx=True, ex=60)
         if not created:
-            logger.info("gitlab_is_duplicate")
+            logger.info('gitlab_is_duplicate')
             return JSONResponse(
                 status_code=200,
-                content={"message": "Duplicate GitLab event ignored."},
+                content={'message': 'Duplicate GitLab event ignored.'},
             )
 
         message = Message(
             source=SourceType.GITLAB,
             message={
-                "payload": payload_data,
-                "installation_id": x_openhands_webhook_id,
+                'payload': payload_data,
+                'installation_id': x_openhands_webhook_id,
             },
         )
 
@@ -124,15 +124,15 @@ async def gitlab_events(
 
         return JSONResponse(
             status_code=200,
-            content={"message": "GitLab events endpoint reached successfully."},
+            content={'message': 'GitLab events endpoint reached successfully.'},
         )
 
     except Exception as e:
-        logger.exception(f"Error processing GitLab event: {e}")
-        return JSONResponse(status_code=400, content={"error": "Invalid payload."})
+        logger.exception(f'Error processing GitLab event: {e}')
+        return JSONResponse(status_code=400, content={'error': 'Invalid payload.'})
 
 
-@gitlab_integration_router.get("/gitlab/resources")
+@gitlab_integration_router.get('/gitlab/resources')
 async def get_gitlab_resources(
     user_id: str = Depends(get_user_id),
 ) -> GitLabResourcesResponse:
@@ -147,7 +147,7 @@ async def get_gitlab_resources(
         if not isinstance(gitlab_service, SaaSGitLabService):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Only SaaS GitLab service is supported",
+                detail='Only SaaS GitLab service is supported',
             )
 
         # Fetch projects and groups with admin access
@@ -158,12 +158,12 @@ async def get_gitlab_resources(
         filtered_projects = [
             project
             for project in projects
-            if project.get("namespace", {}).get("kind") != "group"
+            if project.get('namespace', {}).get('kind') != 'group'
         ]
 
         # Extract IDs for bulk fetching
-        project_ids = [str(project["id"]) for project in filtered_projects]
-        group_ids = [str(group["id"]) for group in groups]
+        project_ids = [str(project['id']) for project in filtered_projects]
+        group_ids = [str(group['id']) for group in groups]
 
         # Bulk fetch webhook records from database (organization-wide)
         (
@@ -173,14 +173,14 @@ async def get_gitlab_resources(
 
         # Parallelize GitLab API calls to check webhook status for all resources
         async def check_project_webhook(project):
-            project_id = str(project["id"])
+            project_id = str(project['id'])
             webhook_exists, _ = await gitlab_service.check_webhook_exists_on_resource(
                 GitLabResourceType.PROJECT, project_id, GITLAB_WEBHOOK_URL
             )
             return project_id, webhook_exists
 
         async def check_group_webhook(group):
-            group_id = str(group["id"])
+            group_id = str(group['id'])
             webhook_exists, _ = await gitlab_service.check_webhook_exists_on_resource(
                 GitLabResourceType.GROUP, group_id, GITLAB_WEBHOOK_URL
             )
@@ -212,9 +212,9 @@ async def get_gitlab_resources(
             resources.append(
                 ResourceWithWebhookStatus(
                     id=project_id,
-                    name=project.get("name", ""),
-                    full_path=project.get("path_with_namespace", ""),
-                    type="project",
+                    name=project.get('name', ''),
+                    full_path=project.get('path_with_namespace', ''),
+                    type='project',
                     webhook_installed=webhook_exists,
                     webhook_uuid=webhook.webhook_uuid if webhook else None,
                     last_synced=(
@@ -232,9 +232,9 @@ async def get_gitlab_resources(
             resources.append(
                 ResourceWithWebhookStatus(
                     id=group_id,
-                    name=group.get("name", ""),
-                    full_path=group.get("full_path", ""),
-                    type="group",
+                    name=group.get('name', ''),
+                    full_path=group.get('full_path', ''),
+                    type='group',
                     webhook_installed=webhook_exists,
                     webhook_uuid=webhook.webhook_uuid if webhook else None,
                     last_synced=(
@@ -246,11 +246,11 @@ async def get_gitlab_resources(
             )
 
         logger.info(
-            "Retrieved GitLab resources",
+            'Retrieved GitLab resources',
             extra={
-                "user_id": user_id,
-                "project_count": len(projects),
-                "group_count": len(groups),
+                'user_id': user_id,
+                'project_count': len(projects),
+                'group_count': len(groups),
             },
         )
 
@@ -259,14 +259,14 @@ async def get_gitlab_resources(
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception(f"Error retrieving GitLab resources: {e}")
+        logger.exception(f'Error retrieving GitLab resources: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve GitLab resources",
+            detail='Failed to retrieve GitLab resources',
         )
 
 
-@gitlab_integration_router.post("/gitlab/reinstall-webhook")
+@gitlab_integration_router.post('/gitlab/reinstall-webhook')
 async def reinstall_gitlab_webhook(
     body: ReinstallWebhookRequest,
     user_id: str = Depends(get_user_id),
@@ -283,7 +283,7 @@ async def reinstall_gitlab_webhook(
         if not isinstance(gitlab_service, SaaSGitLabService):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Only SaaS GitLab service is supported",
+                detail='Only SaaS GitLab service is supported',
             )
 
         resource_id = body.resource.id
@@ -300,7 +300,7 @@ async def reinstall_gitlab_webhook(
         if not has_admin_access:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="User does not have admin access to this resource",
+                detail='User does not have admin access to this resource',
             )
 
         # Reset webhook in database (organization-wide, not user-specific)
@@ -335,7 +335,7 @@ async def reinstall_gitlab_webhook(
         if not webhook:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create or fetch webhook record",
+                detail='Failed to create or fetch webhook record',
             )
 
         # Verify conditions and install webhook
@@ -359,11 +359,11 @@ async def reinstall_gitlab_webhook(
 
             if webhook_id:
                 logger.info(
-                    "GitLab webhook reinstalled successfully",
+                    'GitLab webhook reinstalled successfully',
                     extra={
-                        "user_id": user_id,
-                        "resource_type": resource_type.value,
-                        "resource_id": resource_id,
+                        'user_id': user_id,
+                        'resource_type': resource_type.value,
+                        'resource_id': resource_id,
                     },
                 )
                 return ResourceInstallationResult(
@@ -375,21 +375,21 @@ async def reinstall_gitlab_webhook(
             else:
                 raise HTTPException(
                     status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to install webhook",
+                    detail='Failed to install webhook',
                 )
 
         except BreakLoopException:
             # Conditions not met or webhook already exists
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Webhook installation conditions not met or webhook already exists",
+                detail='Webhook installation conditions not met or webhook already exists',
             )
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.exception(f"Error reinstalling GitLab webhook: {e}")
+        logger.exception(f'Error reinstalling GitLab webhook: {e}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to reinstall webhook",
+            detail='Failed to reinstall webhook',
         )

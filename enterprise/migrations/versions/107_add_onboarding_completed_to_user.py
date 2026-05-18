@@ -14,18 +14,18 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "107"
-down_revision: Union[str, None] = "106"
+revision: str = '107'
+down_revision: Union[str, None] = '106'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
     op.add_column(
-        "user",
-        sa.Column("onboarding_completed", sa.Boolean(), nullable=True, default=False),
+        'user',
+        sa.Column('onboarding_completed', sa.Boolean(), nullable=True, default=False),
     )
 
 
 def downgrade() -> None:
-    op.drop_column("user", "onboarding_completed")
+    op.drop_column('user', 'onboarding_completed')

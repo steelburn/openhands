@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 class TestSessionMaker:
     """Test cases for the session_maker function."""
 
-    @patch("enterprise.storage.database._get_db_session_injector")
+    @patch('enterprise.storage.database._get_db_session_injector')
     def test_session_maker_without_args(self, mock_get_injector):
         """Test that session_maker works without any arguments."""
         from enterprise.storage.database import session_maker
@@ -30,7 +30,7 @@ class TestSessionMaker:
         mock_inner_session_maker.assert_called_once_with()
         assert result == mock_session
 
-    @patch("enterprise.storage.database._get_db_session_injector")
+    @patch('enterprise.storage.database._get_db_session_injector')
     def test_session_maker_with_expire_on_commit_false(self, mock_get_injector):
         """Test that session_maker accepts expire_on_commit keyword argument.
 
@@ -56,7 +56,7 @@ class TestSessionMaker:
         mock_inner_session_maker.assert_called_once_with(expire_on_commit=False)
         assert result == mock_session
 
-    @patch("enterprise.storage.database._get_db_session_injector")
+    @patch('enterprise.storage.database._get_db_session_injector')
     def test_session_maker_with_multiple_kwargs(self, mock_get_injector):
         """Test that session_maker passes through multiple keyword arguments."""
         from enterprise.storage.database import session_maker
@@ -80,7 +80,7 @@ class TestSessionMaker:
         )
         assert result == mock_session
 
-    @patch("enterprise.storage.database._get_db_session_injector")
+    @patch('enterprise.storage.database._get_db_session_injector')
     def test_session_maker_returns_correct_session(self, mock_get_injector):
         """Test that session_maker returns the session from the inner session maker."""
         from enterprise.storage.database import session_maker

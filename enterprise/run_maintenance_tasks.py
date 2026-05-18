@@ -17,7 +17,7 @@ async def main():
         set_stale_task_error()
         await run_tasks()
     except Exception as e:
-        logger.info(f"Error running maintenance tasks: {e}")
+        logger.info(f'Error running maintenance tasks: {e}')
 
 
 def set_stale_task_error():
@@ -50,7 +50,7 @@ async def run_tasks():
                 task.status = MaintenanceTaskStatus.COMPLETED
                 session.commit()
             except Exception as e:
-                task.info = {"error": str(e)}
+                task.info = {'error': str(e)}
                 task.status = MaintenanceTaskStatus.ERROR
                 session.commit()
 
@@ -76,5 +76,5 @@ async def next_task(session) -> MaintenanceTask | None:
             return None
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     asyncio.run(main())

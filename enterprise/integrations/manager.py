@@ -4,7 +4,7 @@ from typing import Any, Generic, TypeVar
 from integrations.models import Message, SourceType
 
 # TypeVar for view types - each manager subclass specifies its own view type
-ViewT = TypeVar("ViewT")
+ViewT = TypeVar('ViewT')
 
 
 class Manager(ABC, Generic[ViewT]):

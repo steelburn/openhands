@@ -9,7 +9,7 @@ from pathlib import Path
 from uuid import UUID
 
 # The base directory name for v1 conversation storage
-V1_CONVERSATIONS_DIR = "v1_conversations"
+V1_CONVERSATIONS_DIR = 'v1_conversations'
 
 
 def get_conversation_dir(conversation_id: UUID | str) -> str:
@@ -32,7 +32,7 @@ def get_conversation_dir(conversation_id: UUID | str) -> str:
     else:
         # Already a hex string
         conversation_id_hex = conversation_id
-    return f"{V1_CONVERSATIONS_DIR}/{conversation_id_hex}"
+    return f'{V1_CONVERSATIONS_DIR}/{conversation_id_hex}'
 
 
 def get_conversation_path(

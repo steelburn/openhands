@@ -25,11 +25,11 @@ class User(Base):
     This model satisfies the UserBase protocol via structural typing.
     """
 
-    __tablename__ = "user"
+    __tablename__ = 'user'
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    current_org_id: Mapped[UUID] = mapped_column(ForeignKey("org.id"), nullable=False)
-    role_id: Mapped[int | None] = mapped_column(ForeignKey("role.id"), nullable=True)
+    current_org_id: Mapped[UUID] = mapped_column(ForeignKey('org.id'), nullable=False)
+    role_id: Mapped[int | None] = mapped_column(ForeignKey('role.id'), nullable=True)
     accepted_tos: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     enable_sound_notifications: Mapped[bool | None] = mapped_column(nullable=True)
     language: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -48,11 +48,11 @@ class User(Base):
     )
 
     # Relationships
-    role: Mapped["Role | None"] = relationship("Role", back_populates="users")
-    org_members: Mapped[list["OrgMember"]] = relationship(
-        "OrgMember", back_populates="user"
+    role: Mapped['Role | None'] = relationship('Role', back_populates='users')
+    org_members: Mapped[list['OrgMember']] = relationship(
+        'OrgMember', back_populates='user'
     )
-    current_org: Mapped["Org"] = relationship("Org", back_populates="current_users")
+    current_org: Mapped['Org'] = relationship('Org', back_populates='current_users')
     stored_conversation_metadata_saas: Mapped[
-        list["StoredConversationMetadataSaas"]
-    ] = relationship("StoredConversationMetadataSaas", back_populates="user")
+        list['StoredConversationMetadataSaas']
+    ] = relationship('StoredConversationMetadataSaas', back_populates='user')

@@ -13,14 +13,14 @@ from openhands.app_server.integrations.service_types import Repository
 HOST = WEB_HOST
 # ---- DO NOT REMOVE ----
 
-IS_LOCAL_DEPLOYMENT = "localhost" in HOST
-HOST_URL = f"https://{HOST}" if not IS_LOCAL_DEPLOYMENT else f"http://{HOST}"
-GITLAB_WEBHOOK_URL = f"{HOST_URL}/integration/gitlab/events"
-CONVERSATION_URL = f"{HOST_URL}/conversations/{{}}"
+IS_LOCAL_DEPLOYMENT = 'localhost' in HOST
+HOST_URL = f'https://{HOST}' if not IS_LOCAL_DEPLOYMENT else f'http://{HOST}'
+GITLAB_WEBHOOK_URL = f'{HOST_URL}/integration/gitlab/events'
+CONVERSATION_URL = f'{HOST_URL}/conversations/{{}}'
 
 # Toggle for auto-response feature that proactively starts conversations with users when workflow tests fail
 ENABLE_PROACTIVE_CONVERSATION_STARTERS = (
-    os.getenv("ENABLE_PROACTIVE_CONVERSATION_STARTERS", "false").lower() == "true"
+    os.getenv('ENABLE_PROACTIVE_CONVERSATION_STARTERS', 'false').lower() == 'true'
 )
 
 
@@ -40,8 +40,8 @@ def get_session_expired_message(username: str | None = None) -> str:
         A formatted session expired message
     """
     if username:
-        return f"@{username} your session has expired. Please login again at [OpenHands Cloud]({HOST_URL}) and try again."
-    return f"Your session has expired. Please login again at [OpenHands Cloud]({HOST_URL}) and try again."
+        return f'@{username} your session has expired. Please login again at [OpenHands Cloud]({HOST_URL}) and try again.'
+    return f'Your session has expired. Please login again at [OpenHands Cloud]({HOST_URL}) and try again.'
 
 
 def get_user_not_found_message(username: str | None = None) -> str:
@@ -64,8 +64,8 @@ def get_user_not_found_message(username: str | None = None) -> str:
 
 
 OPENHANDS_RESOLVER_TEMPLATES_DIR = (
-    os.getenv("OPENHANDS_RESOLVER_TEMPLATES_DIR")
-    or "openhands/app_server/integrations/templates/resolver/"
+    os.getenv('OPENHANDS_RESOLVER_TEMPLATES_DIR')
+    or 'openhands/app_server/integrations/templates/resolver/'
 )
 _jinja_env = Environment(loader=FileSystemLoader(OPENHANDS_RESOLVER_TEMPLATES_DIR))
 
@@ -82,14 +82,14 @@ def get_oh_labels(web_host: str) -> tuple[str, str]:
         - inline_oh_label is '@openhands-exp' for staging/local hosts, '@openhands' otherwise
     """
     web_host = web_host.strip()
-    is_staging_or_local = "staging" in web_host or "local" in web_host
-    oh_label = "openhands-exp" if is_staging_or_local else "openhands"
-    inline_oh_label = "@openhands-exp" if is_staging_or_local else "@openhands"
+    is_staging_or_local = 'staging' in web_host or 'local' in web_host
+    oh_label = 'openhands-exp' if is_staging_or_local else 'openhands'
+    inline_oh_label = '@openhands-exp' if is_staging_or_local else '@openhands'
     return oh_label, inline_oh_label
 
 
 def get_summary_instruction():
-    summary_instruction_template = _jinja_env.get_template("summary_prompt.j2")
+    summary_instruction_template = _jinja_env.get_template('summary_prompt.j2')
     summary_instruction = summary_instruction_template.render()
     return summary_instruction
 
@@ -117,7 +117,7 @@ def has_exact_mention(text: str, mention: str) -> bool:
 
     pattern = re.escape(mention_lower)
     # Match mention that is not part of a larger word
-    return bool(re.search(rf"(?:^|[^\w@]){pattern}(?![\w-])", text_lower))
+    return bool(re.search(rf'(?:^|[^\w@]){pattern}(?![\w-])', text_lower))
 
 
 def infer_repo_from_message(user_msg: str) -> list[str]:
@@ -125,18 +125,18 @@ def infer_repo_from_message(user_msg: str) -> list[str]:
     Extract all repository names in the format 'owner/repo' from various Git provider URLs
     and direct mentions in text. Supports GitHub, GitLab, and BitBucket.
     """
-    normalized_msg = re.sub(r"\s+", " ", user_msg.strip())
+    normalized_msg = re.sub(r'\s+', ' ', user_msg.strip())
 
     git_url_pattern = (
-        r"https?://(?:github\.com|gitlab\.com|bitbucket\.org)/"
-        r"([a-zA-Z0-9_.-]+)/([a-zA-Z0-9_.-]+?)(?:\.git)?"
-        r"(?:[/?#].*?)?(?=\s|$|[^\w.-])"
+        r'https?://(?:github\.com|gitlab\.com|bitbucket\.org)/'
+        r'([a-zA-Z0-9_.-]+)/([a-zA-Z0-9_.-]+?)(?:\.git)?'
+        r'(?:[/?#].*?)?(?=\s|$|[^\w.-])'
     )
 
     # UPDATED: allow {{ owner/repo }} in addition to existing boundaries
     direct_pattern = (
         r'(?:^|\s|{{|[\[\(\'":`])'  # left boundary
-        r"([a-zA-Z0-9_.-]+)/([a-zA-Z0-9_.-]+)"
+        r'([a-zA-Z0-9_.-]+)/([a-zA-Z0-9_.-]+)'
         r'(?=\s|$|}}|[\]\)\'",.:`])'  # right boundary
     )
 
@@ -145,19 +145,19 @@ def infer_repo_from_message(user_msg: str) -> list[str]:
 
     # Git URLs first (highest priority)
     for owner, repo in re.findall(git_url_pattern, normalized_msg):
-        repo = re.sub(r"\.git$", "", repo)
-        matches[f"{owner}/{repo}"] = True
+        repo = re.sub(r'\.git$', '', repo)
+        matches[f'{owner}/{repo}'] = True
 
     # Direct mentions
     for owner, repo in re.findall(direct_pattern, normalized_msg):
-        full_match = f"{owner}/{repo}"
+        full_match = f'{owner}/{repo}'
 
         if (
-            re.match(r"^\d+\.\d+/\d+\.\d+$", full_match)
-            or re.match(r"^\d{1,2}/\d{1,2}$", full_match)
-            or re.match(r"^[A-Z]/[A-Z]$", full_match)
-            or repo.endswith((".txt", ".md", ".py", ".js"))
-            or ("." in repo and len(repo.split(".")) > 2)
+            re.match(r'^\d+\.\d+/\d+\.\d+$', full_match)
+            or re.match(r'^\d{1,2}/\d{1,2}$', full_match)
+            or re.match(r'^[A-Z]/[A-Z]$', full_match)
+            or repo.endswith(('.txt', '.md', '.py', '.js'))
+            or ('.' in repo and len(repo.split('.')) > 2)
         ):
             continue
 
@@ -207,100 +207,100 @@ def markdown_to_jira_markup(markdown_text: str) -> str:
         str: The converted Jira Wiki Markup text
     """
     if not markdown_text or not isinstance(markdown_text, str):
-        return ""
+        return ''
 
     try:
         # Work with a copy to avoid modifying the original
         text = markdown_text
 
         # Convert headers (# ## ### #### ##### ######)
-        text = re.sub(r"^#{6}\s+(.*?)$", r"h6. \1", text, flags=re.MULTILINE)
-        text = re.sub(r"^#{5}\s+(.*?)$", r"h5. \1", text, flags=re.MULTILINE)
-        text = re.sub(r"^#{4}\s+(.*?)$", r"h4. \1", text, flags=re.MULTILINE)
-        text = re.sub(r"^#{3}\s+(.*?)$", r"h3. \1", text, flags=re.MULTILINE)
-        text = re.sub(r"^#{2}\s+(.*?)$", r"h2. \1", text, flags=re.MULTILINE)
-        text = re.sub(r"^#{1}\s+(.*?)$", r"h1. \1", text, flags=re.MULTILINE)
+        text = re.sub(r'^#{6}\s+(.*?)$', r'h6. \1', text, flags=re.MULTILINE)
+        text = re.sub(r'^#{5}\s+(.*?)$', r'h5. \1', text, flags=re.MULTILINE)
+        text = re.sub(r'^#{4}\s+(.*?)$', r'h4. \1', text, flags=re.MULTILINE)
+        text = re.sub(r'^#{3}\s+(.*?)$', r'h3. \1', text, flags=re.MULTILINE)
+        text = re.sub(r'^#{2}\s+(.*?)$', r'h2. \1', text, flags=re.MULTILINE)
+        text = re.sub(r'^#{1}\s+(.*?)$', r'h1. \1', text, flags=re.MULTILINE)
 
         # Convert code blocks first (before other formatting)
         text = re.sub(
-            r"```(\w+)\n(.*?)\n```", r"{code:\1}\n\2\n{code}", text, flags=re.DOTALL
+            r'```(\w+)\n(.*?)\n```', r'{code:\1}\n\2\n{code}', text, flags=re.DOTALL
         )
-        text = re.sub(r"```\n(.*?)\n```", r"{code}\n\1\n{code}", text, flags=re.DOTALL)
+        text = re.sub(r'```\n(.*?)\n```', r'{code}\n\1\n{code}', text, flags=re.DOTALL)
 
         # Convert inline code (`code`)
-        text = re.sub(r"`([^`]+)`", r"{{\1}}", text)
+        text = re.sub(r'`([^`]+)`', r'{{\1}}', text)
 
         # Convert markdown formatting to Jira formatting
         # Use temporary placeholders to avoid conflicts between bold and italic conversion
 
         # First convert bold (double markers) to temporary placeholders
-        text = re.sub(r"\*\*(.*?)\*\*", r"JIRA_BOLD_START\1JIRA_BOLD_END", text)
-        text = re.sub(r"__(.*?)__", r"JIRA_BOLD_START\1JIRA_BOLD_END", text)
+        text = re.sub(r'\*\*(.*?)\*\*', r'JIRA_BOLD_START\1JIRA_BOLD_END', text)
+        text = re.sub(r'__(.*?)__', r'JIRA_BOLD_START\1JIRA_BOLD_END', text)
 
         # Now convert single asterisk italics
-        text = re.sub(r"\*([^*]+?)\*", r"_\1_", text)
+        text = re.sub(r'\*([^*]+?)\*', r'_\1_', text)
 
         # Convert underscore italics
-        text = re.sub(r"(?<!_)_([^_]+?)_(?!_)", r"_\1_", text)
+        text = re.sub(r'(?<!_)_([^_]+?)_(?!_)', r'_\1_', text)
 
         # Finally, restore bold markers
-        text = text.replace("JIRA_BOLD_START", "*")
-        text = text.replace("JIRA_BOLD_END", "*")
+        text = text.replace('JIRA_BOLD_START', '*')
+        text = text.replace('JIRA_BOLD_END', '*')
 
         # Convert links [text](url)
-        text = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r"[\1|\2]", text)
+        text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'[\1|\2]', text)
 
         # Convert unordered lists (- or * or +)
-        text = re.sub(r"^[\s]*[-*+]\s+(.*?)$", r"* \1", text, flags=re.MULTILINE)
+        text = re.sub(r'^[\s]*[-*+]\s+(.*?)$', r'* \1', text, flags=re.MULTILINE)
 
         # Convert ordered lists (1. 2. etc.)
-        text = re.sub(r"^[\s]*\d+\.\s+(.*?)$", r"# \1", text, flags=re.MULTILINE)
+        text = re.sub(r'^[\s]*\d+\.\s+(.*?)$', r'# \1', text, flags=re.MULTILINE)
 
         # Convert strikethrough (~~text~~)
-        text = re.sub(r"~~(.*?)~~", r"-\1-", text)
+        text = re.sub(r'~~(.*?)~~', r'-\1-', text)
 
         # Convert horizontal rules (---, ***, ___)
-        text = re.sub(r"^[\s]*[-*_]{3,}[\s]*$", r"----", text, flags=re.MULTILINE)
+        text = re.sub(r'^[\s]*[-*_]{3,}[\s]*$', r'----', text, flags=re.MULTILINE)
 
         # Convert blockquotes (> text)
-        text = re.sub(r"^>\s+(.*?)$", r"bq. \1", text, flags=re.MULTILINE)
+        text = re.sub(r'^>\s+(.*?)$', r'bq. \1', text, flags=re.MULTILINE)
 
         # Convert tables (basic support)
         # This is a simplified table conversion - Jira tables are quite different
-        lines = text.split("\n")
+        lines = text.split('\n')
         in_table = False
         converted_lines = []
 
         for line in lines:
             if (
-                "|" in line
-                and line.strip().startswith("|")
-                and line.strip().endswith("|")
+                '|' in line
+                and line.strip().startswith('|')
+                and line.strip().endswith('|')
             ):
                 # Skip markdown table separator lines (contain ---)
-                if "---" in line:
+                if '---' in line:
                     continue
                 if not in_table:
                     in_table = True
                 # Convert markdown table row to Jira table row
-                cells = [cell.strip() for cell in line.split("|")[1:-1]]
-                converted_line = "|" + "|".join(cells) + "|"
+                cells = [cell.strip() for cell in line.split('|')[1:-1]]
+                converted_line = '|' + '|'.join(cells) + '|'
                 converted_lines.append(converted_line)
-            elif in_table and line.strip() and "|" not in line:
+            elif in_table and line.strip() and '|' not in line:
                 in_table = False
                 converted_lines.append(line)
             else:
                 in_table = False
                 converted_lines.append(line)
 
-        text = "\n".join(converted_lines)
+        text = '\n'.join(converted_lines)
 
         return text
 
     except Exception as e:
         # Log the error but don't raise it - return original text as fallback
-        print(f"Error converting markdown to Jira markup: {str(e)}")
-        return markdown_text or ""
+        print(f'Error converting markdown to Jira markup: {str(e)}')
+        return markdown_text or ''
 
 
 def format_jira_comment_body(message: str) -> dict:
@@ -315,4 +315,4 @@ def format_jira_comment_body(message: str) -> dict:
     Returns:
         dict: The comment body in Jira API v2 format {'body': ...}
     """
-    return {"body": markdown_to_jira_markup(message)}
+    return {'body': markdown_to_jira_markup(message)}

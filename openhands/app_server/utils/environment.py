@@ -5,17 +5,17 @@ from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 
-LEMONADE_DOCKER_BASE_URL = "http://host.docker.internal:8000/api/v1/"
-_LEMONADE_PROVIDER_NAME = "lemonade"
-_LEMONADE_MODEL_PREFIX = "lemonade/"
+LEMONADE_DOCKER_BASE_URL = 'http://host.docker.internal:8000/api/v1/'
+_LEMONADE_PROVIDER_NAME = 'lemonade'
+_LEMONADE_MODEL_PREFIX = 'lemonade/'
 
 
 class StorageProvider(str, Enum):
     """Storage provider types for event and shared event storage."""
 
-    AWS = "aws"
-    GCP = "gcp"
-    FILESYSTEM = "filesystem"
+    AWS = 'aws'
+    GCP = 'gcp'
+    FILESYSTEM = 'filesystem'
 
 
 def get_storage_provider() -> StorageProvider:
@@ -28,15 +28,15 @@ def get_storage_provider() -> StorageProvider:
     Returns:
         StorageProvider: The configured storage provider (AWS, GCP, or FILESYSTEM)
     """
-    provider = os.environ.get("SHARED_EVENT_STORAGE_PROVIDER", "").lower()
+    provider = os.environ.get('SHARED_EVENT_STORAGE_PROVIDER', '').lower()
 
     # If not explicitly set, fall back to FILE_STORE
     if not provider:
-        provider = os.environ.get("FILE_STORE", "").lower()
+        provider = os.environ.get('FILE_STORE', '').lower()
 
-    if provider in ("aws", "s3"):
+    if provider in ('aws', 's3'):
         return StorageProvider.AWS
-    elif provider in ("gcp", "google_cloud"):
+    elif provider in ('gcp', 'google_cloud'):
         return StorageProvider.GCP
     else:
         return StorageProvider.FILESYSTEM
@@ -46,19 +46,19 @@ def get_storage_provider() -> StorageProvider:
 def is_running_in_docker() -> bool:
     """Best-effort detection for Docker containers."""
     docker_env_markers = (
-        Path("/.dockerenv"),
-        Path("/run/.containerenv"),
+        Path('/.dockerenv'),
+        Path('/run/.containerenv'),
     )
     if any(marker.exists() for marker in docker_env_markers):
         return True
 
-    if os.environ.get("DOCKER_CONTAINER") == "true":
+    if os.environ.get('DOCKER_CONTAINER') == 'true':
         return True
 
     try:
-        with Path("/proc/self/cgroup").open("r", encoding="utf-8") as cgroup_file:
+        with Path('/proc/self/cgroup').open('r', encoding='utf-8') as cgroup_file:
             for line in cgroup_file:
-                if any(token in line for token in ("docker", "containerd", "kubepods")):
+                if any(token in line for token in ('docker', 'containerd', 'kubepods')):
                     return True
     except FileNotFoundError:
         pass
@@ -70,10 +70,10 @@ def is_lemonade_provider(
     model: str | None,
     custom_provider: str | None = None,
 ) -> bool:
-    provider = (custom_provider or "").strip().lower()
+    provider = (custom_provider or '').strip().lower()
     if provider == _LEMONADE_PROVIDER_NAME:
         return True
-    return (model or "").startswith(_LEMONADE_MODEL_PREFIX)
+    return (model or '').startswith(_LEMONADE_MODEL_PREFIX)
 
 
 def get_effective_llm_base_url(
@@ -83,7 +83,7 @@ def get_effective_llm_base_url(
 ) -> str | None:
     """Return the runtime LLM base URL with provider-specific overrides."""
     if (
-        base_url in (None, "")
+        base_url in (None, '')
         and is_lemonade_provider(model, custom_provider)
         and is_running_in_docker()
     ):

@@ -17,20 +17,20 @@ class BillingSession(Base):
     Tracks the status of payment transactions and associated user information.
     """
 
-    __tablename__ = "billing_sessions"
+    __tablename__ = 'billing_sessions'
 
     id: Mapped[str] = mapped_column(String, primary_key=True)
     user_id: Mapped[str] = mapped_column(String, nullable=False)
-    org_id: Mapped[UUID | None] = mapped_column(ForeignKey("org.id"), nullable=True)
+    org_id: Mapped[UUID | None] = mapped_column(ForeignKey('org.id'), nullable=True)
     status: Mapped[str] = mapped_column(
         Enum(
-            "in_progress",
-            "completed",
-            "cancelled",
-            "error",
-            name="billing_session_status_enum",
+            'in_progress',
+            'completed',
+            'cancelled',
+            'error',
+            name='billing_session_status_enum',
         ),
-        default="in_progress",
+        default='in_progress',
     )
     price: Mapped[Decimal] = mapped_column(DECIMAL(19, 4), nullable=False)
     price_code: Mapped[str] = mapped_column(String, nullable=False)
@@ -44,4 +44,4 @@ class BillingSession(Base):
     )
 
     # Relationships
-    org: Mapped["Org | None"] = relationship("Org", back_populates="billing_sessions")
+    org: Mapped['Org | None'] = relationship('Org', back_populates='billing_sessions')

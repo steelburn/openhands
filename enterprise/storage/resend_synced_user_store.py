@@ -81,7 +81,7 @@ class ResendSyncedUserStore:
                     keycloak_user_id=keycloak_user_id,
                     synced_at=datetime.now(UTC),
                 )
-                .on_conflict_do_nothing(constraint="uq_resend_synced_email_audience")
+                .on_conflict_do_nothing(constraint='uq_resend_synced_email_audience')
                 .returning(ResendSyncedUser)
             )
             result = session.execute(stmt)
@@ -102,7 +102,7 @@ class ResendSyncedUserStore:
                 return existing[0]
 
             raise RuntimeError(
-                f"Failed to create or retrieve synced user record for {email}"
+                f'Failed to create or retrieve synced user record for {email}'
             )
 
     def remove_synced_user(self, email: str, audience_id: str) -> bool:

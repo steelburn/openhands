@@ -55,9 +55,9 @@ def get_analytics_service() -> AnalyticsService | None:
 
 
 __all__ = [
-    "AnalyticsContext",
-    "AnalyticsService",
-    "get_analytics_service",
-    "init_analytics_service",
-    "resolve_analytics_context",
+    'AnalyticsContext',
+    'AnalyticsService',
+    'get_analytics_service',
+    'init_analytics_service',
+    'resolve_analytics_context',
 ]

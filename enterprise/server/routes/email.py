@@ -18,18 +18,18 @@ from openhands.app_server.user_auth.user_auth import get_user_auth
 from openhands.app_server.utils.logger import openhands_logger as logger
 
 # Email validation regex pattern
-EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
 
-api_router = APIRouter(prefix="/api/email")
+api_router = APIRouter(prefix='/api/email')
 
 
 class EmailUpdate(BaseModel):
     email: str
 
-    @field_validator("email")
+    @field_validator('email')
     def validate_email(cls, v):
         if not EMAIL_REGEX.match(v):
-            raise ValueError("Invalid email format")
+            raise ValueError('Invalid email format')
         return v
 
 
@@ -38,7 +38,7 @@ class ResendEmailVerificationRequest(BaseModel):
     is_auth_flow: bool = False
 
 
-@api_router.post("")
+@api_router.post('')
 async def update_email(
     email_data: EmailUpdate, request: Request, user_id: str = Depends(get_user_id)
 ):
@@ -53,16 +53,16 @@ async def update_email(
         # Additional validation check just to be safe
         if not EMAIL_REGEX.match(email):
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid email format"
+                status_code=status.HTTP_400_BAD_REQUEST, detail='Invalid email format'
             )
 
         await keycloak_admin.a_update_user(
             user_id=user_id,
             payload={
-                "email": email,
-                "emailVerified": False,
-                "enabled": user["enabled"],  # Retain existing values
-                "username": user["username"],  # Required field
+                'email': email,
+                'emailVerified': False,
+                'enabled': user['enabled'],  # Retain existing values
+                'username': user['username'],  # Required field
             },
         )
 
@@ -75,14 +75,14 @@ async def update_email(
         user_auth.email = email
         user_auth.email_verified = False
         response = JSONResponse(
-            status_code=status.HTTP_200_OK, content={"message": "Email changed"}
+            status_code=status.HTTP_200_OK, content={'message': 'Email changed'}
         )
 
         # need to set auth cookie to the new tokens
         if user_auth.access_token is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Access token not found",
+                detail='Access token not found',
             )
         set_response_cookie(
             request=request,
@@ -95,21 +95,21 @@ async def update_email(
 
         await verify_email(request=request, user_id=user_id)
 
-        logger.info(f"Updating email address for {user_id} to {email}")
+        logger.info(f'Updating email address for {user_id} to {email}')
         return response
 
     except ValueError as e:
         # Handle validation errors from Pydantic
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        logger.exception(f"Error updating email: {str(e)}")
+        logger.exception(f'Error updating email: {str(e)}')
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while updating the email",
+            detail='An error occurred while updating the email',
         )
 
 
-@api_router.put("/resend")
+@api_router.put('/resend')
 async def resend_email_verification(
     request: Request,
     body: ResendEmailVerificationRequest | None = None,
@@ -127,14 +127,14 @@ async def resend_email_verification(
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="user_id is required in request body or user must be authenticated",
+            detail='user_id is required in request body or user must be authenticated',
         )
 
     # Check rate limit (uses user_id if available, otherwise falls back to IP)
     # Use 30 seconds for user-based rate limiting to match frontend cooldown
     await check_rate_limit_by_user_id(
         request=request,
-        key_prefix="email_resend",
+        key_prefix='email_resend',
         user_id=user_id,
         user_rate_limit_seconds=30,
         ip_rate_limit_seconds=60,  # 1 minute for IP-based limiting (more lenient)
@@ -145,48 +145,48 @@ async def resend_email_verification(
 
     await verify_email(request=request, user_id=user_id, is_auth_flow=is_auth_flow)
 
-    logger.info(f"Resending verification email for {user_id}")
+    logger.info(f'Resending verification email for {user_id}')
     return JSONResponse(
         status_code=status.HTTP_200_OK,
-        content={"message": "Email verification message sent"},
+        content={'message': 'Email verification message sent'},
     )
 
 
-@api_router.get("/verified")
+@api_router.get('/verified')
 async def verified_email(request: Request):
     user_auth = cast(SaasUserAuth, await get_user_auth(request))
     await user_auth.refresh()  # refresh so access token has updated email
     user_auth.email_verified = True
     await UserStore.update_user_email(user_id=user_auth.user_id, email_verified=True)
 
-    redirect_uri = f"{get_web_url(request)}/settings/user"
+    redirect_uri = f'{get_web_url(request)}/settings/user'
     response = RedirectResponse(redirect_uri, status_code=302)
 
     # need to set auth cookie to the new tokens
     if user_auth.access_token is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Access token not found"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail='Access token not found'
         )
     set_response_cookie(
         request=request,
         response=response,
         keycloak_access_token=user_auth.access_token.get_secret_value(),
         keycloak_refresh_token=user_auth.refresh_token.get_secret_value(),
-        secure=False if request.url.hostname == "localhost" else True,
+        secure=False if request.url.hostname == 'localhost' else True,
         accepted_tos=user_auth.accepted_tos or False,
     )
 
-    logger.info(f"Email {user_auth.email} verified.")
+    logger.info(f'Email {user_auth.email} verified.')
     return response
 
 
 async def verify_email(request: Request, user_id: str, is_auth_flow: bool = False):
     keycloak_admin = get_keycloak_admin()
     if is_auth_flow:
-        redirect_uri = f"{get_web_url(request)}/login?email_verified=true"
+        redirect_uri = f'{get_web_url(request)}/login?email_verified=true'
     else:
-        redirect_uri = f"{get_web_url(request)}/api/email/verified"
-    logger.info(f"Redirect URI: {redirect_uri}")
+        redirect_uri = f'{get_web_url(request)}/api/email/verified'
+    logger.info(f'Redirect URI: {redirect_uri}')
     await keycloak_admin.a_send_verify_email(
         user_id=user_id,
         redirect_uri=redirect_uri,

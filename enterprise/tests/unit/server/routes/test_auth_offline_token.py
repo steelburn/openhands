@@ -34,10 +34,10 @@ def mock_request():
     """Mock FastAPI Request used by the offline callback."""
     request = MagicMock(spec=Request)
     request.url = MagicMock()
-    request.url.hostname = "localhost"
-    request.url.netloc = "localhost:8000"
-    request.url.path = "/oauth/keycloak/offline/callback"
-    request.base_url = "http://localhost:8000/"
+    request.url.hostname = 'localhost'
+    request.url.netloc = 'localhost:8000'
+    request.url.path = '/oauth/keycloak/offline/callback'
+    request.base_url = 'http://localhost:8000/'
     request.headers = {}
     request.cookies = {}
     return request
@@ -57,31 +57,31 @@ class TestOfflineCallbackPreservesAuthCookie:
         with the online one, which invalidates the user's API keys.
         """
         with (
-            patch("server.routes.auth.token_manager") as mock_token_manager,
-            patch("server.routes.auth.UserStore") as mock_user_store,
-            patch("server.routes.auth.set_response_cookie") as mock_set_cookie,
+            patch('server.routes.auth.token_manager') as mock_token_manager,
+            patch('server.routes.auth.UserStore') as mock_user_store,
+            patch('server.routes.auth.set_response_cookie') as mock_set_cookie,
             patch(
-                "server.routes.auth._get_post_auth_redirect",
+                'server.routes.auth._get_post_auth_redirect',
                 new_callable=AsyncMock,
-                return_value="http://localhost:8000/",
+                return_value='http://localhost:8000/',
             ),
         ):
             mock_user_store.get_user_by_id = AsyncMock(return_value=None)
             mock_token_manager.get_keycloak_tokens = AsyncMock(
-                return_value=("online_access_token", "offline_refresh_token")
+                return_value=('online_access_token', 'offline_refresh_token')
             )
             mock_token_manager.get_user_info = AsyncMock(
-                return_value=create_keycloak_user_info(sub="new_user_id")
+                return_value=create_keycloak_user_info(sub='new_user_id')
             )
             mock_token_manager.store_offline_token = AsyncMock()
 
             result = await keycloak_offline_callback(
-                "test_code", "test_state", mock_request
+                'test_code', 'test_state', mock_request
             )
 
             # The offline token is persisted in the dedicated offline-token store...
             mock_token_manager.store_offline_token.assert_awaited_once_with(
-                user_id="new_user_id", offline_token="offline_refresh_token"
+                user_id='new_user_id', offline_token='offline_refresh_token'
             )
             # ...but it must NOT be written into the keycloak_auth cookie.
             mock_set_cookie.assert_not_called()
@@ -91,9 +91,9 @@ class TestOfflineCallbackPreservesAuthCookie:
             # And as a belt-and-braces check, the redirect response has no
             # Set-Cookie header overwriting the auth cookie.
             cookie_headers = [
-                v for k, v in result.raw_headers if k.lower() == b"set-cookie"
+                v for k, v in result.raw_headers if k.lower() == b'set-cookie'
             ]
-            assert not any(b"keycloak_auth" in h for h in cookie_headers)
+            assert not any(b'keycloak_auth' in h for h in cookie_headers)
 
 
 class TestOfflineTokenSurvivesLogout:
@@ -110,23 +110,23 @@ class TestOfflineTokenSurvivesLogout:
         touch the auth cookie. The online ``/logout`` endpoint therefore
         cannot accidentally pass the offline token to Keycloak.
         """
-        user_id = "new_user_id"
-        online_refresh_token = "online_refresh_token"
-        offline_refresh_token = "offline_refresh_token_for_api_keys"
+        user_id = 'new_user_id'
+        online_refresh_token = 'online_refresh_token'
+        offline_refresh_token = 'offline_refresh_token_for_api_keys'
 
         with (
-            patch("server.routes.auth.token_manager") as mock_token_manager,
-            patch("server.routes.auth.UserStore") as mock_user_store,
-            patch("server.routes.auth.set_response_cookie") as mock_set_cookie,
+            patch('server.routes.auth.token_manager') as mock_token_manager,
+            patch('server.routes.auth.UserStore') as mock_user_store,
+            patch('server.routes.auth.set_response_cookie') as mock_set_cookie,
             patch(
-                "server.routes.auth._get_post_auth_redirect",
+                'server.routes.auth._get_post_auth_redirect',
                 new_callable=AsyncMock,
-                return_value="http://localhost:8000/",
+                return_value='http://localhost:8000/',
             ),
         ):
             mock_user_store.get_user_by_id = AsyncMock(return_value=None)
             mock_token_manager.get_keycloak_tokens = AsyncMock(
-                return_value=("online_access_token", offline_refresh_token)
+                return_value=('online_access_token', offline_refresh_token)
             )
             mock_token_manager.get_user_info = AsyncMock(
                 return_value=create_keycloak_user_info(sub=user_id)
@@ -136,7 +136,7 @@ class TestOfflineTokenSurvivesLogout:
             mock_token_manager.validate_offline_token = AsyncMock(return_value=True)
 
             # 1. New user completes keycloak offline-token authentication.
-            await keycloak_offline_callback("test_code", "test_state", mock_request)
+            await keycloak_offline_callback('test_code', 'test_state', mock_request)
             mock_token_manager.store_offline_token.assert_awaited_once_with(
                 user_id=user_id, offline_token=offline_refresh_token
             )
@@ -158,7 +158,7 @@ class TestOfflineTokenSurvivesLogout:
             )
 
             with patch(
-                "server.routes.auth.get_user_auth",
+                'server.routes.auth.get_user_auth',
                 new_callable=AsyncMock,
                 return_value=mock_user_auth,
             ):

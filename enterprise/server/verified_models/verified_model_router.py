@@ -29,18 +29,18 @@ from openhands.app_server.utils.llm import ModelsResponse, get_supported_llm_mod
 
 _logger = logging.getLogger(__name__)
 
-api_router = APIRouter(prefix="/api/admin/verified-models", tags=["Verified Models"])
+api_router = APIRouter(prefix='/api/admin/verified-models', tags=['Verified Models'])
 
 
-@api_router.get("")
+@api_router.get('')
 async def search_verified_models(
     provider: str | None = None,
     page_id: Annotated[
         str | None,
-        Query(title="Optional next_page_id from the previously returned page"),
+        Query(title='Optional next_page_id from the previously returned page'),
     ] = None,
     limit: Annotated[
-        int, Query(title="The max number of results in the page", gt=0, le=100)
+        int, Query(title='The max number of results in the page', gt=0, le=100)
     ] = 100,
     user_id: str = Depends(get_admin_user_id),
     verified_model_service: VerifiedModelService = Depends(
@@ -58,7 +58,7 @@ async def search_verified_models(
     return result
 
 
-@api_router.post("", status_code=201)
+@api_router.post('', status_code=201)
 async def create_verified_model(
     data: VerifiedModelCreate,
     user_id: str = Depends(get_admin_user_id),
@@ -81,7 +81,7 @@ async def create_verified_model(
         )
 
 
-@api_router.put("/{provider}/{model_name:path}")
+@api_router.put('/{provider}/{model_name:path}')
 async def update_verified_model(
     provider: str,
     model_name: str,
@@ -100,12 +100,12 @@ async def update_verified_model(
     if not model:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Model {provider}/{model_name} not found",
+            detail=f'Model {provider}/{model_name} not found',
         )
     return model
 
 
-@api_router.delete("/{provider}/{model_name:path}")
+@api_router.delete('/{provider}/{model_name:path}')
 async def delete_verified_model(
     provider: str,
     model_name: str,
@@ -150,9 +150,9 @@ class SaaSLLMModelService(DefaultLLMModelService):
         if page.next_page_id:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Too many models defined in database",
+                detail='Too many models defined in database',
             )
-        db_verified = [f"{m.provider}/{m.model_name}" for m in page.items]
+        db_verified = [f'{m.provider}/{m.model_name}' for m in page.items]
         self._cached_response = get_supported_llm_models(db_verified)
         return self._cached_response
 

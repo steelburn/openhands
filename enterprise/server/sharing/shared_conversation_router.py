@@ -14,7 +14,7 @@ from server.sharing.sql_shared_conversation_info_service import (
     SQLSharedConversationInfoServiceInjector,
 )
 
-router = APIRouter(prefix="/api/shared-conversations", tags=["Sharing"])
+router = APIRouter(prefix='/api/shared-conversations', tags=['Sharing'])
 shared_conversation_info_service_dependency = Depends(
     SQLSharedConversationInfoServiceInjector().depends
 )
@@ -28,7 +28,7 @@ shared_conversation_info_service_dependency = Depends(
 # enumerating shared conversations is intentionally not exposed.
 
 
-@router.get("")
+@router.get('')
 async def batch_get_shared_conversations(
     ids: Annotated[list[str], Query()],
     shared_conversation_service: SharedConversationInfoService = shared_conversation_info_service_dependency,
@@ -37,7 +37,7 @@ async def batch_get_shared_conversations(
     if len(ids) > 100:
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot request more than 100 conversations at once, got {len(ids)}",
+            detail=f'Cannot request more than 100 conversations at once, got {len(ids)}',
         )
     uuids = [UUID(id_) for id_ in ids]
     shared_conversation_info = (

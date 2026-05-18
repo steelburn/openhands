@@ -35,8 +35,8 @@ def get_project_dir_for_hooks(
         The project directory path where hooks.json should be located.
     """
     if selected_repository:
-        repo_name = selected_repository.split("/")[-1]
-        return f"{working_dir}/{repo_name}"
+        repo_name = selected_repository.split('/')[-1]
+        return f'{working_dir}/{repo_name}'
     return working_dir
 
 
@@ -66,17 +66,17 @@ async def fetch_hooks_from_agent_server(
         httpx.RequestError: If the agent-server is unreachable.
     """
     _logger.debug(
-        f"fetch_hooks_from_agent_server called: "
-        f"agent_server_url={agent_server_url}, project_dir={project_dir}"
+        f'fetch_hooks_from_agent_server called: '
+        f'agent_server_url={agent_server_url}, project_dir={project_dir}'
     )
-    payload = {"project_dir": project_dir}
+    payload = {'project_dir': project_dir}
 
-    headers = {"Content-Type": "application/json"}
+    headers = {'Content-Type': 'application/json'}
     if session_api_key:
-        headers["X-Session-API-Key"] = session_api_key
+        headers['X-Session-API-Key'] = session_api_key
 
     response = await httpx_client.post(
-        f"{agent_server_url}/api/hooks",
+        f'{agent_server_url}/api/hooks',
         json=payload,
         headers=headers,
         timeout=30.0,
@@ -85,18 +85,18 @@ async def fetch_hooks_from_agent_server(
 
     data = response.json()
 
-    hook_config_data = data.get("hook_config")
+    hook_config_data = data.get('hook_config')
     if hook_config_data is None:
-        _logger.debug("No hooks found in workspace")
+        _logger.debug('No hooks found in workspace')
         return None
 
     hook_config = HookConfig.from_dict(hook_config_data)
 
     if hook_config.is_empty():
-        _logger.debug("Hooks config is empty")
+        _logger.debug('Hooks config is empty')
         return None
 
-    _logger.debug(f"Loaded hooks from agent-server for {project_dir}")
+    _logger.debug(f'Loaded hooks from agent-server for {project_dir}')
     return hook_config
 
 
@@ -130,19 +130,19 @@ async def load_hooks_from_agent_server(
         )
     except httpx.HTTPStatusError as e:
         _logger.warning(
-            f"Agent-server at {agent_server_url} returned error status {e.response.status_code} "
-            f"when loading hooks from {project_dir}: {e.response.text}"
+            f'Agent-server at {agent_server_url} returned error status {e.response.status_code} '
+            f'when loading hooks from {project_dir}: {e.response.text}'
         )
         return None
     except httpx.RequestError as e:
         _logger.warning(
-            f"Failed to connect to agent-server at {agent_server_url} "
-            f"when loading hooks from {project_dir}: {e}"
+            f'Failed to connect to agent-server at {agent_server_url} '
+            f'when loading hooks from {project_dir}: {e}'
         )
         return None
     except Exception as e:
         _logger.warning(
-            f"Failed to load hooks from agent-server at {agent_server_url} "
-            f"for project {project_dir}: {e}"
+            f'Failed to load hooks from agent-server at {agent_server_url} '
+            f'for project {project_dir}: {e}'
         )
         return None

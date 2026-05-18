@@ -26,7 +26,7 @@ class GitlabWebhook(Base):
     Represents a Gitlab webhook configuration for a repository or group.
     """
 
-    __tablename__ = "gitlab_webhook"
+    __tablename__ = 'gitlab_webhook'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     group_id: Mapped[str | None] = mapped_column(String, nullable=True)
@@ -38,17 +38,17 @@ class GitlabWebhook(Base):
     webhook_uuid: Mapped[str | None] = mapped_column(String, nullable=True)
     # Use Text for tests (SQLite compatibility) and ARRAY for production (PostgreSQL)
     scopes: Mapped[Any] = mapped_column(
-        Text if "pytest" in sys.modules else ARRAY(Text), nullable=True
+        Text if 'pytest' in sys.modules else ARRAY(Text), nullable=True
     )
     last_synced: Mapped[datetime | None] = mapped_column(
         DateTime,
-        server_default=text("CURRENT_TIMESTAMP"),
-        onupdate=text("CURRENT_TIMESTAMP"),
+        server_default=text('CURRENT_TIMESTAMP'),
+        onupdate=text('CURRENT_TIMESTAMP'),
         nullable=True,
     )
 
     def __repr__(self) -> str:
         return (
-            f"<GitlabWebhook(id={self.id}, group_id={self.group_id}, "
-            f"project_id={self.project_id}, last_synced={self.last_synced})>"
+            f'<GitlabWebhook(id={self.id}, group_id={self.group_id}, '
+            f'project_id={self.project_id}, last_synced={self.last_synced})>'
         )

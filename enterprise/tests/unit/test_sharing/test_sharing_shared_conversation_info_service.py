@@ -31,9 +31,9 @@ from openhands.sdk.llm import MetricsSnapshot, TokenUsage
 async def async_engine():
     """Create an async SQLite engine for testing."""
     engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
+        'sqlite+aiosqlite:///:memory:',
         poolclass=StaticPool,
-        connect_args={"check_same_thread": False},
+        connect_args={'check_same_thread': False},
         echo=False,
     )
 
@@ -76,15 +76,15 @@ def sample_conversation_info():
     """Create a sample conversation info for testing."""
     return AppConversationInfo(
         id=uuid4(),
-        created_by_user_id="test_user",
-        sandbox_id="test_sandbox",
-        selected_repository="test/repo",
-        selected_branch="main",
+        created_by_user_id='test_user',
+        sandbox_id='test_sandbox',
+        selected_repository='test/repo',
+        selected_branch='main',
         git_provider=ProviderType.GITHUB,
-        title="Test Conversation",
+        title='Test Conversation',
         trigger=ConversationTrigger.GUI,
         pr_number=[123],
-        llm_model="gpt-4",
+        llm_model='gpt-4',
         metrics=MetricsSnapshot(
             accumulated_cost=1.5,
             max_budget_per_task=10.0,
@@ -110,15 +110,15 @@ def sample_private_conversation_info():
     """Create a sample private conversation info for testing."""
     return AppConversationInfo(
         id=uuid4(),
-        created_by_user_id="test_user",
-        sandbox_id="test_sandbox_private",
-        selected_repository="test/private_repo",
-        selected_branch="main",
+        created_by_user_id='test_user',
+        sandbox_id='test_sandbox_private',
+        selected_repository='test/private_repo',
+        selected_branch='main',
         git_provider=ProviderType.GITHUB,
-        title="Private Conversation",
+        title='Private Conversation',
         trigger=ConversationTrigger.GUI,
         pr_number=[124],
-        llm_model="gpt-4",
+        llm_model='gpt-4',
         metrics=MetricsSnapshot(
             accumulated_cost=2.0,
             max_budget_per_task=10.0,
@@ -239,9 +239,9 @@ class TestSharedConversationInfoServiceWithSaasMetadata:
     async def async_engine_with_saas(self):
         """Create an async SQLite engine with all SAAS tables."""
         engine = create_async_engine(
-            "sqlite+aiosqlite:///:memory:",
+            'sqlite+aiosqlite:///:memory:',
             poolclass=StaticPool,
-            connect_args={"check_same_thread": False},
+            connect_args={'check_same_thread': False},
             echo=False,
         )
 
@@ -266,7 +266,7 @@ class TestSharedConversationInfoServiceWithSaasMetadata:
     @pytest.fixture
     async def test_org(self, async_session_with_saas) -> Org:
         """Create a test organization."""
-        org = Org(id=uuid4(), name=f"test_org_{uuid4().hex[:8]}")
+        org = Org(id=uuid4(), name=f'test_org_{uuid4().hex[:8]}')
         async_session_with_saas.add(org)
         await async_session_with_saas.commit()
         return org
@@ -324,8 +324,8 @@ class TestSharedConversationInfoServiceWithSaasMetadata:
         conversation = AppConversationInfo(
             id=conversation_id,
             created_by_user_id=None,
-            sandbox_id="test_sandbox",
-            title="Public Conversation With User",
+            sandbox_id='test_sandbox',
+            title='Public Conversation With User',
             public=True,
             metrics=MetricsSnapshot(
                 accumulated_cost=0.0,
@@ -362,8 +362,8 @@ class TestSharedConversationInfoServiceWithSaasMetadata:
         conversation = AppConversationInfo(
             id=conversation_id,
             created_by_user_id=None,
-            sandbox_id="test_sandbox_batch",
-            title="Batch Get Conversation",
+            sandbox_id='test_sandbox_batch',
+            title='Batch Get Conversation',
             public=True,
             metrics=MetricsSnapshot(
                 accumulated_cost=0.0,

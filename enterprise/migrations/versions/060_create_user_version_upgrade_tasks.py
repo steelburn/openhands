@@ -15,8 +15,8 @@ from alembic import op
 from sqlalchemy.orm import Session
 
 # revision identifiers, used by Alembic.
-revision = "060"
-down_revision = "059"
+revision = '060'
+down_revision = '059'
 branch_labels = None
 depends_on = None
 
@@ -43,9 +43,9 @@ def upgrade():
         # Find all users that need upgrading
         users_needing_upgrade = session.execute(
             sa.text(
-                "SELECT keycloak_user_id FROM user_settings WHERE user_version < :current_version"
+                'SELECT keycloak_user_id FROM user_settings WHERE user_version < :current_version'
             ),
-            {"current_version": CURRENT_USER_SETTINGS_VERSION},
+            {'current_version': CURRENT_USER_SETTINGS_VERSION},
         ).fetchall()
 
         if not users_needing_upgrade:
@@ -65,8 +65,8 @@ def upgrade():
             # Calculate start time for this batch (space batches 1 minute apart)
 
             # Create processor JSON
-            processor_type = "server.maintenance_task_processor.user_version_upgrade_processor.UserVersionUpgradeProcessor"
-            processor_json = json.dumps({"user_ids": batch_user_ids})
+            processor_type = 'server.maintenance_task_processor.user_version_upgrade_processor.UserVersionUpgradeProcessor'
+            processor_json = json.dumps({'user_ids': batch_user_ids})
 
             # Insert maintenance task directly
             session.execute(
@@ -79,9 +79,9 @@ def upgrade():
                     """
                 ),
                 {
-                    "processor_type": processor_type,
-                    "processor_json": processor_json,
-                    "delay": 10,
+                    'processor_type': processor_type,
+                    'processor_json': processor_json,
+                    'delay': 10,
                 },
             )
 

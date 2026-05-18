@@ -17,11 +17,11 @@ async def test_user_auth_returns_stored_settings():
     """Test that user auth returns stored settings."""
     stored_settings = Settings(
         agent_settings=OpenHandsAgentSettings(
-            llm=LLM(model="anthropic/claude-sonnet-4-5-20250929"),
+            llm=LLM(model='anthropic/claude-sonnet-4-5-20250929'),
             mcp_config=MCPConfig(
                 mcpServers={
-                    "frontend": RemoteMCPServer(
-                        url="http://frontend-server.com", transport="sse"
+                    'frontend': RemoteMCPServer(
+                        url='http://frontend-server.com', transport='sse'
                     )
                 }
             ),
@@ -34,16 +34,16 @@ async def test_user_auth_returns_stored_settings():
     mock_settings_store.load.return_value = stored_settings
 
     with patch.object(
-        user_auth, "get_user_settings_store", return_value=mock_settings_store
+        user_auth, 'get_user_settings_store', return_value=mock_settings_store
     ):
         settings = await user_auth.get_user_settings()
 
     assert settings is not None
-    assert settings.agent_settings.llm.model == "anthropic/claude-sonnet-4-5-20250929"
+    assert settings.agent_settings.llm.model == 'anthropic/claude-sonnet-4-5-20250929'
     mcp = settings.agent_settings.mcp_config
     assert mcp is not None
     assert len(mcp.mcpServers) == 1
-    assert "frontend" in mcp.mcpServers
+    assert 'frontend' in mcp.mcpServers
 
 
 @pytest.mark.asyncio
@@ -51,11 +51,11 @@ async def test_user_auth_caching_behavior():
     """Test that user auth caches settings correctly."""
     stored_settings = Settings(
         agent_settings=OpenHandsAgentSettings(
-            llm=LLM(model="anthropic/claude-sonnet-4-5-20250929"),
+            llm=LLM(model='anthropic/claude-sonnet-4-5-20250929'),
             mcp_config=MCPConfig(
                 mcpServers={
-                    "frontend": RemoteMCPServer(
-                        url="http://frontend-server.com", transport="sse"
+                    'frontend': RemoteMCPServer(
+                        url='http://frontend-server.com', transport='sse'
                     )
                 }
             ),
@@ -68,7 +68,7 @@ async def test_user_auth_caching_behavior():
     mock_settings_store.load.return_value = stored_settings
 
     with patch.object(
-        user_auth, "get_user_settings_store", return_value=mock_settings_store
+        user_auth, 'get_user_settings_store', return_value=mock_settings_store
     ):
         settings1 = await user_auth.get_user_settings()
         settings2 = await user_auth.get_user_settings()
@@ -87,7 +87,7 @@ async def test_user_auth_no_stored_settings():
     mock_settings_store.load.return_value = None
 
     with patch.object(
-        user_auth, "get_user_settings_store", return_value=mock_settings_store
+        user_auth, 'get_user_settings_store', return_value=mock_settings_store
     ):
         settings = await user_auth.get_user_settings()
 

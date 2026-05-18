@@ -27,10 +27,10 @@ class TestSlackConversationStore:
         Without the await, the data won't be persisted and subsequent lookups will
         return None even though we just created the conversation.
         """
-        channel_id = "C123456"
-        parent_id = "1234567890.123456"
-        conversation_id = "conv-test-123"
-        keycloak_user_id = "user-123"
+        channel_id = 'C123456'
+        parent_id = '1234567890.123456'
+        conversation_id = 'conv-test-123'
+        keycloak_user_id = 'user-123'
 
         slack_conversation = SlackConversation(
             conversation_id=conversation_id,
@@ -40,7 +40,7 @@ class TestSlackConversationStore:
         )
 
         with patch(
-            "storage.slack_conversation_store.a_session_maker", async_session_maker
+            'storage.slack_conversation_store.a_session_maker', async_session_maker
         ):
             # Create the slack conversation
             await slack_conversation_store.create_slack_conversation(slack_conversation)
@@ -54,8 +54,8 @@ class TestSlackConversationStore:
         # This assertion would fail if the await was missing before session.merge()
         # because the data wouldn't be persisted to the database
         assert result is not None, (
-            "Slack conversation was not persisted to the database. "
-            "Ensure await is used before session.merge() in create_slack_conversation."
+            'Slack conversation was not persisted to the database. '
+            'Ensure await is used before session.merge() in create_slack_conversation.'
         )
         assert result.conversation_id == conversation_id
         assert result.channel_id == channel_id

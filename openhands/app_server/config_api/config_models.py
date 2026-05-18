@@ -6,19 +6,19 @@ from pydantic import BaseModel, Field
 
 
 class AppMode(Enum):
-    OPENHANDS = "oss"
-    SAAS = "saas"
+    OPENHANDS = 'oss'
+    SAAS = 'saas'
 
 
 class LLMModel(BaseModel):
     """LLM Model object for API responses."""
 
     provider: str | None = Field(
-        default=None, description="The name of the provider for this model"
+        default=None, description='The name of the provider for this model'
     )
-    name: str = Field(description="The name of this model")
+    name: str = Field(description='The name of this model')
     verified: bool = Field(
-        default=False, description="Whether the model is verified by OpenHands"
+        default=False, description='Whether the model is verified by OpenHands'
     )
 
 
@@ -32,9 +32,9 @@ class LLMModelPage(BaseModel):
 class Provider(BaseModel):
     """LLM Provider object for API responses."""
 
-    name: str = Field(description="The provider name")
+    name: str = Field(description='The provider name')
     verified: bool = Field(
-        default=False, description="Whether the provider is verified by OpenHands"
+        default=False, description='Whether the provider is verified by OpenHands'
     )
 
 

@@ -22,7 +22,7 @@ def mock_gitlab_service():
         return_value=(True, None)
     )
     service.check_webhook_exists_on_resource = AsyncMock(return_value=(False, None))
-    service.install_webhook = AsyncMock(return_value=("webhook-id-123", None))
+    service.install_webhook = AsyncMock(return_value=('webhook-id-123', None))
     return service
 
 
@@ -39,7 +39,7 @@ def mock_webhook_store():
 def sample_webhook():
     """Create a sample webhook object."""
     webhook = MagicMock(spec=GitlabWebhook)
-    webhook.user_id = "test_user_id"
+    webhook.user_id = 'test_user_id'
     webhook.webhook_exists = False
     webhook.webhook_uuid = None
     return webhook
@@ -55,7 +55,7 @@ class TestVerifyWebhookConditions:
         """Test when all conditions are met for webhook installation."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = "project-123"
+        resource_id = 'project-123'
 
         # Act
         # Should not raise any exception
@@ -88,7 +88,7 @@ class TestVerifyWebhookConditions:
         """Test when resource does not exist."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = "project-999"
+        resource_id = 'project-999'
         mock_gitlab_service.check_resource_exists = AsyncMock(
             return_value=(False, None)
         )
@@ -113,7 +113,7 @@ class TestVerifyWebhookConditions:
         """Test when rate limited during resource existence check."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = "project-123"
+        resource_id = 'project-123'
         mock_gitlab_service.check_resource_exists = AsyncMock(
             return_value=(False, WebhookStatus.RATE_LIMITED)
         )
@@ -138,7 +138,7 @@ class TestVerifyWebhookConditions:
         """Test when user does not have admin access."""
         # Arrange
         resource_type = GitLabResourceType.GROUP
-        resource_id = "group-456"
+        resource_id = 'group-456'
         mock_gitlab_service.check_user_has_admin_access_to_resource = AsyncMock(
             return_value=(False, None)
         )
@@ -163,7 +163,7 @@ class TestVerifyWebhookConditions:
         """Test when rate limited during admin access check."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = "project-123"
+        resource_id = 'project-123'
         mock_gitlab_service.check_user_has_admin_access_to_resource = AsyncMock(
             return_value=(False, WebhookStatus.RATE_LIMITED)
         )
@@ -188,7 +188,7 @@ class TestVerifyWebhookConditions:
         """Test when webhook already exists on resource."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = "project-123"
+        resource_id = 'project-123'
         mock_gitlab_service.check_webhook_exists_on_resource = AsyncMock(
             return_value=(True, None)
         )
@@ -210,7 +210,7 @@ class TestVerifyWebhookConditions:
         """Test when rate limited during webhook existence check."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = "project-123"
+        resource_id = 'project-123'
         mock_gitlab_service.check_webhook_exists_on_resource = AsyncMock(
             return_value=(False, WebhookStatus.RATE_LIMITED)
         )
@@ -232,7 +232,7 @@ class TestVerifyWebhookConditions:
         """Test that webhook status is updated when database and API don't match."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = "project-123"
+        resource_id = 'project-123'
         sample_webhook.webhook_exists = True  # DB says exists
         mock_gitlab_service.check_webhook_exists_on_resource = AsyncMock(
             return_value=(False, None)  # API says doesn't exist
@@ -250,7 +250,7 @@ class TestVerifyWebhookConditions:
 
         # Assert webhook status was updated to match API
         mock_webhook_store.update_webhook.assert_called_once_with(
-            sample_webhook, {"webhook_exists": False}
+            sample_webhook, {'webhook_exists': False}
         )
 
 
@@ -264,7 +264,7 @@ class TestInstallWebhookOnResource:
         """Test successful webhook installation."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = "project-123"
+        resource_id = 'project-123'
 
         # Act
         webhook_id, status = await install_webhook_on_resource(
@@ -276,19 +276,19 @@ class TestInstallWebhookOnResource:
         )
 
         # Assert
-        assert webhook_id == "webhook-id-123"
+        assert webhook_id == 'webhook-id-123'
         assert status is None
         mock_gitlab_service.install_webhook.assert_called_once()
         mock_webhook_store.update_webhook.assert_called_once()
         # Verify update_webhook was called with correct fields (using keyword arguments)
         call_args = mock_webhook_store.update_webhook.call_args
-        assert call_args[1]["webhook"] == sample_webhook
-        update_fields = call_args[1]["update_fields"]
-        assert update_fields["webhook_exists"] is True
-        assert update_fields["webhook_url"] == GITLAB_WEBHOOK_URL
-        assert "webhook_secret" in update_fields
-        assert "webhook_uuid" in update_fields
-        assert "scopes" in update_fields
+        assert call_args[1]['webhook'] == sample_webhook
+        update_fields = call_args[1]['update_fields']
+        assert update_fields['webhook_exists'] is True
+        assert update_fields['webhook_url'] == GITLAB_WEBHOOK_URL
+        assert 'webhook_secret' in update_fields
+        assert 'webhook_uuid' in update_fields
+        assert 'scopes' in update_fields
 
     @pytest.mark.asyncio
     async def test_install_webhook_group_resource(
@@ -297,7 +297,7 @@ class TestInstallWebhookOnResource:
         """Test webhook installation for a group resource."""
         # Arrange
         resource_type = GitLabResourceType.GROUP
-        resource_id = "group-456"
+        resource_id = 'group-456'
 
         # Act
         webhook_id, status = await install_webhook_on_resource(
@@ -309,11 +309,11 @@ class TestInstallWebhookOnResource:
         )
 
         # Assert
-        assert webhook_id == "webhook-id-123"
+        assert webhook_id == 'webhook-id-123'
         # Verify install_webhook was called with GROUP type
         call_args = mock_gitlab_service.install_webhook.call_args
-        assert call_args[1]["resource_type"] == resource_type
-        assert call_args[1]["resource_id"] == resource_id
+        assert call_args[1]['resource_type'] == resource_type
+        assert call_args[1]['resource_id'] == resource_id
 
     @pytest.mark.asyncio
     async def test_install_webhook_rate_limited(
@@ -322,7 +322,7 @@ class TestInstallWebhookOnResource:
         """Test when installation is rate limited."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = "project-123"
+        resource_id = 'project-123'
         mock_gitlab_service.install_webhook = AsyncMock(
             return_value=(None, WebhookStatus.RATE_LIMITED)
         )
@@ -347,7 +347,7 @@ class TestInstallWebhookOnResource:
         """Test when webhook installation fails."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = "project-123"
+        resource_id = 'project-123'
         mock_gitlab_service.install_webhook = AsyncMock(return_value=(None, None))
 
         # Act
@@ -372,7 +372,7 @@ class TestInstallWebhookOnResource:
         """Test that unique webhook secrets and UUIDs are generated."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = "project-123"
+        resource_id = 'project-123'
 
         # Act - First call
         webhook_id1, _ = await install_webhook_on_resource(
@@ -385,11 +385,11 @@ class TestInstallWebhookOnResource:
 
         # Capture first call's values before resetting
         call1_secret = mock_webhook_store.update_webhook.call_args_list[0][1][
-            "update_fields"
-        ]["webhook_secret"]
+            'update_fields'
+        ]['webhook_secret']
         call1_uuid = mock_webhook_store.update_webhook.call_args_list[0][1][
-            "update_fields"
-        ]["webhook_uuid"]
+            'update_fields'
+        ]['webhook_uuid']
 
         # Reset mocks and call again
         mock_gitlab_service.install_webhook.reset_mock()
@@ -406,11 +406,11 @@ class TestInstallWebhookOnResource:
 
         # Capture second call's values
         call2_secret = mock_webhook_store.update_webhook.call_args_list[0][1][
-            "update_fields"
-        ]["webhook_secret"]
+            'update_fields'
+        ]['webhook_secret']
         call2_uuid = mock_webhook_store.update_webhook.call_args_list[0][1][
-            "update_fields"
-        ]["webhook_uuid"]
+            'update_fields'
+        ]['webhook_uuid']
 
         # Assert - Secrets and UUIDs should be different
         assert call1_secret != call2_secret
@@ -423,7 +423,7 @@ class TestInstallWebhookOnResource:
         """Test that correct webhook name and URL are used."""
         # Arrange
         resource_type = GitLabResourceType.PROJECT
-        resource_id = "project-123"
+        resource_id = 'project-123'
 
         # Act
         await install_webhook_on_resource(
@@ -436,5 +436,5 @@ class TestInstallWebhookOnResource:
 
         # Assert
         call_args = mock_gitlab_service.install_webhook.call_args
-        assert call_args[1]["webhook_name"] == "OpenHands Resolver"
-        assert call_args[1]["webhook_url"] == GITLAB_WEBHOOK_URL
+        assert call_args[1]['webhook_name'] == 'OpenHands Resolver'
+        assert call_args[1]['webhook_url'] == GITLAB_WEBHOOK_URL

@@ -43,7 +43,7 @@ async def get_admin_user_id(
     if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not authenticated",
+            detail='User not authenticated',
         )
 
     user_auth = await get_user_auth(request)
@@ -52,17 +52,17 @@ async def get_admin_user_id(
     if not user_email:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User email not available",
+            detail='User email not available',
         )
 
-    if not user_email.endswith("@openhands.dev"):
+    if not user_email.endswith('@openhands.dev'):
         logger.warning(
-            "Access denied - invalid email domain",
-            extra={"user_id": user_id, "email_domain": user_email.split("@")[-1]},
+            'Access denied - invalid email domain',
+            extra={'user_id': user_id, 'email_domain': user_email.split('@')[-1]},
         )
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access restricted to @openhands.dev users",
+            detail='Access restricted to @openhands.dev users',
         )
 
     return user_id

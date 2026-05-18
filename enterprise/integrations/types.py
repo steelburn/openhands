@@ -14,14 +14,14 @@ if TYPE_CHECKING:
 
 
 class GitLabResourceType(Enum):
-    GROUP = "group"
-    SUBGROUP = "subgroup"
-    PROJECT = "project"
+    GROUP = 'group'
+    SUBGROUP = 'subgroup'
+    PROJECT = 'project'
 
 
 class PRStatus(Enum):
-    CLOSED = "CLOSED"
-    MERGED = "MERGED"
+    CLOSED = 'CLOSED'
+    MERGED = 'MERGED'
 
 
 class UserData(BaseModel):
@@ -49,7 +49,7 @@ class ResolverViewInterface(SummaryExtractionTracker):
     issue_number: int
     full_repo_name: str
     is_public_repo: bool
-    raw_payload: "Message"
+    raw_payload: 'Message'
 
     async def _get_instructions(self, jinja_env: Environment) -> tuple[str, str]:
         """Instructions passed when conversation is first initialized."""
@@ -66,9 +66,9 @@ class ResolverViewInterface(SummaryExtractionTracker):
     async def create_new_conversation(
         self,
         jinja_env: Environment,
-        git_provider_tokens: "PROVIDER_TOKEN_TYPE",
+        git_provider_tokens: 'PROVIDER_TOKEN_TYPE',
         conversation_id: UUID,
-        saas_user_auth: "UserAuth",
+        saas_user_auth: 'UserAuth',
     ) -> None:
         """Create a new conversation.
 

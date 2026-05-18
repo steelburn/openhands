@@ -43,15 +43,15 @@ from storage.user_settings import UserSettings  # noqa: F401
 
 @pytest.fixture(autouse=True)
 def allow_short_context_windows():
-    old = os.environ.get("ALLOW_SHORT_CONTEXT_WINDOWS")
-    os.environ["ALLOW_SHORT_CONTEXT_WINDOWS"] = "true"
+    old = os.environ.get('ALLOW_SHORT_CONTEXT_WINDOWS')
+    os.environ['ALLOW_SHORT_CONTEXT_WINDOWS'] = 'true'
     try:
         yield
     finally:
         if old is None:
-            os.environ.pop("ALLOW_SHORT_CONTEXT_WINDOWS", None)
+            os.environ.pop('ALLOW_SHORT_CONTEXT_WINDOWS', None)
         else:
-            os.environ["ALLOW_SHORT_CONTEXT_WINDOWS"] = old
+            os.environ['ALLOW_SHORT_CONTEXT_WINDOWS'] = old
 
 
 @pytest.fixture
@@ -65,8 +65,8 @@ def create_keycloak_user_info():
 
     def _create(**kwargs) -> KeycloakUserInfo:
         defaults = {
-            "sub": "test_user_id",
-            "preferred_username": "test_user",
+            'sub': 'test_user_id',
+            'preferred_username': 'test_user',
         }
         defaults.update(kwargs)
         return KeycloakUserInfo(**defaults)
@@ -74,17 +74,17 @@ def create_keycloak_user_info():
     return _create
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture(scope='function')
 def db_path(tmp_path):
     """Create a unique temp file path for each test."""
-    return str(tmp_path / "test.db")
+    return str(tmp_path / 'test.db')
 
 
 @pytest.fixture
 def engine(db_path):
     """Create a sync engine with tables using file-based DB."""
     engine = create_engine(
-        f"sqlite:///{db_path}", connect_args={"check_same_thread": False}
+        f'sqlite:///{db_path}', connect_args={'check_same_thread': False}
     )
     Base.metadata.create_all(engine)
     return engine
@@ -99,8 +99,8 @@ def session_maker(engine):
 def async_engine(db_path):
     """Create an async engine using the SAME file-based database."""
     async_engine = create_async_engine(
-        f"sqlite+aiosqlite:///{db_path}",
-        connect_args={"check_same_thread": False},
+        f'sqlite+aiosqlite:///{db_path}',
+        connect_args={'check_same_thread': False},
     )
 
     async def create_tables():
@@ -129,38 +129,38 @@ def add_minimal_fixtures(session_maker):
     with session_maker() as session:
         session.add(
             BillingSession(
-                id="mock-billing-session-id",
-                user_id="mock-user-id",
-                status="completed",
+                id='mock-billing-session-id',
+                user_id='mock-user-id',
+                status='completed',
                 price=20,
-                price_code="NA",
-                created_at=datetime.fromisoformat("2025-03-03"),
-                updated_at=datetime.fromisoformat("2025-03-04"),
+                price_code='NA',
+                created_at=datetime.fromisoformat('2025-03-03'),
+                updated_at=datetime.fromisoformat('2025-03-04'),
             )
         )
         session.add(
             Feedback(
-                id="mock-feedback-id",
-                version="1.0",
-                email="user@all-hands.dev",
-                polarity="positive",
-                permissions="public",
+                id='mock-feedback-id',
+                version='1.0',
+                email='user@all-hands.dev',
+                polarity='positive',
+                permissions='public',
                 trajectory=[],
             )
         )
         session.add(
             GithubAppInstallation(
-                installation_id="mock-installation-id",
-                encrypted_token="",
-                created_at=datetime.fromisoformat("2025-03-05"),
-                updated_at=datetime.fromisoformat("2025-03-06"),
+                installation_id='mock-installation-id',
+                encrypted_token='',
+                created_at=datetime.fromisoformat('2025-03-05'),
+                updated_at=datetime.fromisoformat('2025-03-06'),
             )
         )
         session.add(
             StoredConversationMetadata(
-                conversation_id="mock-conversation-id",
-                created_at=datetime.fromisoformat("2025-03-07"),
-                last_updated_at=datetime.fromisoformat("2025-03-08"),
+                conversation_id='mock-conversation-id',
+                created_at=datetime.fromisoformat('2025-03-07'),
+                last_updated_at=datetime.fromisoformat('2025-03-08'),
                 accumulated_cost=5.25,
                 prompt_tokens=500,
                 completion_tokens=250,
@@ -169,23 +169,23 @@ def add_minimal_fixtures(session_maker):
         )
         session.add(
             StoredConversationMetadataSaas(
-                conversation_id="mock-conversation-id",
-                user_id=UUID("5594c7b6-f959-4b81-92e9-b09c206f5081"),
-                org_id=UUID("5594c7b6-f959-4b81-92e9-b09c206f5081"),
+                conversation_id='mock-conversation-id',
+                user_id=UUID('5594c7b6-f959-4b81-92e9-b09c206f5081'),
+                org_id=UUID('5594c7b6-f959-4b81-92e9-b09c206f5081'),
             )
         )
         session.add(
             StoredOfflineToken(
-                user_id="mock-user-id",
-                offline_token="mock-offline-token",
-                created_at=datetime.fromisoformat("2025-03-07"),
-                updated_at=datetime.fromisoformat("2025-03-08"),
+                user_id='mock-user-id',
+                offline_token='mock-offline-token',
+                created_at=datetime.fromisoformat('2025-03-07'),
+                updated_at=datetime.fromisoformat('2025-03-08'),
             )
         )
         session.add(
             Org(
-                id=uuid.UUID("5594c7b6-f959-4b81-92e9-b09c206f5081"),
-                name="mock-org",
+                id=uuid.UUID('5594c7b6-f959-4b81-92e9-b09c206f5081'),
+                name='mock-org',
                 org_version=ORG_SETTINGS_VERSION,
                 enable_proactive_conversation_starters=True,
             )
@@ -193,40 +193,40 @@ def add_minimal_fixtures(session_maker):
         session.add(
             Role(
                 id=1,
-                name="admin",
+                name='admin',
                 rank=1,
             )
         )
         session.add(
             User(
-                id=uuid.UUID("5594c7b6-f959-4b81-92e9-b09c206f5081"),
-                current_org_id=uuid.UUID("5594c7b6-f959-4b81-92e9-b09c206f5081"),
+                id=uuid.UUID('5594c7b6-f959-4b81-92e9-b09c206f5081'),
+                current_org_id=uuid.UUID('5594c7b6-f959-4b81-92e9-b09c206f5081'),
                 user_consents_to_analytics=True,
             )
         )
         session.add(
             OrgMember(
-                org_id=uuid.UUID("5594c7b6-f959-4b81-92e9-b09c206f5081"),
-                user_id=uuid.UUID("5594c7b6-f959-4b81-92e9-b09c206f5081"),
+                org_id=uuid.UUID('5594c7b6-f959-4b81-92e9-b09c206f5081'),
+                user_id=uuid.UUID('5594c7b6-f959-4b81-92e9-b09c206f5081'),
                 role_id=1,
-                llm_api_key="mock-api-key",
-                status="active",
+                llm_api_key='mock-api-key',
+                status='active',
             )
         )
         session.add(
             StripeCustomer(
-                keycloak_user_id="mock-user-id",
-                stripe_customer_id="mock-stripe-customer-id",
-                created_at=datetime.fromisoformat("2025-03-09"),
-                updated_at=datetime.fromisoformat("2025-03-10"),
+                keycloak_user_id='mock-user-id',
+                stripe_customer_id='mock-stripe-customer-id',
+                created_at=datetime.fromisoformat('2025-03-09'),
+                updated_at=datetime.fromisoformat('2025-03-10'),
             )
         )
         session.add(
             ConversationWork(
-                conversation_id="mock-conversation-id",
-                user_id="mock-user-id",
-                created_at=datetime.fromisoformat("2025-03-07"),
-                updated_at=datetime.fromisoformat("2025-03-08"),
+                conversation_id='mock-conversation-id',
+                user_id='mock-user-id',
+                created_at=datetime.fromisoformat('2025-03-07'),
+                updated_at=datetime.fromisoformat('2025-03-08'),
             )
         )
         session.commit()

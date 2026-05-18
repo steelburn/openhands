@@ -20,15 +20,15 @@ if TYPE_CHECKING:
     from integrations.gitlab.gitlab_service import SaaSGitLabService
 
 # Webhook configuration constants
-WEBHOOK_NAME = "OpenHands Resolver"
+WEBHOOK_NAME = 'OpenHands Resolver'
 SCOPES: list[str] = [
-    "note_events",
-    "merge_requests_events",
-    "confidential_issues_events",
-    "issues_events",
-    "confidential_note_events",
-    "job_events",
-    "pipeline_events",
+    'note_events',
+    'merge_requests_events',
+    'confidential_issues_events',
+    'issues_events',
+    'confidential_note_events',
+    'job_events',
+    'pipeline_events',
 ]
 
 
@@ -62,12 +62,12 @@ async def verify_webhook_conditions(
     )
 
     logger.info(
-        "Does resource exists",
+        'Does resource exists',
         extra={
-            "does_resource_exist": does_resource_exist,
-            "status": status,
-            "resource_id": resource_id,
-            "resource_type": resource_type,
+            'does_resource_exist': does_resource_exist,
+            'status': status,
+            'resource_id': resource_id,
+            'resource_type': resource_type,
         },
     )
 
@@ -86,12 +86,12 @@ async def verify_webhook_conditions(
     )
 
     logger.info(
-        "Is user admin",
+        'Is user admin',
         extra={
-            "is_user_admin": is_user_admin_of_resource,
-            "status": status,
-            "resource_id": resource_id,
-            "resource_type": resource_type,
+            'is_user_admin': is_user_admin_of_resource,
+            'status': status,
+            'resource_id': resource_id,
+            'resource_type': resource_type,
         },
     )
 
@@ -112,12 +112,12 @@ async def verify_webhook_conditions(
     )
 
     logger.info(
-        "Does webhook already exist",
+        'Does webhook already exist',
         extra={
-            "does_webhook_exist_on_resource": does_webhook_exist_on_resource,
-            "status": status,
-            "resource_id": resource_id,
-            "resource_type": resource_type,
+            'does_webhook_exist_on_resource': does_webhook_exist_on_resource,
+            'status': status,
+            'resource_id': resource_id,
+            'resource_type': resource_type,
         },
     )
 
@@ -125,7 +125,7 @@ async def verify_webhook_conditions(
         raise BreakLoopException()
     if does_webhook_exist_on_resource != webhook.webhook_exists:
         await webhook_store.update_webhook(
-            webhook, {"webhook_exists": does_webhook_exist_on_resource}
+            webhook, {'webhook_exists': does_webhook_exist_on_resource}
         )
 
     if does_webhook_exist_on_resource:
@@ -152,8 +152,8 @@ async def install_webhook_on_resource(
     Returns:
         Tuple of (webhook_id, status)
     """
-    webhook_secret = f"{webhook.user_id}-{str(uuid4())}"
-    webhook_uuid = f"{str(uuid4())}"
+    webhook_secret = f'{webhook.user_id}-{str(uuid4())}'
+    webhook_uuid = f'{str(uuid4())}'
 
     webhook_id, status = await gitlab_service.install_webhook(
         resource_type=resource_type,
@@ -166,29 +166,29 @@ async def install_webhook_on_resource(
     )
 
     log_extra = {
-        "webhook_id": webhook_id,
-        "status": status,
-        "resource_id": resource_id,
-        "resource_type": resource_type,
+        'webhook_id': webhook_id,
+        'status': status,
+        'resource_id': resource_id,
+        'resource_type': resource_type,
     }
 
     if status == WebhookStatus.RATE_LIMITED:
-        logger.warning("Rate limited while creating webhook", extra=log_extra)
+        logger.warning('Rate limited while creating webhook', extra=log_extra)
         raise BreakLoopException()
 
     if webhook_id:
         await webhook_store.update_webhook(
             webhook=webhook,
             update_fields={
-                "webhook_secret": webhook_secret,
-                "webhook_exists": True,  # webhook was created
-                "webhook_url": GITLAB_WEBHOOK_URL,
-                "scopes": SCOPES,
-                "webhook_uuid": webhook_uuid,  # required to identify which webhook installation is sending payload
+                'webhook_secret': webhook_secret,
+                'webhook_exists': True,  # webhook was created
+                'webhook_url': GITLAB_WEBHOOK_URL,
+                'scopes': SCOPES,
+                'webhook_uuid': webhook_uuid,  # required to identify which webhook installation is sending payload
             },
         )
-        logger.info("Created new webhook", extra=log_extra)
+        logger.info('Created new webhook', extra=log_extra)
     else:
-        logger.error("Failed to create webhook", extra=log_extra)
+        logger.error('Failed to create webhook', extra=log_extra)
 
     return webhook_id, status

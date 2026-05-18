@@ -33,8 +33,8 @@ from openhands.app_server.utils.models import EditResponse
 
 # Create router with /api/v1/secrets prefix
 router = APIRouter(
-    prefix="/secrets",
-    tags=["Secrets"],
+    prefix='/secrets',
+    tags=['Secrets'],
     dependencies=get_dependencies(),
 )
 
@@ -50,7 +50,7 @@ def _check_token_type(
     """Returns error message if token type doesn't match, None otherwise."""
     if not confirmed_token_type or confirmed_token_type != token_type:
         raise AuthError(
-            f"Invalid token. Please make sure it is a valid {token_type.value} token."
+            f'Invalid token. Please make sure it is a valid {token_type.value} token.'
         )
 
 
@@ -90,8 +90,8 @@ async def check_provider_tokens(
 
 
 @router.post(
-    "/git-providers",
-    tags=["Git"],
+    '/git-providers',
+    tags=['Git'],
 )
 async def store_provider_tokens(
     provider_info: POSTProviderModel,
@@ -126,10 +126,10 @@ async def store_provider_tokens(
 
             provider_info.provider_tokens[provider] = provider_info.provider_tokens[
                 provider
-            ].model_copy(update={"host": token_value.host})
+            ].model_copy(update={'host': token_value.host})
 
     updated_secrets = user_secrets.model_copy(
-        update={"provider_tokens": provider_info.provider_tokens}
+        update={'provider_tokens': provider_info.provider_tokens}
     )
     await secrets_store.store(updated_secrets)
 
@@ -148,13 +148,13 @@ async def store_provider_tokens(
                 )
 
     return EditResponse(
-        message="Git providers stored",
+        message='Git providers stored',
     )
 
 
 @router.delete(
-    "/git-providers",
-    tags=["Git"],
+    '/git-providers',
+    tags=['Git'],
 )
 async def unset_provider_tokens(
     secrets_store: SecretsStore = Depends(get_secrets_store),
@@ -169,10 +169,10 @@ async def unset_provider_tokens(
     """
     user_secrets = await secrets_store.load()
     if user_secrets:
-        updated_secrets = user_secrets.model_copy(update={"provider_tokens": {}})
+        updated_secrets = user_secrets.model_copy(update={'provider_tokens': {}})
         await secrets_store.store(updated_secrets)
 
-    return EditResponse(message="Unset Git provider tokens")
+    return EditResponse(message='Unset Git provider tokens')
 
 
 # =================================================
@@ -180,20 +180,20 @@ async def unset_provider_tokens(
 # =================================================
 
 
-@router.get("/search")
+@router.get('/search')
 async def search_custom_secrets(
     name__contains: Annotated[
         str | None,
-        Query(title="Filter by name containing this string"),
+        Query(title='Filter by name containing this string'),
     ] = None,
     page_id: Annotated[
         str | None,
-        Query(title="Optional next_page_id from the previously returned page"),
+        Query(title='Optional next_page_id from the previously returned page'),
     ] = None,
     limit: Annotated[
         int,
         Query(
-            title="The max number of results in the page",
+            title='The max number of results in the page',
             gt=0,
             le=100,
         ),
@@ -246,7 +246,7 @@ async def search_custom_secrets(
     return CustomSecretPage(items=page_items, next_page_id=next_page_id)
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post('', status_code=status.HTTP_201_CREATED)
 async def create_custom_secret(
     incoming_secret: CustomSecretCreate,
     secrets_store: SecretsStore = Depends(get_secrets_store),
@@ -270,12 +270,12 @@ async def create_custom_secret(
     if secret_name in custom_secrets:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Secret {secret_name} already exists",
+            detail=f'Secret {secret_name} already exists',
         )
 
     custom_secrets[secret_name] = CustomSecret(
         secret=secret_value,
-        description=secret_description or "",
+        description=secret_description or '',
     )
 
     # Create a new Secrets that preserves provider tokens
@@ -287,11 +287,11 @@ async def create_custom_secret(
     await secrets_store.store(updated_user_secrets)
 
     return EditResponse(
-        message="Secret created successfully",
+        message='Secret created successfully',
     )
 
 
-@router.put("/{secret_id}")
+@router.put('/{secret_id}')
 async def update_custom_secret(
     secret_id: str,
     incoming_secret: CustomSecretWithoutValue,
@@ -313,7 +313,7 @@ async def update_custom_secret(
         if secret_id not in existing_secrets.custom_secrets:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Secret with ID {secret_id} not found",
+                detail=f'Secret with ID {secret_id} not found',
             )
 
         secret_name = incoming_secret.name
@@ -325,12 +325,12 @@ async def update_custom_secret(
         if secret_name != secret_id and secret_name in custom_secrets:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Secret {secret_name} already exists",
+                detail=f'Secret {secret_name} already exists',
             )
 
         custom_secrets[secret_name] = CustomSecret(
             secret=existing_secret.secret,
-            description=secret_description or "",
+            description=secret_description or '',
         )
 
         updated_secrets = Secrets(
@@ -341,11 +341,11 @@ async def update_custom_secret(
         await secrets_store.store(updated_secrets)
 
     return EditResponse(
-        message="Secret updated successfully",
+        message='Secret updated successfully',
     )
 
 
-@router.delete("/{secret_id}")
+@router.delete('/{secret_id}')
 async def delete_custom_secret(
     secret_id: str,
     secrets_store: SecretsStore = Depends(get_secrets_store),
@@ -368,7 +368,7 @@ async def delete_custom_secret(
         if secret_id not in custom_secrets:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Secret with ID {secret_id} not found",
+                detail=f'Secret with ID {secret_id} not found',
             )
 
         # Remove the secret
@@ -383,5 +383,5 @@ async def delete_custom_secret(
         await secrets_store.store(updated_secrets)
 
     return EditResponse(
-        message="Secret deleted successfully",
+        message='Secret deleted successfully',
     )

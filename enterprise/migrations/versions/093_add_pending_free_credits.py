@@ -12,8 +12,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "093"
-down_revision: Union[str, None] = "092"
+revision: str = '093'
+down_revision: Union[str, None] = '092'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -23,15 +23,15 @@ def upgrade() -> None:
     # New orgs will have this set to TRUE at creation time.
     # Existing orgs default to FALSE (not eligible - they already got $10 at signup).
     op.add_column(
-        "org",
+        'org',
         sa.Column(
-            "pending_free_credits",
+            'pending_free_credits',
             sa.Boolean,
             nullable=False,
-            server_default=sa.text("false"),
+            server_default=sa.text('false'),
         ),
     )
 
 
 def downgrade() -> None:
-    op.drop_column("org", "pending_free_credits")
+    op.drop_column('org', 'pending_free_credits')

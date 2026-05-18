@@ -7,7 +7,7 @@ from storage.base import Base
 
 
 class ProactiveConversation(Base):
-    __tablename__ = "proactive_conversation_table"
+    __tablename__ = 'proactive_conversation_table'
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     repo_id: Mapped[str] = mapped_column(String, nullable=False)

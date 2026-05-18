@@ -38,11 +38,11 @@ def depends_user_authorizer():
 
     try:
         injector: UserAuthorizerInjector = from_env(
-            UserAuthorizerInjector, "OH_USER_AUTHORIZER"
+            UserAuthorizerInjector, 'OH_USER_AUTHORIZER'
         )
     except Exception as ex:
         print(ex)
-        logger.info("Using default UserAuthorizer")
+        logger.info('Using default UserAuthorizer')
         injector = DefaultUserAuthorizerInjector()
 
     return Depends(injector.depends)

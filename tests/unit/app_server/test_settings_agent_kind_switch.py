@@ -22,12 +22,12 @@ def _set_acp(
     acp_env: dict | None = None,
 ) -> dict:
     return {
-        "agent_settings_diff": {
-            "agent_kind": "acp",
-            "acp_command": command
-            or ["npx", "-y", "@agentclientprotocol/claude-agent-acp"],
-            "acp_args": [],
-            **({"acp_env": acp_env} if acp_env is not None else {}),
+        'agent_settings_diff': {
+            'agent_kind': 'acp',
+            'acp_command': command
+            or ['npx', '-y', '@agentclientprotocol/claude-agent-acp'],
+            'acp_args': [],
+            **({'acp_env': acp_env} if acp_env is not None else {}),
         }
     }
 
@@ -37,12 +37,12 @@ def _set_openhands(
     llm_model: str | None = None,
     mcp_config: dict | None = None,
 ) -> dict:
-    diff: dict = {"agent_kind": "openhands"}
+    diff: dict = {'agent_kind': 'openhands'}
     if llm_model is not None:
-        diff["llm"] = {"model": llm_model}
+        diff['llm'] = {'model': llm_model}
     if mcp_config is not None:
-        diff["mcp_config"] = mcp_config
-    return {"agent_settings_diff": diff}
+        diff['mcp_config'] = mcp_config
+    return {'agent_settings_diff': diff}
 
 
 def test_kind_switch_does_not_raise():
@@ -54,13 +54,13 @@ def test_kind_switch_does_not_raise():
     ``AgentSettingsConfig`` accepts.
     """
     s = Settings()
-    s.update(_set_openhands(llm_model="anthropic/claude-sonnet-4-5"))
+    s.update(_set_openhands(llm_model='anthropic/claude-sonnet-4-5'))
 
     s.update(_set_acp())
-    assert s.agent_settings.agent_kind == "acp"
+    assert s.agent_settings.agent_kind == 'acp'
 
     s.update(_set_openhands())
-    assert s.agent_settings.agent_kind == "openhands"
+    assert s.agent_settings.agent_kind == 'openhands'
 
 
 def test_kind_switch_resets_new_kind_to_defaults():
@@ -70,13 +70,13 @@ def test_kind_switch_resets_new_kind_to_defaults():
     new kind — preserving it across switches is the follow-up feature.
     """
     s = Settings()
-    s.update(_set_openhands(llm_model="anthropic/claude-sonnet-4-5"))
+    s.update(_set_openhands(llm_model='anthropic/claude-sonnet-4-5'))
 
     s.update(_set_acp())
 
     # ACP base — ``llm`` defaults to the ACP sentinel, not the OH model.
-    assert s.agent_settings.agent_kind == "acp"
-    assert s.agent_settings.llm.model != "anthropic/claude-sonnet-4-5"
+    assert s.agent_settings.agent_kind == 'acp'
+    assert s.agent_settings.llm.model != 'anthropic/claude-sonnet-4-5'
 
 
 def test_acp_env_replaced_wholesale():
@@ -87,11 +87,11 @@ def test_acp_env_replaced_wholesale():
     payload replaces the stored dict in full.
     """
     s = Settings()
-    s.update(_set_acp(acp_env={"FOO": "1", "BAR": "2"}))
-    assert s.agent_settings.acp_env == {"FOO": "1", "BAR": "2"}
+    s.update(_set_acp(acp_env={'FOO': '1', 'BAR': '2'}))
+    assert s.agent_settings.acp_env == {'FOO': '1', 'BAR': '2'}
 
-    s.update({"agent_settings_diff": {"acp_env": {"FOO": "9"}}})
-    assert s.agent_settings.acp_env == {"FOO": "9"}
+    s.update({'agent_settings_diff': {'acp_env': {'FOO': '9'}}})
+    assert s.agent_settings.acp_env == {'FOO': '9'}
 
 
 def test_kind_switch_with_inline_field_override():
@@ -104,9 +104,9 @@ def test_kind_switch_with_inline_field_override():
     s = Settings()
     s.update(_set_acp())
 
-    s.update(_set_openhands(llm_model="model-c"))
-    assert s.agent_settings.agent_kind == "openhands"
-    assert s.agent_settings.llm.model == "model-c"
+    s.update(_set_openhands(llm_model='model-c'))
+    assert s.agent_settings.agent_kind == 'openhands'
+    assert s.agent_settings.llm.model == 'model-c'
 
 
 def test_replace_mcp_config_in_kind_switch():
@@ -114,6 +114,6 @@ def test_replace_mcp_config_in_kind_switch():
     s = Settings()
     s.update(_set_acp())
 
-    s.update(_set_openhands(mcp_config={"mcpServers": {"foo": {"command": "foo-bin"}}}))
+    s.update(_set_openhands(mcp_config={'mcpServers': {'foo': {'command': 'foo-bin'}}}))
     assert s.agent_settings.mcp_config is not None
-    assert "foo" in s.agent_settings.mcp_config.mcpServers
+    assert 'foo' in s.agent_settings.mcp_config.mcpServers

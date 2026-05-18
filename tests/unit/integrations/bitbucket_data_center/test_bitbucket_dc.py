@@ -16,56 +16,56 @@ from openhands.app_server.types import AppMode
 
 
 def test_init_plain_domain():
-    svc = BitbucketDCService(token=SecretStr("tok"), base_domain="host.example.com")
-    assert svc.BASE_URL == "https://host.example.com/rest/api/1.0"
+    svc = BitbucketDCService(token=SecretStr('tok'), base_domain='host.example.com')
+    assert svc.BASE_URL == 'https://host.example.com/rest/api/1.0'
 
 
 def test_init_no_domain():
-    svc = BitbucketDCService(token=SecretStr("tok"), base_domain=None)
-    assert svc.BASE_URL == ""
+    svc = BitbucketDCService(token=SecretStr('tok'), base_domain=None)
+    assert svc.BASE_URL == ''
 
 
 def test_init_falls_back_to_env_var_when_base_domain_missing(monkeypatch):
-    monkeypatch.setenv("BITBUCKET_DATA_CENTER_HOST", "env.example.com")
-    svc = BitbucketDCService(token=SecretStr("tok"))
-    assert svc.BASE_URL == "https://env.example.com/rest/api/1.0"
+    monkeypatch.setenv('BITBUCKET_DATA_CENTER_HOST', 'env.example.com')
+    svc = BitbucketDCService(token=SecretStr('tok'))
+    assert svc.BASE_URL == 'https://env.example.com/rest/api/1.0'
 
 
 def test_init_explicit_base_domain_overrides_env_var(monkeypatch):
-    monkeypatch.setenv("BITBUCKET_DATA_CENTER_HOST", "env.example.com")
-    svc = BitbucketDCService(token=SecretStr("tok"), base_domain="explicit.example.com")
-    assert svc.BASE_URL == "https://explicit.example.com/rest/api/1.0"
+    monkeypatch.setenv('BITBUCKET_DATA_CENTER_HOST', 'env.example.com')
+    svc = BitbucketDCService(token=SecretStr('tok'), base_domain='explicit.example.com')
+    assert svc.BASE_URL == 'https://explicit.example.com/rest/api/1.0'
 
 
 # ── token wrapping ────────────────────────────────────────────────────────────
 
 
 def test_token_wraps_simple_token():
-    svc = BitbucketDCService(token=SecretStr("mytoken"))
-    assert svc.token.get_secret_value() == "x-token-auth:mytoken"
+    svc = BitbucketDCService(token=SecretStr('mytoken'))
+    assert svc.token.get_secret_value() == 'x-token-auth:mytoken'
 
 
 def test_token_preserves_colon_token():
-    svc = BitbucketDCService(token=SecretStr("alice:secret"))
-    assert svc.token.get_secret_value() == "alice:secret"
+    svc = BitbucketDCService(token=SecretStr('alice:secret'))
+    assert svc.token.get_secret_value() == 'alice:secret'
 
 
 # ── user_id derivation ────────────────────────────────────────────────────────
 
 
 def test_user_id_derived_from_username_password_token():
-    svc = BitbucketDCService(token=SecretStr("alice:secret"))
-    assert svc.user_id == "alice"
+    svc = BitbucketDCService(token=SecretStr('alice:secret'))
+    assert svc.user_id == 'alice'
 
 
 def test_user_id_not_derived_from_xtoken_auth_token():
-    svc = BitbucketDCService(token=SecretStr("x-token-auth:mytoken"))
+    svc = BitbucketDCService(token=SecretStr('x-token-auth:mytoken'))
     assert svc.user_id is None
 
 
 def test_explicit_user_id_not_overridden():
-    svc = BitbucketDCService(token=SecretStr("alice:secret"), user_id="bob")
-    assert svc.user_id == "bob"
+    svc = BitbucketDCService(token=SecretStr('alice:secret'), user_id='bob')
+    assert svc.user_id == 'bob'
 
 
 # ── _get_headers ──────────────────────────────────────────────────────────────
@@ -74,22 +74,22 @@ def test_explicit_user_id_not_overridden():
 @pytest.mark.asyncio
 async def test_get_headers_basic_auth():
     svc = BitbucketDCService(
-        token=SecretStr("user:pass"), base_domain="host.example.com"
+        token=SecretStr('user:pass'), base_domain='host.example.com'
     )
     headers = await svc._get_headers()
-    expected = "Basic " + base64.b64encode(b"user:pass").decode()
-    assert headers["Authorization"] == expected
+    expected = 'Basic ' + base64.b64encode(b'user:pass').decode()
+    assert headers['Authorization'] == expected
 
 
 @pytest.mark.asyncio
 async def test_get_headers_xtoken_auth():
     svc = BitbucketDCService(
-        token=SecretStr("plaintoken"), base_domain="host.example.com"
+        token=SecretStr('plaintoken'), base_domain='host.example.com'
     )
     # plaintoken has no ':' so it gets wrapped as x-token-auth:plaintoken
     headers = await svc._get_headers()
-    expected = "Basic " + base64.b64encode(b"x-token-auth:plaintoken").decode()
-    assert headers["Authorization"] == expected
+    expected = 'Basic ' + base64.b64encode(b'x-token-auth:plaintoken').decode()
+    assert headers['Authorization'] == expected
 
 
 @pytest.mark.asyncio
@@ -99,16 +99,16 @@ async def test_get_headers_lazy_loads_token_when_empty():
     get_latest_token() instead of producing an empty 'Basic ' header that
     httpx rejects with LocalProtocolError.
     """
-    svc = BitbucketDCService(base_domain="host.example.com")
-    assert svc.token.get_secret_value() == ""  # confirm starting state
+    svc = BitbucketDCService(base_domain='host.example.com')
+    assert svc.token.get_secret_value() == ''  # confirm starting state
 
     async def fake_get_latest_token():
-        return SecretStr("oauth-access-token")
+        return SecretStr('oauth-access-token')
 
     svc.get_latest_token = fake_get_latest_token  # type: ignore[method-assign]
 
     headers = await svc._get_headers()
-    assert headers["Authorization"] == "Bearer oauth-access-token"
+    assert headers['Authorization'] == 'Bearer oauth-access-token'
 
 
 @pytest.mark.asyncio
@@ -117,11 +117,11 @@ async def test_get_headers_uses_bearer_for_raw_oauth_token():
     not as Basic auth — Bitbucket Data Center's OAuth provider expects this
     format for tokens issued via /rest/oauth2/latest/token.
     """
-    svc = BitbucketDCService(base_domain="host.example.com")
-    svc.token = SecretStr("eyJraWQiOiJyYXctb2F1dGgyLXRva2VuIn0")
+    svc = BitbucketDCService(base_domain='host.example.com')
+    svc.token = SecretStr('eyJraWQiOiJyYXctb2F1dGgyLXRva2VuIn0')
 
     headers = await svc._get_headers()
-    assert headers["Authorization"] == "Bearer eyJraWQiOiJyYXctb2F1dGgyLXRva2VuIn0"
+    assert headers['Authorization'] == 'Bearer eyJraWQiOiJyYXctb2F1dGgyLXRva2VuIn0'
 
 
 # ── get_user ──────────────────────────────────────────────────────────────────
@@ -130,55 +130,55 @@ async def test_get_headers_uses_bearer_for_raw_oauth_token():
 @pytest.mark.asyncio
 async def test_get_user_with_user_id():
     svc = BitbucketDCService(
-        token=SecretStr("tok"),
-        base_domain="host.example.com",
-        user_id="jdoe",
+        token=SecretStr('tok'),
+        base_domain='host.example.com',
+        user_id='jdoe',
     )
     mock_response = {
-        "values": [
+        'values': [
             {
-                "id": 5,
-                "slug": "jdoe",
-                "name": "jdoe",
-                "displayName": "J Doe",
-                "emailAddress": "j@example.com",
-                "avatarUrl": "",
+                'id': 5,
+                'slug': 'jdoe',
+                'name': 'jdoe',
+                'displayName': 'J Doe',
+                'emailAddress': 'j@example.com',
+                'avatarUrl': '',
             }
         ]
     }
-    with patch.object(svc, "_make_request", return_value=(mock_response, {})):
+    with patch.object(svc, '_make_request', return_value=(mock_response, {})):
         user = await svc.get_user()
 
-    assert user.id == "5"
-    assert user.login == "jdoe"
-    assert user.name == "J Doe"
-    assert user.email == "j@example.com"
+    assert user.id == '5'
+    assert user.login == 'jdoe'
+    assert user.name == 'J Doe'
+    assert user.email == 'j@example.com'
 
 
 @pytest.mark.asyncio
 async def test_get_user_without_user_id():
     # x-token-auth tokens don't have a derivable username, so user_id stays None
     svc = BitbucketDCService(
-        token=SecretStr("x-token-auth:mytoken"), base_domain="host.example.com"
+        token=SecretStr('x-token-auth:mytoken'), base_domain='host.example.com'
     )
-    with patch.object(svc, "_make_request") as mock_req:
+    with patch.object(svc, '_make_request') as mock_req:
         user = await svc.get_user()
         mock_req.assert_not_called()
 
     assert isinstance(user, User)
-    assert user.id == ""
-    assert user.login == ""
+    assert user.id == ''
+    assert user.login == ''
 
 
 @pytest.mark.asyncio
 async def test_get_user_raises_when_not_found():
     svc = BitbucketDCService(
-        token=SecretStr("tok"),
-        base_domain="host.example.com",
-        user_id="jdoe",
+        token=SecretStr('tok'),
+        base_domain='host.example.com',
+        user_id='jdoe',
     )
-    mock_response = {"values": []}
-    with patch.object(svc, "_make_request", return_value=(mock_response, {})):
+    mock_response = {'values': []}
+    with patch.object(svc, '_make_request', return_value=(mock_response, {})):
         with pytest.raises(AuthenticationError):
             await svc.get_user()
 
@@ -192,16 +192,16 @@ def test_resolve_primary_email_selects_primary_confirmed():
     )
 
     emails = [
-        {"email": "secondary@example.com", "is_primary": False, "is_confirmed": True},
-        {"email": "primary@example.com", "is_primary": True, "is_confirmed": True},
+        {'email': 'secondary@example.com', 'is_primary': False, 'is_confirmed': True},
+        {'email': 'primary@example.com', 'is_primary': True, 'is_confirmed': True},
         {
-            "email": "unconfirmed@example.com",
-            "is_primary": False,
-            "is_confirmed": False,
+            'email': 'unconfirmed@example.com',
+            'is_primary': False,
+            'is_confirmed': False,
         },
     ]
     result = BitbucketDCMixinBase._resolve_primary_email(emails)
-    assert result == "primary@example.com"
+    assert result == 'primary@example.com'
 
 
 def test_resolve_primary_email_returns_none_when_no_primary():
@@ -210,8 +210,8 @@ def test_resolve_primary_email_returns_none_when_no_primary():
     )
 
     emails = [
-        {"email": "a@example.com", "is_primary": False, "is_confirmed": True},
-        {"email": "b@example.com", "is_primary": False, "is_confirmed": True},
+        {'email': 'a@example.com', 'is_primary': False, 'is_confirmed': True},
+        {'email': 'b@example.com', 'is_primary': False, 'is_confirmed': True},
     ]
     result = BitbucketDCMixinBase._resolve_primary_email(emails)
     assert result is None
@@ -223,8 +223,8 @@ def test_resolve_primary_email_returns_none_when_primary_not_confirmed():
     )
 
     emails = [
-        {"email": "primary@example.com", "is_primary": True, "is_confirmed": False},
-        {"email": "other@example.com", "is_primary": False, "is_confirmed": True},
+        {'email': 'primary@example.com', 'is_primary': True, 'is_confirmed': False},
+        {'email': 'other@example.com', 'is_primary': False, 'is_confirmed': True},
     ]
     result = BitbucketDCMixinBase._resolve_primary_email(emails)
     assert result is None
@@ -244,21 +244,21 @@ def test_resolve_primary_email_returns_none_for_empty_list():
 
 @pytest.mark.asyncio
 async def test_get_user_emails():
-    svc = BitbucketDCService(token=SecretStr("tok"), base_domain="host.example.com")
+    svc = BitbucketDCService(token=SecretStr('tok'), base_domain='host.example.com')
     mock_response = {
-        "values": [
-            {"email": "primary@example.com", "is_primary": True, "is_confirmed": True},
+        'values': [
+            {'email': 'primary@example.com', 'is_primary': True, 'is_confirmed': True},
             {
-                "email": "secondary@example.com",
-                "is_primary": False,
-                "is_confirmed": True,
+                'email': 'secondary@example.com',
+                'is_primary': False,
+                'is_confirmed': True,
             },
         ]
     }
-    with patch.object(svc, "_make_request", return_value=(mock_response, {})):
+    with patch.object(svc, '_make_request', return_value=(mock_response, {})):
         emails = await svc.get_user_emails()
 
-    assert emails == mock_response["values"]
+    assert emails == mock_response['values']
 
 
 # ── pagination (get_all_repositories iterates projects) ──────────────────────
@@ -266,26 +266,26 @@ async def test_get_user_emails():
 
 @pytest.mark.asyncio
 async def test_pagination_iterates_projects():
-    svc = BitbucketDCService(token=SecretStr("tok"), base_domain="host.example.com")
+    svc = BitbucketDCService(token=SecretStr('tok'), base_domain='host.example.com')
 
-    def _repo_dict(key="PROJ", slug="myrepo"):
-        return {"id": 1, "slug": slug, "project": {"key": key}, "public": False}
+    def _repo_dict(key='PROJ', slug='myrepo'):
+        return {'id': 1, 'slug': slug, 'project': {'key': key}, 'public': False}
 
     async def fake_fetch(url, params, max_items):
-        if "/projects" in url and "/repos" not in url:
-            return [{"key": "PROJ1"}, {"key": "PROJ2"}]
-        if "PROJ1" in url:
-            return [_repo_dict("PROJ1", "repo1")]
-        if "PROJ2" in url:
-            return [_repo_dict("PROJ2", "repo2")]
+        if '/projects' in url and '/repos' not in url:
+            return [{'key': 'PROJ1'}, {'key': 'PROJ2'}]
+        if 'PROJ1' in url:
+            return [_repo_dict('PROJ1', 'repo1')]
+        if 'PROJ2' in url:
+            return [_repo_dict('PROJ2', 'repo2')]
         return []
 
-    with patch.object(svc, "_fetch_paginated_data", side_effect=fake_fetch):
-        repos = await svc.get_all_repositories("name", AppMode.SAAS)
+    with patch.object(svc, '_fetch_paginated_data', side_effect=fake_fetch):
+        repos = await svc.get_all_repositories('name', AppMode.SAAS)
 
     full_names = {r.full_name for r in repos}
-    assert "PROJ1/repo1" in full_names
-    assert "PROJ2/repo2" in full_names
+    assert 'PROJ1/repo1' in full_names
+    assert 'PROJ2/repo2' in full_names
 
 
 # ── verify_access ─────────────────────────────────────────────────────────────
@@ -293,10 +293,10 @@ async def test_pagination_iterates_projects():
 
 @pytest.mark.asyncio
 async def test_verify_access_makes_request():
-    svc = BitbucketDCService(token=SecretStr("tok"), base_domain="host.example.com")
-    with patch.object(svc, "_make_request", return_value=({}, {})) as mock_req:
+    svc = BitbucketDCService(token=SecretStr('tok'), base_domain='host.example.com')
+    with patch.object(svc, '_make_request', return_value=({}, {})) as mock_req:
         await svc.verify_access()
 
     mock_req.assert_called_once()
     call_url = mock_req.call_args[0][0]
-    assert call_url.endswith("/repos")
+    assert call_url.endswith('/repos')

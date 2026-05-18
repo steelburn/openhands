@@ -34,7 +34,7 @@ async def resolve_org_for_repo(
         The org_id if the repo's org is claimed (and user is a member when
         keycloak_user_id is provided), else None
     """
-    git_org = full_repo_name.split("/")[0].lower()
+    git_org = full_repo_name.split('/')[0].lower()
 
     try:
         claim = await OrgGitClaimStore.get_claim_by_provider_and_git_org(
@@ -42,15 +42,15 @@ async def resolve_org_for_repo(
         )
         if not claim:
             logger.debug(
-                f"[OrgResolver] No claim found for {provider}/{git_org}",
+                f'[OrgResolver] No claim found for {provider}/{git_org}',
             )
             return None
 
         # Skip membership check if no user_id provided
         if keycloak_user_id is None:
             logger.info(
-                f"[OrgResolver] Resolved org {claim.org_id} "
-                f"for {provider}/{git_org} (no user membership check)",
+                f'[OrgResolver] Resolved org {claim.org_id} '
+                f'for {provider}/{git_org} (no user membership check)',
             )
             return claim.org_id
 
@@ -59,20 +59,20 @@ async def resolve_org_for_repo(
         )
         if not member:
             logger.debug(
-                f"[OrgResolver] User {keycloak_user_id} is not a member of org "
-                f"{claim.org_id} (claimed {provider}/{git_org}). "
-                f"Falling back to personal workspace.",
+                f'[OrgResolver] User {keycloak_user_id} is not a member of org '
+                f'{claim.org_id} (claimed {provider}/{git_org}). '
+                f'Falling back to personal workspace.',
             )
             return None
 
         logger.info(
-            f"[OrgResolver] Routing conversation to org {claim.org_id} "
-            f"for {provider}/{git_org} (user {keycloak_user_id})",
+            f'[OrgResolver] Routing conversation to org {claim.org_id} '
+            f'for {provider}/{git_org} (user {keycloak_user_id})',
         )
         return claim.org_id
     except Exception as e:
         logger.error(
-            f"[OrgResolver] Error resolving org for {provider}/{git_org}: {e}",
+            f'[OrgResolver] Error resolving org for {provider}/{git_org}: {e}',
             exc_info=True,
         )
         return None

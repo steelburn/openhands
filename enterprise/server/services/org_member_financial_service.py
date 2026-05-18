@@ -45,9 +45,9 @@ class OrgMemberFinancialService:
             try:
                 offset = int(page_id)
                 if offset < 0:
-                    raise ValueError("page_id must be non-negative")
+                    raise ValueError('page_id must be non-negative')
             except ValueError as e:
-                raise ValueError(f"Invalid page_id: {page_id}") from e
+                raise ValueError(f'Invalid page_id: {page_id}') from e
 
         # Fetch paginated members from database
         members, total_count = await OrgMemberStore.get_org_members_paginated(
@@ -75,40 +75,40 @@ class OrgMemberFinancialService:
             # Re-raise auth errors - these indicate configuration issues that need fixing
             if e.response.status_code in (401, 403):
                 logger.error(
-                    "LiteLLM authentication/authorization failed",
+                    'LiteLLM authentication/authorization failed',
                     extra={
-                        "org_id": str(org_id),
-                        "status_code": e.response.status_code,
-                        "error": str(e),
+                        'org_id': str(org_id),
+                        'status_code': e.response.status_code,
+                        'error': str(e),
                     },
                 )
                 raise
             # For other HTTP errors (404, 500, etc.), use graceful degradation
             logger.warning(
-                "Failed to fetch financial data from LiteLLM",
+                'Failed to fetch financial data from LiteLLM',
                 extra={
-                    "org_id": str(org_id),
-                    "status_code": e.response.status_code,
-                    "error_type": type(e).__name__,
-                    "error": str(e),
+                    'org_id': str(org_id),
+                    'status_code': e.response.status_code,
+                    'error_type': type(e).__name__,
+                    'error': str(e),
                 },
             )
             financial_data = {}
         except Exception as e:
             # For network errors, timeouts, etc., use graceful degradation
             logger.warning(
-                "Failed to fetch financial data from LiteLLM",
+                'Failed to fetch financial data from LiteLLM',
                 extra={
-                    "org_id": str(org_id),
-                    "error_type": type(e).__name__,
-                    "error": str(e),
+                    'org_id': str(org_id),
+                    'error_type': type(e).__name__,
+                    'error': str(e),
                 },
             )
             financial_data = {}
 
         # Extract team-level data for shared budget calculation
-        team_spend = financial_data.get("team_spend", 0) or 0
-        members_financial = financial_data.get("members", {})
+        team_spend = financial_data.get('team_spend', 0) or 0
+        members_financial = financial_data.get('members', {})
 
         # Build response items by joining DB members with LiteLLM financial data
         items: list[OrgMemberFinancialResponse] = []
@@ -118,9 +118,9 @@ class OrgMemberFinancialService:
 
             # Get financial data for this user (or defaults if not found)
             user_financial = members_financial.get(user_id_str, {})
-            individual_spend = user_financial.get("spend", 0) or 0
-            max_budget = user_financial.get("max_budget")
-            uses_shared_budget = user_financial.get("uses_shared_budget", False)
+            individual_spend = user_financial.get('spend', 0) or 0
+            max_budget = user_financial.get('max_budget')
+            uses_shared_budget = user_financial.get('uses_shared_budget', False)
 
             # Calculate current budget (remaining)
             # For shared team budgets, use team_spend to calculate remaining budget
@@ -154,12 +154,12 @@ class OrgMemberFinancialService:
         next_page_id = str(next_offset) if next_offset < total_count else None
 
         logger.debug(
-            "OrgMemberFinancialService:get_org_members_financial_data:success",
+            'OrgMemberFinancialService:get_org_members_financial_data:success',
             extra={
-                "org_id": str(org_id),
-                "items_count": len(items),
-                "current_page": current_page,
-                "total_count": total_count,
+                'org_id': str(org_id),
+                'items_count': len(items),
+                'current_page': current_page,
+                'total_count': total_count,
             },
         )
 

@@ -26,9 +26,9 @@ from openhands.app_server.utils.sql_utils import Base
 async def async_engine():
     """Create an async SQLite engine for testing."""
     engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
+        'sqlite+aiosqlite:///:memory:',
         poolclass=StaticPool,
-        connect_args={"check_same_thread": False},
+        connect_args={'check_same_thread': False},
         echo=False,
     )
 
@@ -60,7 +60,7 @@ def service(async_session) -> SQLPendingMessageService:
 @pytest.fixture
 def sample_content() -> list[TextContent]:
     """Create sample message content for testing."""
-    return [TextContent(text="Hello, this is a test message")]
+    return [TextContent(text='Hello, this is a test message')]
 
 
 class TestSQLPendingMessageService:
@@ -74,13 +74,13 @@ class TestSQLPendingMessageService:
     ):
         """Test that add_message creates a message with the expected fields."""
         # Arrange
-        conversation_id = f"task-{uuid4().hex}"
+        conversation_id = f'task-{uuid4().hex}'
 
         # Act
         response = await service.add_message(
             conversation_id=conversation_id,
             content=sample_content,
-            role="user",
+            role='user',
         )
 
         # Assert
@@ -95,7 +95,7 @@ class TestSQLPendingMessageService:
         assert len(messages[0].content) == 1
         assert isinstance(messages[0].content[0], TextContent)
         assert messages[0].content[0].text == sample_content[0].text
-        assert messages[0].role == "user"
+        assert messages[0].role == 'user'
         assert messages[0].created_at is not None
 
     @pytest.mark.asyncio
@@ -106,7 +106,7 @@ class TestSQLPendingMessageService:
     ):
         """Test that queue position increments correctly for each message."""
         # Arrange
-        conversation_id = f"task-{uuid4().hex}"
+        conversation_id = f'task-{uuid4().hex}'
 
         # Act - Add three messages
         response1 = await service.add_message(conversation_id, sample_content)
@@ -125,11 +125,11 @@ class TestSQLPendingMessageService:
     ):
         """Test that messages are returned in chronological order."""
         # Arrange
-        conversation_id = f"task-{uuid4().hex}"
+        conversation_id = f'task-{uuid4().hex}'
         contents = [
-            [TextContent(text="First message")],
-            [TextContent(text="Second message")],
-            [TextContent(text="Third message")],
+            [TextContent(text='First message')],
+            [TextContent(text='Second message')],
+            [TextContent(text='Third message')],
         ]
 
         for content in contents:
@@ -140,9 +140,9 @@ class TestSQLPendingMessageService:
 
         # Assert
         assert len(messages) == 3
-        assert messages[0].content[0].text == "First message"
-        assert messages[1].content[0].text == "Second message"
-        assert messages[2].content[0].text == "Third message"
+        assert messages[0].content[0].text == 'First message'
+        assert messages[1].content[0].text == 'Second message'
+        assert messages[2].content[0].text == 'Third message'
 
     @pytest.mark.asyncio
     async def test_get_pending_messages_returns_empty_list_when_none_exist(
@@ -151,7 +151,7 @@ class TestSQLPendingMessageService:
     ):
         """Test that an empty list is returned for a conversation with no messages."""
         # Arrange
-        conversation_id = f"task-{uuid4().hex}"
+        conversation_id = f'task-{uuid4().hex}'
 
         # Act
         messages = await service.get_pending_messages(conversation_id)
@@ -167,8 +167,8 @@ class TestSQLPendingMessageService:
     ):
         """Test that count_pending_messages returns the correct number."""
         # Arrange
-        conversation_id = f"task-{uuid4().hex}"
-        other_conversation_id = f"task-{uuid4().hex}"
+        conversation_id = f'task-{uuid4().hex}'
+        other_conversation_id = f'task-{uuid4().hex}'
 
         # Add 3 messages to first conversation
         for _ in range(3):
@@ -181,7 +181,7 @@ class TestSQLPendingMessageService:
         # Act
         count1 = await service.count_pending_messages(conversation_id)
         count2 = await service.count_pending_messages(other_conversation_id)
-        count_empty = await service.count_pending_messages("nonexistent")
+        count_empty = await service.count_pending_messages('nonexistent')
 
         # Assert
         assert count1 == 3
@@ -196,8 +196,8 @@ class TestSQLPendingMessageService:
     ):
         """Test that delete_messages_for_conversation removes all messages and returns count."""
         # Arrange
-        conversation_id = f"task-{uuid4().hex}"
-        other_conversation_id = f"task-{uuid4().hex}"
+        conversation_id = f'task-{uuid4().hex}'
+        other_conversation_id = f'task-{uuid4().hex}'
 
         # Add messages to both conversations
         for _ in range(3):
@@ -220,7 +220,7 @@ class TestSQLPendingMessageService:
     ):
         """Test that deleting from nonexistent conversation returns 0."""
         # Arrange
-        conversation_id = f"task-{uuid4().hex}"
+        conversation_id = f'task-{uuid4().hex}'
 
         # Act
         deleted_count = await service.delete_messages_for_conversation(conversation_id)
@@ -236,9 +236,9 @@ class TestSQLPendingMessageService:
     ):
         """Test that update_conversation_id updates all messages with the old ID."""
         # Arrange
-        old_conversation_id = f"task-{uuid4().hex}"
+        old_conversation_id = f'task-{uuid4().hex}'
         new_conversation_id = str(uuid4())
-        unrelated_conversation_id = f"task-{uuid4().hex}"
+        unrelated_conversation_id = f'task-{uuid4().hex}'
 
         # Add messages to old conversation
         for _ in range(3):
@@ -274,7 +274,7 @@ class TestSQLPendingMessageService:
     ):
         """Test that updating nonexistent conversation_id returns 0."""
         # Arrange
-        old_conversation_id = f"task-{uuid4().hex}"
+        old_conversation_id = f'task-{uuid4().hex}'
         new_conversation_id = str(uuid4())
 
         # Act
@@ -292,11 +292,11 @@ class TestSQLPendingMessageService:
     ):
         """Test that operations on one conversation don't affect others."""
         # Arrange
-        conv1 = f"task-{uuid4().hex}"
-        conv2 = f"task-{uuid4().hex}"
+        conv1 = f'task-{uuid4().hex}'
+        conv2 = f'task-{uuid4().hex}'
 
-        await service.add_message(conv1, [TextContent(text="Conv1 msg")])
-        await service.add_message(conv2, [TextContent(text="Conv2 msg")])
+        await service.add_message(conv1, [TextContent(text='Conv1 msg')])
+        await service.add_message(conv2, [TextContent(text='Conv2 msg')])
 
         # Act
         messages1 = await service.get_pending_messages(conv1)
@@ -305,5 +305,5 @@ class TestSQLPendingMessageService:
         # Assert
         assert len(messages1) == 1
         assert len(messages2) == 1
-        assert messages1[0].content[0].text == "Conv1 msg"
-        assert messages2[0].content[0].text == "Conv2 msg"
+        assert messages1[0].content[0].text == 'Conv1 msg'
+        assert messages2[0].content[0].text == 'Conv2 msg'

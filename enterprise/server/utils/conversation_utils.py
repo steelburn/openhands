@@ -22,7 +22,7 @@ def get_user_id(conversation_id: str) -> str:
             .first()
         )
         if not conversation_metadata_saas:
-            raise ValueError(f"Conversation not found: {conversation_id}")
+            raise ValueError(f'Conversation not found: {conversation_id}')
         return str(conversation_metadata_saas.user_id)
 
 

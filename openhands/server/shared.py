@@ -11,8 +11,8 @@ from openhands.app_server.shared import (
 )
 
 __all__ = [
-    "server_config_interface",
-    "server_config",
-    "SettingsStoreImpl",
-    "SecretsStoreImpl",
+    'server_config_interface',
+    'server_config',
+    'SettingsStoreImpl',
+    'SecretsStoreImpl',
 ]

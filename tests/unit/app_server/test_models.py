@@ -33,14 +33,14 @@ async def test_app_conversation_start_request_polymorphism():
                 event_callback_id=callback.id,
                 event_id=event.id,
                 conversation_id=conversation_id,
-                detail="Live long and prosper!",
+                detail='Live long and prosper!',
             )
 
     req = AppConversationStartRequest(processors=[MyCallbackProcessor()])
     assert len(req.processors) == 1
     processor = req.processors[0]
     result = await processor(uuid4(), MagicMock(id=uuid4()), MagicMock(id=str(uuid4())))
-    assert result.detail == "Live long and prosper!"
+    assert result.detail == 'Live long and prosper!'
 
 
 def test_app_conversation_update_request_includes_title_field():
@@ -59,17 +59,17 @@ def test_app_conversation_update_request_includes_title_field():
     so if title is not in model_fields_set, the update will be silently ignored.
     """
     # Simulate what the frontend sends when renaming a conversation
-    update_data = {"title": "My New Conversation Title"}
+    update_data = {'title': 'My New Conversation Title'}
     request = AppConversationUpdateRequest.model_validate(update_data)
 
     # The title field must be recognized and tracked in model_fields_set
-    assert "title" in request.model_fields_set, (
-        "title field is not in model_fields_set - title updates will be silently ignored! "
+    assert 'title' in request.model_fields_set, (
+        'title field is not in model_fields_set - title updates will be silently ignored! '
         "Add 'title: str | None = None' to AppConversationUpdateRequest."
     )
 
     # The title value must be accessible
-    assert request.title == "My New Conversation Title"
+    assert request.title == 'My New Conversation Title'
 
 
 def test_app_conversation_update_request_title_field_updates_conversation_info():
@@ -80,13 +80,13 @@ def test_app_conversation_update_request_title_field_updates_conversation_info()
     """
     # Create a conversation info with default title
     info = AppConversationInfo(
-        created_by_user_id="user-123",
-        sandbox_id="sandbox-456",
-        title="Original Title",
+        created_by_user_id='user-123',
+        sandbox_id='sandbox-456',
+        title='Original Title',
     )
 
     # Create an update request with a new title
-    request = AppConversationUpdateRequest(title="Updated Title")
+    request = AppConversationUpdateRequest(title='Updated Title')
 
     # Simulate the service layer update logic
     for field_name in request.model_fields_set:
@@ -94,7 +94,7 @@ def test_app_conversation_update_request_title_field_updates_conversation_info()
         setattr(info, field_name, value)
 
     # Verify the title was updated
-    assert info.title == "Updated Title", (
-        "Title was not updated on AppConversationInfo. "
+    assert info.title == 'Updated Title', (
+        'Title was not updated on AppConversationInfo. '
         "Ensure 'title' is in AppConversationUpdateRequest.model_fields_set."
     )

@@ -5,4 +5,4 @@
 
 from openhands.app_server.app import app
 
-__all__ = ["app"]
+__all__ = ['app']

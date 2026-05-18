@@ -17,7 +17,7 @@ from openhands.app_server.integrations.service_types import ProviderType
 from openhands.app_server.user.user_context import UserContext
 
 
-def _make_user_context(provider_tokens, user_id: str = "user-1") -> UserContext:
+def _make_user_context(provider_tokens, user_id: str = 'user-1') -> UserContext:
     """Build a mock UserContext with the given provider tokens."""
     context = MagicMock(spec=UserContext)
     context.get_provider_tokens = AsyncMock(return_value=provider_tokens)
@@ -53,7 +53,7 @@ async def test_raises_400_when_provider_unsupported():
 
     user_context = _make_user_context(
         provider_tokens=MappingProxyType(
-            {ProviderType.AZURE_DEVOPS: ProviderToken(token=SecretStr("az-token"))}
+            {ProviderType.AZURE_DEVOPS: ProviderToken(token=SecretStr('az-token'))}
         )
     )
 
@@ -67,25 +67,25 @@ async def test_raises_400_when_provider_unsupported():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "provider, service_method, service_return",
+    'provider, service_method, service_return',
     [
         (
             ProviderType.GITHUB,
-            "get_organizations_from_installations",
-            ["All-Hands-AI", "OpenHands"],
+            'get_organizations_from_installations',
+            ['All-Hands-AI', 'OpenHands'],
         ),
         (
             ProviderType.GITLAB,
-            "get_user_groups",
-            ["my-team", "open-source"],
+            'get_user_groups',
+            ['my-team', 'open-source'],
         ),
         (
             ProviderType.BITBUCKET,
-            "get_installations",
-            ["my-workspace"],
+            'get_installations',
+            ['my-workspace'],
         ),
     ],
-    ids=["github", "gitlab", "bitbucket"],
+    ids=['github', 'gitlab', 'bitbucket'],
 )
 async def test_returns_organizations_for_supported_provider(
     provider, service_method, service_return
@@ -96,12 +96,12 @@ async def test_returns_organizations_for_supported_provider(
 
     user_context = _make_user_context(
         provider_tokens=MappingProxyType(
-            {provider: ProviderToken(token=SecretStr("token"))}
+            {provider: ProviderToken(token=SecretStr('token'))}
         )
     )
 
     with patch(
-        "openhands.app_server.integrations.provider.ProviderHandler.get_service"
+        'openhands.app_server.integrations.provider.ProviderHandler.get_service'
     ) as mock_get_service:
         mock_service = mock_get_service.return_value
         setattr(mock_service, service_method, AsyncMock(return_value=service_return))

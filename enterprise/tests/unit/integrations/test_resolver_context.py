@@ -47,14 +47,14 @@ def test_resolver_org_id_can_be_set_via_constructor(mock_saas_user_auth):
     """Test that resolver_org_id can be set via constructor for org routing."""
     from uuid import UUID
 
-    org_id = UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+    org_id = UUID('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')
     ctx = ResolverUserContext(
         saas_user_auth=mock_saas_user_auth, resolver_org_id=org_id
     )
     assert ctx.resolver_org_id == org_id
 
 
-def create_custom_secret(value: str, description: str = "Test secret") -> CustomSecret:
+def create_custom_secret(value: str, description: str = 'Test secret') -> CustomSecret:
     """Helper to create CustomSecret instances."""
     return CustomSecret(secret=SecretStr(value), description=description)
 
@@ -72,8 +72,8 @@ async def test_get_secrets_converts_custom_to_static(
     # Arrange
     secrets = create_secrets(
         {
-            "TEST_SECRET_1": create_custom_secret("secret_value_1"),
-            "TEST_SECRET_2": create_custom_secret("secret_value_2"),
+            'TEST_SECRET_1': create_custom_secret('secret_value_1'),
+            'TEST_SECRET_2': create_custom_secret('secret_value_2'),
         }
     )
     mock_saas_user_auth.get_secrets.return_value = secrets
@@ -84,8 +84,8 @@ async def test_get_secrets_converts_custom_to_static(
     # Assert
     assert len(result) == 2
     assert all(isinstance(secret, StaticSecret) for secret in result.values())
-    assert result["TEST_SECRET_1"].value.get_secret_value() == "secret_value_1"
-    assert result["TEST_SECRET_2"].value.get_secret_value() == "secret_value_2"
+    assert result['TEST_SECRET_1'].value.get_secret_value() == 'secret_value_1'
+    assert result['TEST_SECRET_2'].value.get_secret_value() == 'secret_value_2'
 
 
 @pytest.mark.asyncio
@@ -94,8 +94,8 @@ async def test_get_secrets_with_special_characters(
 ):
     """Test that secret values with special characters are preserved during conversion."""
     # Arrange
-    special_value = "very_secret_password_123!@#$%^&*()"
-    secrets = create_secrets({"SPECIAL_SECRET": create_custom_secret(special_value)})
+    special_value = 'very_secret_password_123!@#$%^&*()'
+    secrets = create_secrets({'SPECIAL_SECRET': create_custom_secret(special_value)})
     mock_saas_user_auth.get_secrets.return_value = secrets
 
     # Act
@@ -103,13 +103,13 @@ async def test_get_secrets_with_special_characters(
 
     # Assert
     assert len(result) == 1
-    assert isinstance(result["SPECIAL_SECRET"], StaticSecret)
-    assert result["SPECIAL_SECRET"].value.get_secret_value() == special_value
+    assert isinstance(result['SPECIAL_SECRET'], StaticSecret)
+    assert result['SPECIAL_SECRET'].value.get_secret_value() == special_value
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "secrets_input,expected_result",
+    'secrets_input,expected_result',
     [
         (None, {}),  # No secrets available
         (create_secrets({}), {}),  # Empty custom secrets
@@ -132,19 +132,19 @@ async def test_get_secrets_empty_cases(
 def test_static_secret_is_valid_secret_source():
     """Test that StaticSecret is a valid SecretSource for SDK validation."""
     # Arrange & Act
-    static_secret = StaticSecret(value="test_secret_123")
+    static_secret = StaticSecret(value='test_secret_123')
 
     # Assert
     assert isinstance(static_secret, StaticSecret)
     assert isinstance(static_secret, SecretSource)
-    assert static_secret.value.get_secret_value() == "test_secret_123"
+    assert static_secret.value.get_secret_value() == 'test_secret_123'
 
 
 def test_custom_to_static_conversion():
     """Test the complete conversion flow from CustomSecret to StaticSecret."""
     # Arrange
-    secret_value = "conversion_test_secret"
-    custom_secret = create_custom_secret(secret_value, "Conversion test")
+    secret_value = 'conversion_test_secret'
+    custom_secret = create_custom_secret(secret_value, 'Conversion test')
 
     # Act - simulate the conversion logic from the actual method
     extracted_value = custom_secret.secret.get_secret_value()
@@ -177,7 +177,7 @@ def create_provider_tokens(
 async def test_get_latest_token_returns_string(resolver_context, mock_saas_user_auth):
     """Test that get_latest_token returns a string, not a ProviderToken object."""
     # Arrange
-    token_value = "ghp_test_github_token_123"
+    token_value = 'ghp_test_github_token_123'
     provider_tokens = create_provider_tokens({ProviderType.GITHUB: token_value})
     mock_saas_user_auth.get_provider_tokens = AsyncMock(return_value=provider_tokens)
 
@@ -187,8 +187,8 @@ async def test_get_latest_token_returns_string(resolver_context, mock_saas_user_
     # Assert
     assert result is not None
     assert isinstance(result, str), (
-        f"Expected str, got {type(result).__name__}. "
-        "get_latest_token must return a string for StaticSecret compatibility."
+        f'Expected str, got {type(result).__name__}. '
+        'get_latest_token must return a string for StaticSecret compatibility.'
     )
     assert result == token_value
 
@@ -201,23 +201,23 @@ async def test_get_latest_token_returns_string_for_multiple_providers(
     # Arrange
     provider_tokens = create_provider_tokens(
         {
-            ProviderType.GITHUB: "ghp_github_token",
-            ProviderType.GITLAB: "glpat_gitlab_token",
-            ProviderType.BITBUCKET: "bitbucket_token",
+            ProviderType.GITHUB: 'ghp_github_token',
+            ProviderType.GITLAB: 'glpat_gitlab_token',
+            ProviderType.BITBUCKET: 'bitbucket_token',
         }
     )
     mock_saas_user_auth.get_provider_tokens = AsyncMock(return_value=provider_tokens)
 
     # Act & Assert - verify each provider returns a string
     for provider_type, expected_token in [
-        (ProviderType.GITHUB, "ghp_github_token"),
-        (ProviderType.GITLAB, "glpat_gitlab_token"),
-        (ProviderType.BITBUCKET, "bitbucket_token"),
+        (ProviderType.GITHUB, 'ghp_github_token'),
+        (ProviderType.GITLAB, 'glpat_gitlab_token'),
+        (ProviderType.BITBUCKET, 'bitbucket_token'),
     ]:
         result = await resolver_context.get_latest_token(provider_type)
-        assert isinstance(result, str), (
-            f"Expected str for {provider_type.name}, got {type(result).__name__}"
-        )
+        assert isinstance(
+            result, str
+        ), f'Expected str for {provider_type.name}, got {type(result).__name__}'
         assert result == expected_token
 
 
@@ -227,7 +227,7 @@ async def test_get_latest_token_returns_none_for_missing_provider(
 ):
     """Test that get_latest_token returns None when provider is not in tokens."""
     # Arrange - only GitHub token available
-    provider_tokens = create_provider_tokens({ProviderType.GITHUB: "ghp_token"})
+    provider_tokens = create_provider_tokens({ProviderType.GITHUB: 'ghp_token'})
     mock_saas_user_auth.get_provider_tokens = AsyncMock(return_value=provider_tokens)
 
     # Act - request GitLab token which doesn't exist
@@ -278,7 +278,7 @@ async def test_get_latest_token_can_be_used_with_static_secret(
     with how it's used in _setup_secrets_for_git_providers.
     """
     # Arrange
-    token_value = "ghp_integration_test_token"
+    token_value = 'ghp_integration_test_token'
     provider_tokens = create_provider_tokens({ProviderType.GITHUB: token_value})
     mock_saas_user_auth.get_provider_tokens = AsyncMock(return_value=provider_tokens)
 
@@ -286,7 +286,7 @@ async def test_get_latest_token_can_be_used_with_static_secret(
     token = await resolver_context.get_latest_token(ProviderType.GITHUB)
 
     # Assert - this should NOT raise a ValidationError
-    static_secret = StaticSecret(value=token, description="GITHUB authentication token")
+    static_secret = StaticSecret(value=token, description='GITHUB authentication token')
     assert static_secret.get_value() == token_value
 
 
@@ -304,8 +304,8 @@ async def test_get_authenticated_git_url_raises_when_no_tokens(
     mock_saas_user_auth.get_provider_tokens = AsyncMock(return_value=None)
 
     # Act & Assert
-    with pytest.raises(ValueError, match="No provider tokens available"):
-        await resolver_context.get_authenticated_git_url("owner/repo")
+    with pytest.raises(ValueError, match='No provider tokens available'):
+        await resolver_context.get_authenticated_git_url('owner/repo')
 
 
 @pytest.mark.asyncio
@@ -314,10 +314,10 @@ async def test_get_provider_handler_caches_instance(
 ):
     """Test that _get_provider_handler caches the handler instance."""
     # Arrange
-    token_value = "ghp_test_token"
+    token_value = 'ghp_test_token'
     provider_tokens = create_provider_tokens({ProviderType.GITHUB: token_value})
     mock_saas_user_auth.get_provider_tokens = AsyncMock(return_value=provider_tokens)
-    mock_saas_user_auth.get_user_id = AsyncMock(return_value="test-user-id")
+    mock_saas_user_auth.get_user_id = AsyncMock(return_value='test-user-id')
 
     # Act - call _get_provider_handler twice
     handler1 = await resolver_context._get_provider_handler()
@@ -335,10 +335,10 @@ async def test_get_provider_handler_creates_handler_with_correct_params(
 ):
     """Test that _get_provider_handler creates ProviderHandler with correct parameters."""
     # Arrange
-    token_value = "ghp_test_token"
+    token_value = 'ghp_test_token'
     provider_tokens = create_provider_tokens({ProviderType.GITHUB: token_value})
     mock_saas_user_auth.get_provider_tokens = AsyncMock(return_value=provider_tokens)
-    mock_saas_user_auth.get_user_id = AsyncMock(return_value="test-user-id")
+    mock_saas_user_auth.get_user_id = AsyncMock(return_value='test-user-id')
 
     # Act
     handler = await resolver_context._get_provider_handler()

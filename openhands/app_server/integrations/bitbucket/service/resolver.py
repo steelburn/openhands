@@ -22,11 +22,11 @@ class BitBucketResolverMixin(BitBucketMixinBase):
             upstream payload.
         """
         url = (
-            f"{self.BASE_URL}/repositories/{workspace}/{repo_slug}/pullrequests/{pr_id}"
+            f'{self.BASE_URL}/repositories/{workspace}/{repo_slug}/pullrequests/{pr_id}'
         )
         response, _ = await self._make_request(url)
-        title = response.get("title") or ""
-        body = response.get("description") or ""
+        title = response.get('title') or ''
+        body = response.get('description') or ''
         return title, body
 
     async def get_pr_comments(
@@ -43,22 +43,22 @@ class BitBucketResolverMixin(BitBucketMixinBase):
         collected.
         """
         url = (
-            f"{self.BASE_URL}/repositories/{workspace}/{repo_slug}"
-            f"/pullrequests/{pr_id}/comments"
+            f'{self.BASE_URL}/repositories/{workspace}/{repo_slug}'
+            f'/pullrequests/{pr_id}/comments'
         )
         all_raw: list[dict] = []
-        params: dict | None = {"pagelen": 100}
+        params: dict | None = {'pagelen': 100}
 
         while url and len(all_raw) < max_comments:
             response, _ = await self._make_request(url, params)
-            for item in response.get("values", []):
-                if item.get("deleted"):
+            for item in response.get('values', []):
+                if item.get('deleted'):
                     continue
-                if item.get("inline"):
+                if item.get('inline'):
                     continue
                 all_raw.append(item)
 
-            url = response.get("next")
+            url = response.get('next')
             # Subsequent next URLs already carry their own query string.
             params = None
 
@@ -74,19 +74,19 @@ class BitBucketResolverMixin(BitBucketMixinBase):
         """
         all_comments: list[Comment] = []
         for raw in comments:
-            created_at = _parse_bb_datetime(raw.get("created_on"))
-            updated_at = _parse_bb_datetime(raw.get("updated_on"))
-            user = raw.get("user") or {}
+            created_at = _parse_bb_datetime(raw.get('created_on'))
+            updated_at = _parse_bb_datetime(raw.get('updated_on'))
+            user = raw.get('user') or {}
             author = (
-                user.get("display_name")
-                or user.get("nickname")
-                or user.get("account_id")
-                or "unknown"
+                user.get('display_name')
+                or user.get('nickname')
+                or user.get('account_id')
+                or 'unknown'
             )
-            body = (raw.get("content") or {}).get("raw", "") or ""
+            body = (raw.get('content') or {}).get('raw', '') or ''
             all_comments.append(
                 Comment(
-                    id=str(raw.get("id", "unknown")),
+                    id=str(raw.get('id', 'unknown')),
                     body=self._truncate_comment(body),
                     author=author,
                     created_at=created_at,
@@ -115,14 +115,14 @@ class BitBucketResolverMixin(BitBucketMixinBase):
         attached to the supplied file/line.
         """
         url = (
-            f"{self.BASE_URL}/repositories/{workspace}/{repo_slug}"
-            f"/pullrequests/{pr_id}/comments"
+            f'{self.BASE_URL}/repositories/{workspace}/{repo_slug}'
+            f'/pullrequests/{pr_id}/comments'
         )
-        payload: dict = {"content": {"raw": body}}
+        payload: dict = {'content': {'raw': body}}
         if parent_comment_id is not None:
-            payload["parent"] = {"id": parent_comment_id}
+            payload['parent'] = {'id': parent_comment_id}
         if inline is not None:
-            payload["inline"] = inline
+            payload['inline'] = inline
 
         await self._make_request(url, params=payload, method=RequestMethod.POST)
 
@@ -133,11 +133,11 @@ class BitBucketResolverMixin(BitBucketMixinBase):
         Bitbucket Cloud has no per-pull-request permission API, so this is
         the workspace-level analog used by the resolver to gate job creation.
         """
-        url = f"{self.BASE_URL}/user/permissions/repositories"
-        params = {"q": f'repository.full_name="{workspace}/{repo_slug}"'}
+        url = f'{self.BASE_URL}/user/permissions/repositories'
+        params = {'q': f'repository.full_name="{workspace}/{repo_slug}"'}
         response, _ = await self._make_request(url, params)
-        for entry in response.get("values", []):
-            if entry.get("permission") in ("write", "admin"):
+        for entry in response.get('values', []):
+            if entry.get('permission') in ('write', 'admin'):
                 return True
         return False
 
@@ -161,23 +161,23 @@ class BitBucketResolverMixin(BitBucketMixinBase):
         (``712020:...``) or a UUID with or without braces — both filter
         formats are routed correctly to the upstream ``q`` parameter.
         """
-        if ":" in selected_user_id:
+        if ':' in selected_user_id:
             q = f'user.account_id="{selected_user_id}"'
         elif selected_user_id:
             uuid_value = selected_user_id
-            if not uuid_value.startswith("{"):
-                uuid_value = "{" + uuid_value + "}"
+            if not uuid_value.startswith('{'):
+                uuid_value = '{' + uuid_value + '}'
             q = f'user.uuid="{uuid_value}"'
         else:
             return False
 
-        url = f"{self.BASE_URL}/workspaces/{workspace}/permissions"
+        url = f'{self.BASE_URL}/workspaces/{workspace}/permissions'
         try:
-            response, _ = await self._make_request(url, {"q": q})
+            response, _ = await self._make_request(url, {'q': q})
         except Exception:
             return False
-        for entry in response.get("values", []):
-            if entry.get("permission") in ("owner", "collaborator"):
+        for entry in response.get('values', []):
+            if entry.get('permission') in ('owner', 'collaborator'):
                 return True
         return False
 
@@ -186,8 +186,8 @@ def _parse_bb_datetime(value: str | None) -> datetime:
     if not value:
         return datetime.fromtimestamp(0, tz=timezone.utc)
     # Bitbucket Cloud uses ISO 8601 with timezone offset; tolerate trailing 'Z'.
-    if value.endswith("Z"):
-        value = value[:-1] + "+00:00"
+    if value.endswith('Z'):
+        value = value[:-1] + '+00:00'
     try:
         return datetime.fromisoformat(value)
     except ValueError:

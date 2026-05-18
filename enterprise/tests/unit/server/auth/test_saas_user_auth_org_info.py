@@ -23,9 +23,9 @@ from storage.user import User
 async def async_engine():
     """Create an async SQLite engine for testing."""
     engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
+        'sqlite+aiosqlite:///:memory:',
         poolclass=StaticPool,
-        connect_args={"check_same_thread": False},
+        connect_args={'check_same_thread': False},
     )
     return engine
 
@@ -99,8 +99,8 @@ async def create_org_member(
     org_id: uuid.UUID,
     user_id: str,
     role_id: int,
-    status: str = "active",
-    llm_api_key: str = "test-api-key",
+    status: str = 'active',
+    llm_api_key: str = 'test-api-key',
 ) -> OrgMember:
     """Helper to create an org member in the test database."""
     async with session_maker() as session:
@@ -126,34 +126,34 @@ class TestGetOrgInfoWithRealDB:
     ):
         """Test that get_org_info returns correct data for an owner role."""
         # Set up test data
-        owner_role = await create_role(async_session_maker, "owner", 1)
-        await create_org(async_session_maker, org_id, "Test Organization")
+        owner_role = await create_role(async_session_maker, 'owner', 1)
+        await create_org(async_session_maker, org_id, 'Test Organization')
         await create_user(async_session_maker, user_id, org_id)
         await create_org_member(async_session_maker, org_id, user_id, owner_role.id)
 
         # Create SaasUserAuth instance
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr("mock_refresh_token"),
+            refresh_token=SecretStr('mock_refresh_token'),
         )
 
         # Patch the global a_session_maker in all stores that use it
         with (
-            patch("storage.user_store.a_session_maker", async_session_maker),
-            patch("storage.org_store.a_session_maker", async_session_maker),
-            patch("storage.org_member_store.a_session_maker", async_session_maker),
-            patch("storage.role_store.a_session_maker", async_session_maker),
+            patch('storage.user_store.a_session_maker', async_session_maker),
+            patch('storage.org_store.a_session_maker', async_session_maker),
+            patch('storage.org_member_store.a_session_maker', async_session_maker),
+            patch('storage.role_store.a_session_maker', async_session_maker),
         ):
             org_info = await user_auth.get_org_info()
 
         assert org_info is not None
-        assert org_info["org_id"] == str(org_id)
-        assert org_info["org_name"] == "Test Organization"
-        assert org_info["role"] == "owner"
-        assert isinstance(org_info["permissions"], list)
+        assert org_info['org_id'] == str(org_id)
+        assert org_info['org_name'] == 'Test Organization'
+        assert org_info['role'] == 'owner'
+        assert isinstance(org_info['permissions'], list)
         # Owner should have many permissions
-        assert len(org_info["permissions"]) > 0
-        assert "manage_secrets" in org_info["permissions"]
+        assert len(org_info['permissions']) > 0
+        assert 'manage_secrets' in org_info['permissions']
 
     @pytest.mark.asyncio
     async def test_get_org_info_returns_correct_data_for_member(
@@ -161,30 +161,30 @@ class TestGetOrgInfoWithRealDB:
     ):
         """Test that get_org_info returns correct data for a member role."""
         # Set up test data
-        member_role = await create_role(async_session_maker, "member", 3)
-        await create_org(async_session_maker, org_id, "Member Org")
+        member_role = await create_role(async_session_maker, 'member', 3)
+        await create_org(async_session_maker, org_id, 'Member Org')
         await create_user(async_session_maker, user_id, org_id)
         await create_org_member(async_session_maker, org_id, user_id, member_role.id)
 
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr("mock_refresh_token"),
+            refresh_token=SecretStr('mock_refresh_token'),
         )
 
         with (
-            patch("storage.user_store.a_session_maker", async_session_maker),
-            patch("storage.org_store.a_session_maker", async_session_maker),
-            patch("storage.org_member_store.a_session_maker", async_session_maker),
-            patch("storage.role_store.a_session_maker", async_session_maker),
+            patch('storage.user_store.a_session_maker', async_session_maker),
+            patch('storage.org_store.a_session_maker', async_session_maker),
+            patch('storage.org_member_store.a_session_maker', async_session_maker),
+            patch('storage.role_store.a_session_maker', async_session_maker),
         ):
             org_info = await user_auth.get_org_info()
 
         assert org_info is not None
-        assert org_info["org_id"] == str(org_id)
-        assert org_info["org_name"] == "Member Org"
-        assert org_info["role"] == "member"
+        assert org_info['org_id'] == str(org_id)
+        assert org_info['org_name'] == 'Member Org'
+        assert org_info['role'] == 'member'
         # Member should have limited permissions
-        assert isinstance(org_info["permissions"], list)
+        assert isinstance(org_info['permissions'], list)
 
     @pytest.mark.asyncio
     async def test_get_org_info_returns_correct_data_for_admin(
@@ -192,29 +192,29 @@ class TestGetOrgInfoWithRealDB:
     ):
         """Test that get_org_info returns correct data for an admin role."""
         # Set up test data
-        admin_role = await create_role(async_session_maker, "admin", 2)
-        await create_org(async_session_maker, org_id, "Admin Org")
+        admin_role = await create_role(async_session_maker, 'admin', 2)
+        await create_org(async_session_maker, org_id, 'Admin Org')
         await create_user(async_session_maker, user_id, org_id)
         await create_org_member(async_session_maker, org_id, user_id, admin_role.id)
 
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr("mock_refresh_token"),
+            refresh_token=SecretStr('mock_refresh_token'),
         )
 
         with (
-            patch("storage.user_store.a_session_maker", async_session_maker),
-            patch("storage.org_store.a_session_maker", async_session_maker),
-            patch("storage.org_member_store.a_session_maker", async_session_maker),
-            patch("storage.role_store.a_session_maker", async_session_maker),
+            patch('storage.user_store.a_session_maker', async_session_maker),
+            patch('storage.org_store.a_session_maker', async_session_maker),
+            patch('storage.org_member_store.a_session_maker', async_session_maker),
+            patch('storage.role_store.a_session_maker', async_session_maker),
         ):
             org_info = await user_auth.get_org_info()
 
         assert org_info is not None
-        assert org_info["org_id"] == str(org_id)
-        assert org_info["org_name"] == "Admin Org"
-        assert org_info["role"] == "admin"
-        assert isinstance(org_info["permissions"], list)
+        assert org_info['org_id'] == str(org_id)
+        assert org_info['org_name'] == 'Admin Org'
+        assert org_info['role'] == 'admin'
+        assert isinstance(org_info['permissions'], list)
 
     @pytest.mark.asyncio
     async def test_get_org_info_returns_none_when_user_not_found(
@@ -225,14 +225,14 @@ class TestGetOrgInfoWithRealDB:
 
         user_auth = SaasUserAuth(
             user_id=nonexistent_user_id,
-            refresh_token=SecretStr("mock_refresh_token"),
+            refresh_token=SecretStr('mock_refresh_token'),
         )
 
         with (
-            patch("storage.user_store.a_session_maker", async_session_maker),
-            patch("storage.org_store.a_session_maker", async_session_maker),
-            patch("storage.org_member_store.a_session_maker", async_session_maker),
-            patch("storage.role_store.a_session_maker", async_session_maker),
+            patch('storage.user_store.a_session_maker', async_session_maker),
+            patch('storage.org_store.a_session_maker', async_session_maker),
+            patch('storage.org_member_store.a_session_maker', async_session_maker),
+            patch('storage.role_store.a_session_maker', async_session_maker),
         ):
             org_info = await user_auth.get_org_info()
 
@@ -257,14 +257,14 @@ class TestGetOrgInfoWithRealDB:
 
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr("mock_refresh_token"),
+            refresh_token=SecretStr('mock_refresh_token'),
         )
 
         with (
-            patch("storage.user_store.a_session_maker", async_session_maker),
-            patch("storage.org_store.a_session_maker", async_session_maker),
-            patch("storage.org_member_store.a_session_maker", async_session_maker),
-            patch("storage.role_store.a_session_maker", async_session_maker),
+            patch('storage.user_store.a_session_maker', async_session_maker),
+            patch('storage.org_store.a_session_maker', async_session_maker),
+            patch('storage.org_member_store.a_session_maker', async_session_maker),
+            patch('storage.role_store.a_session_maker', async_session_maker),
         ):
             org_info = await user_auth.get_org_info()
 
@@ -276,21 +276,21 @@ class TestGetOrgInfoWithRealDB:
     ):
         """Test that get_org_info caches the result and doesn't hit DB twice."""
         # Set up test data
-        owner_role = await create_role(async_session_maker, "owner", 1)
-        await create_org(async_session_maker, org_id, "Cached Org")
+        owner_role = await create_role(async_session_maker, 'owner', 1)
+        await create_org(async_session_maker, org_id, 'Cached Org')
         await create_user(async_session_maker, user_id, org_id)
         await create_org_member(async_session_maker, org_id, user_id, owner_role.id)
 
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr("mock_refresh_token"),
+            refresh_token=SecretStr('mock_refresh_token'),
         )
 
         with (
-            patch("storage.user_store.a_session_maker", async_session_maker),
-            patch("storage.org_store.a_session_maker", async_session_maker),
-            patch("storage.org_member_store.a_session_maker", async_session_maker),
-            patch("storage.role_store.a_session_maker", async_session_maker),
+            patch('storage.user_store.a_session_maker', async_session_maker),
+            patch('storage.org_store.a_session_maker', async_session_maker),
+            patch('storage.org_member_store.a_session_maker', async_session_maker),
+            patch('storage.role_store.a_session_maker', async_session_maker),
         ):
             # First call
             org_info1 = await user_auth.get_org_info()
@@ -309,14 +309,14 @@ class TestGetOrgInfoWithRealDB:
 
         user_auth = SaasUserAuth(
             user_id=nonexistent_user_id,
-            refresh_token=SecretStr("mock_refresh_token"),
+            refresh_token=SecretStr('mock_refresh_token'),
         )
 
         with (
-            patch("storage.user_store.a_session_maker", async_session_maker),
-            patch("storage.org_store.a_session_maker", async_session_maker),
-            patch("storage.org_member_store.a_session_maker", async_session_maker),
-            patch("storage.role_store.a_session_maker", async_session_maker),
+            patch('storage.user_store.a_session_maker', async_session_maker),
+            patch('storage.org_store.a_session_maker', async_session_maker),
+            patch('storage.org_member_store.a_session_maker', async_session_maker),
+            patch('storage.role_store.a_session_maker', async_session_maker),
         ):
             # First call
             org_info1 = await user_auth.get_org_info()
@@ -333,26 +333,26 @@ class TestGetOrgInfoWithRealDB:
     ):
         """Test that get_org_info returns empty permissions for unknown role."""
         # Create a custom role that isn't in the ROLE_PERMISSIONS mapping
-        custom_role = await create_role(async_session_maker, "custom_role", 99)
-        await create_org(async_session_maker, org_id, "Custom Org")
+        custom_role = await create_role(async_session_maker, 'custom_role', 99)
+        await create_org(async_session_maker, org_id, 'Custom Org')
         await create_user(async_session_maker, user_id, org_id)
         await create_org_member(async_session_maker, org_id, user_id, custom_role.id)
 
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr("mock_refresh_token"),
+            refresh_token=SecretStr('mock_refresh_token'),
         )
 
         with (
-            patch("storage.user_store.a_session_maker", async_session_maker),
-            patch("storage.org_store.a_session_maker", async_session_maker),
-            patch("storage.org_member_store.a_session_maker", async_session_maker),
-            patch("storage.role_store.a_session_maker", async_session_maker),
+            patch('storage.user_store.a_session_maker', async_session_maker),
+            patch('storage.org_store.a_session_maker', async_session_maker),
+            patch('storage.org_member_store.a_session_maker', async_session_maker),
+            patch('storage.role_store.a_session_maker', async_session_maker),
         ):
             org_info = await user_auth.get_org_info()
 
         assert org_info is not None
-        assert org_info["org_id"] == str(org_id)
-        assert org_info["role"] == "custom_role"
+        assert org_info['org_id'] == str(org_id)
+        assert org_info['role'] == 'custom_role'
         # Unknown roles should have empty permissions
-        assert org_info["permissions"] == []
+        assert org_info['permissions'] == []

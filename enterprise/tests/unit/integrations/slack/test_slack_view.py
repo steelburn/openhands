@@ -28,7 +28,7 @@ from openhands.app_server.user_auth.user_auth import UserAuth
 def mock_jinja_env():
     """Create a mock Jinja environment with test templates."""
     templates = {
-        "user_message_conversation_instructions.j2": 'Previous messages: {{ messages|join(", ") }}\nUser: {{ username }}\nURL: {{ conversation_url }}'
+        'user_message_conversation_instructions.j2': 'Previous messages: {{ messages|join(", ") }}\nUser: {{ username }}\nURL: {{ conversation_url }}'
     }
     return Environment(loader=DictLoader(templates))
 
@@ -37,9 +37,9 @@ def mock_jinja_env():
 def mock_slack_user():
     """Create a mock SlackUser."""
     user = SlackUser()
-    user.slack_user_id = "U1234567890"
-    user.keycloak_user_id = "test-user-123"
-    user.slack_display_name = "Test User"
+    user.slack_user_id = 'U1234567890'
+    user.keycloak_user_id = 'test-user-123'
+    user.slack_display_name = 'Test User'
     return user
 
 
@@ -56,48 +56,48 @@ def mock_user_auth():
 def slack_new_conversation_view(mock_slack_user, mock_user_auth):
     """Create a SlackNewConversationView instance."""
     return SlackNewConversationView(
-        bot_access_token="xoxb-test-token",
-        user_msg="Hello OpenHands!",
-        slack_user_id="U1234567890",
+        bot_access_token='xoxb-test-token',
+        user_msg='Hello OpenHands!',
+        slack_user_id='U1234567890',
         slack_to_openhands_user=mock_slack_user,
         saas_user_auth=mock_user_auth,
-        channel_id="C1234567890",
-        message_ts="1234567890.123456",
+        channel_id='C1234567890',
+        message_ts='1234567890.123456',
         thread_ts=None,
-        selected_repo="owner/repo",
+        selected_repo='owner/repo',
         should_extract=True,
         send_summary_instruction=True,
-        conversation_id="",
-        team_id="T1234567890",
+        conversation_id='',
+        team_id='T1234567890',
     )
 
 
 @pytest.fixture
 def slack_update_conversation_view_v1(mock_slack_user, mock_user_auth):
     """Create a SlackUpdateExistingConversationView instance for V1."""
-    conversation_id = "12345678-1234-5678-1234-567812345678"
+    conversation_id = '12345678-1234-5678-1234-567812345678'
     mock_conversation = SlackConversation(
         conversation_id=conversation_id,
-        channel_id="C1234567890",
-        keycloak_user_id="test-user-123",
-        parent_id="1234567890.123456",
+        channel_id='C1234567890',
+        keycloak_user_id='test-user-123',
+        parent_id='1234567890.123456',
         v1_enabled=True,
     )
     return SlackUpdateExistingConversationView(
-        bot_access_token="xoxb-test-token",
-        user_msg="Follow up message",
-        slack_user_id="U1234567890",
+        bot_access_token='xoxb-test-token',
+        user_msg='Follow up message',
+        slack_user_id='U1234567890',
         slack_to_openhands_user=mock_slack_user,
         saas_user_auth=mock_user_auth,
-        channel_id="C1234567890",
-        message_ts="1234567890.123457",
-        thread_ts="1234567890.123456",
+        channel_id='C1234567890',
+        message_ts='1234567890.123457',
+        thread_ts='1234567890.123456',
         selected_repo=None,
         should_extract=True,
         send_summary_instruction=True,
         conversation_id=conversation_id,
         slack_conversation=mock_conversation,
-        team_id="T1234567890",
+        team_id='T1234567890',
     )
 
 
@@ -109,7 +109,7 @@ def slack_update_conversation_view_v1(mock_slack_user, mock_user_auth):
 class TestV1ConversationCreation:
     """Test V1 conversation creation in Slack integration."""
 
-    @patch.object(SlackNewConversationView, "_create_v1_conversation")
+    @patch.object(SlackNewConversationView, '_create_v1_conversation')
     async def test_v1_conversation_creation(
         self,
         mock_create_v1,
@@ -139,7 +139,7 @@ class TestMessageRouting:
     """Test that message sending routes to V1 method."""
 
     @patch.object(
-        SlackUpdateExistingConversationView, "send_message_to_v1_conversation"
+        SlackUpdateExistingConversationView, 'send_message_to_v1_conversation'
     )
     async def test_message_routing_to_v1(
         self,
@@ -169,13 +169,13 @@ class TestMessageRouting:
 class TestPausedSandboxResumption:
     """Test that paused sandboxes are resumed when sending messages to V1 conversations."""
 
-    @patch("openhands.app_server.config.get_sandbox_service")
-    @patch("openhands.app_server.config.get_app_conversation_info_service")
-    @patch("openhands.app_server.config.get_httpx_client")
-    @patch("openhands.app_server.event_callback.util.ensure_running_sandbox")
-    @patch("openhands.app_server.event_callback.util.get_agent_server_url_from_sandbox")
+    @patch('openhands.app_server.config.get_sandbox_service')
+    @patch('openhands.app_server.config.get_app_conversation_info_service')
+    @patch('openhands.app_server.config.get_httpx_client')
+    @patch('openhands.app_server.event_callback.util.ensure_running_sandbox')
+    @patch('openhands.app_server.event_callback.util.get_agent_server_url_from_sandbox')
     @patch.object(
-        SlackUpdateExistingConversationView, "_get_instructions", new_callable=AsyncMock
+        SlackUpdateExistingConversationView, '_get_instructions', new_callable=AsyncMock
     )
     async def test_paused_sandbox_resumption(
         self,
@@ -190,12 +190,12 @@ class TestPausedSandboxResumption:
     ):
         """Test that paused sandboxes are resumed when sending messages to V1 conversations."""
         # Setup mocks
-        mock_get_instructions.return_value = ("User message", "")
+        mock_get_instructions.return_value = ('User message', '')
 
         # Mock app conversation info service
         mock_app_info_service = AsyncMock()
         mock_app_info = MagicMock()
-        mock_app_info.sandbox_id = "sandbox-123"
+        mock_app_info.sandbox_id = 'sandbox-123'
         mock_app_info_service.get_app_conversation_info.return_value = mock_app_info
         mock_get_app_info_service.return_value.__aenter__.return_value = (
             mock_app_info_service
@@ -205,17 +205,17 @@ class TestPausedSandboxResumption:
         mock_sandbox_service = AsyncMock()
         mock_paused_sandbox = MagicMock()
         mock_paused_sandbox.status = SandboxStatus.PAUSED
-        mock_paused_sandbox.session_api_key = "test-api-key"
+        mock_paused_sandbox.session_api_key = 'test-api-key'
         mock_paused_sandbox.exposed_urls = [
-            MagicMock(name="AGENT_SERVER", url="http://localhost:8000")
+            MagicMock(name='AGENT_SERVER', url='http://localhost:8000')
         ]
 
         # After resume, sandbox becomes running
         mock_running_sandbox = MagicMock()
         mock_running_sandbox.status = SandboxStatus.RUNNING
-        mock_running_sandbox.session_api_key = "test-api-key"
+        mock_running_sandbox.session_api_key = 'test-api-key'
         mock_running_sandbox.exposed_urls = [
-            MagicMock(name="AGENT_SERVER", url="http://localhost:8000")
+            MagicMock(name='AGENT_SERVER', url='http://localhost:8000')
         ]
 
         mock_sandbox_service.get_sandbox.side_effect = [
@@ -229,12 +229,12 @@ class TestPausedSandboxResumption:
 
         # Mock ensure_running_sandbox to first raise RuntimeError, then return running sandbox
         mock_ensure_running_sandbox.side_effect = [
-            RuntimeError("Sandbox not running: sandbox-123"),
+            RuntimeError('Sandbox not running: sandbox-123'),
             mock_running_sandbox,
         ]
 
         # Mock agent server URL
-        mock_get_agent_server_url.return_value = "http://localhost:8000"
+        mock_get_agent_server_url.return_value = 'http://localhost:8000'
 
         # Mock HTTP client
         mock_httpx_client = AsyncMock()
@@ -249,6 +249,6 @@ class TestPausedSandboxResumption:
         )
 
         # Verify sandbox was resumed
-        mock_sandbox_service.resume_sandbox.assert_called_once_with("sandbox-123")
+        mock_sandbox_service.resume_sandbox.assert_called_once_with('sandbox-123')
         mock_httpx_client.post.assert_called_once()
         mock_response.raise_for_status.assert_called_once()

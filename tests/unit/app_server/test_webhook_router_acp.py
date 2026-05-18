@@ -37,9 +37,9 @@ from openhands.sdk.llm import LLM
 @pytest.fixture
 async def async_engine():
     engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
+        'sqlite+aiosqlite:///:memory:',
         poolclass=StaticPool,
-        connect_args={"check_same_thread": False},
+        connect_args={'check_same_thread': False},
         echo=False,
     )
     async with engine.begin() as conn:
@@ -67,8 +67,8 @@ def service(async_session) -> SQLAppConversationInfoService:
 @pytest.fixture
 def sandbox_info():
     sandbox = MagicMock()
-    sandbox.id = "sandbox_acp_test"
-    sandbox.created_by_user_id = "user_123"
+    sandbox.id = 'sandbox_acp_test'
+    sandbox.created_by_user_id = 'user_123'
     sandbox.session_api_key = None
     return sandbox
 
@@ -82,14 +82,14 @@ def _make_llm_conversation_info() -> ConversationInfo:
     ``.execution_status``, ``.agent``, ``.stats``, ``.tags`` — everything else
     can ride on defaults.
     """
-    agent = Agent(llm=LLM(model="anthropic/claude-sonnet-4-6", usage_id="test-usage"))
+    agent = Agent(llm=LLM(model='anthropic/claude-sonnet-4-6', usage_id='test-usage'))
     return ConversationInfo.model_validate(
         {
-            "id": str(uuid4()),
-            "workspace": {"kind": "LocalWorkspace", "working_dir": "/tmp"},
-            "persistence_dir": "/tmp/persist",
-            "agent": agent.model_dump(mode="json"),
-            "execution_status": "running",
+            'id': str(uuid4()),
+            'workspace': {'kind': 'LocalWorkspace', 'working_dir': '/tmp'},
+            'persistence_dir': '/tmp/persist',
+            'agent': agent.model_dump(mode='json'),
+            'execution_status': 'running',
         }
     )
 
@@ -99,11 +99,11 @@ def _make_acp_conversation_info(acp_command: list[str]) -> ConversationInfo:
     acp_agent = ACPAgent(acp_command=acp_command)
     return ConversationInfo.model_validate(
         {
-            "id": str(uuid4()),
-            "workspace": {"kind": "LocalWorkspace", "working_dir": "/tmp"},
-            "persistence_dir": "/tmp/persist",
-            "agent": acp_agent.model_dump(mode="json"),
-            "execution_status": "running",
+            'id': str(uuid4()),
+            'workspace': {'kind': 'LocalWorkspace', 'working_dir': '/tmp'},
+            'persistence_dir': '/tmp/persist',
+            'agent': acp_agent.model_dump(mode='json'),
+            'execution_status': 'running',
         }
     )
 
@@ -121,13 +121,13 @@ async def test_llm_conversation_stores_llm_model(async_session, service, sandbox
 
     existing = AppConversationInfo(
         id=conversation_id,
-        title="Test",
+        title='Test',
         sandbox_id=sandbox_info.id,
         created_by_user_id=sandbox_info.created_by_user_id,
     )
 
     with patch(
-        "openhands.app_server.event_callback.webhook_router.valid_conversation",
+        'openhands.app_server.event_callback.webhook_router.valid_conversation',
         return_value=existing,
     ):
         result = await on_conversation_update(
@@ -140,27 +140,27 @@ async def test_llm_conversation_stores_llm_model(async_session, service, sandbox
 
     saved = await service.get_app_conversation_info(conversation_id)
     assert saved is not None
-    assert saved.llm_model == "anthropic/claude-sonnet-4-6"
-    assert saved.agent_kind == "openhands"
+    assert saved.llm_model == 'anthropic/claude-sonnet-4-6'
+    assert saved.agent_kind == 'openhands'
 
 
 @pytest.mark.asyncio
 async def test_acp_conversation_sets_agent_kind(async_session, service, sandbox_info):
     """ACP path sets agent_kind='acp' and leaves llm_model null."""
     acp_info = _make_acp_conversation_info(
-        acp_command=["npx", "-y", "@agentclientprotocol/claude-agent-acp"]
+        acp_command=['npx', '-y', '@agentclientprotocol/claude-agent-acp']
     )
     conversation_id = acp_info.id
 
     existing = AppConversationInfo(
         id=conversation_id,
-        title="Test",
+        title='Test',
         sandbox_id=sandbox_info.id,
         created_by_user_id=sandbox_info.created_by_user_id,
     )
 
     with patch(
-        "openhands.app_server.event_callback.webhook_router.valid_conversation",
+        'openhands.app_server.event_callback.webhook_router.valid_conversation',
         return_value=existing,
     ):
         result = await on_conversation_update(
@@ -174,7 +174,7 @@ async def test_acp_conversation_sets_agent_kind(async_session, service, sandbox_
     saved = await service.get_app_conversation_info(conversation_id)
     assert saved is not None
     assert saved.llm_model is None
-    assert saved.agent_kind == "acp"
+    assert saved.agent_kind == 'acp'
 
 
 @pytest.mark.asyncio
@@ -188,19 +188,19 @@ async def test_acp_server_tag_preserved_on_webhook_update(
     webhook updates merge incoming tags onto existing ones, so the provider
     key must still be present after a state-change webhook fires.
     """
-    acp_info = _make_acp_conversation_info(acp_command=["my-acp"])
+    acp_info = _make_acp_conversation_info(acp_command=['my-acp'])
     conversation_id = acp_info.id
 
     existing = AppConversationInfo(
         id=conversation_id,
-        title="Test",
+        title='Test',
         sandbox_id=sandbox_info.id,
         created_by_user_id=sandbox_info.created_by_user_id,
-        tags={"acp_server": "claude-code"},
+        tags={'acp_server': 'claude-code'},
     )
 
     with patch(
-        "openhands.app_server.event_callback.webhook_router.valid_conversation",
+        'openhands.app_server.event_callback.webhook_router.valid_conversation',
         return_value=existing,
     ):
         await on_conversation_update(
@@ -211,7 +211,7 @@ async def test_acp_server_tag_preserved_on_webhook_update(
 
     saved = await service.get_app_conversation_info(conversation_id)
     assert saved is not None
-    assert saved.tags.get("acp_server") == "claude-code"
+    assert saved.tags.get('acp_server') == 'claude-code'
 
 
 # ---------------------------------------------------------------------------
@@ -230,10 +230,10 @@ async def test_acp_conversation_analytics_llm_model_is_null(
     record the literal string ``"acp-managed"`` in BIZZ-04 dashboards. The
     handler must use the agent-kind-aware ``llm_model`` variable instead.
     """
-    acp_info = _make_acp_conversation_info(acp_command=["my-acp"])
+    acp_info = _make_acp_conversation_info(acp_command=['my-acp'])
     existing = AppConversationInfo(
         id=acp_info.id,
-        title="Test",
+        title='Test',
         sandbox_id=sandbox_info.id,
         created_by_user_id=sandbox_info.created_by_user_id,
     )
@@ -241,15 +241,15 @@ async def test_acp_conversation_analytics_llm_model_is_null(
 
     with (
         patch(
-            "openhands.app_server.event_callback.webhook_router.valid_conversation",
+            'openhands.app_server.event_callback.webhook_router.valid_conversation',
             return_value=existing,
         ),
         patch(
-            "openhands.app_server.event_callback.webhook_router.get_analytics_service",
+            'openhands.app_server.event_callback.webhook_router.get_analytics_service',
             return_value=analytics,
         ),
         patch(
-            "openhands.app_server.event_callback.webhook_router.resolve_analytics_context",
+            'openhands.app_server.event_callback.webhook_router.resolve_analytics_context',
             new=AsyncMock(return_value=MagicMock()),
         ),
     ):
@@ -261,7 +261,7 @@ async def test_acp_conversation_analytics_llm_model_is_null(
 
     analytics.track_conversation_created.assert_called_once()
     kwargs = analytics.track_conversation_created.call_args.kwargs
-    assert kwargs["llm_model"] is None
+    assert kwargs['llm_model'] is None
 
 
 # ---------------------------------------------------------------------------
@@ -282,19 +282,19 @@ def test_legacy_llm_payload_deserialises_as_agent():
     from openhands.sdk.agent.agent import Agent
     from openhands.sdk.llm import LLM
 
-    agent = Agent(llm=LLM(model="anthropic/claude-sonnet-4-6", usage_id="test-usage"))
+    agent = Agent(llm=LLM(model='anthropic/claude-sonnet-4-6', usage_id='test-usage'))
     legacy_payload: dict = {
-        "id": str(uuid4()),
-        "workspace": {"kind": "LocalWorkspace", "working_dir": "/tmp"},
-        "persistence_dir": "/tmp/persist",
-        "agent": agent.model_dump(mode="json"),
-        "execution_status": "running",
+        'id': str(uuid4()),
+        'workspace': {'kind': 'LocalWorkspace', 'working_dir': '/tmp'},
+        'persistence_dir': '/tmp/persist',
+        'agent': agent.model_dump(mode='json'),
+        'execution_status': 'running',
     }
 
     parsed = ConversationInfo.model_validate(legacy_payload)
 
-    assert parsed.agent.kind == "Agent"
+    assert parsed.agent.kind == 'Agent'
     assert not isinstance(parsed.agent, ACPAgent)
     # And the LLM model survived the round-trip — proves the field is reachable
     # the same way the webhook handler reads it (``conversation_info.agent.llm.model``).
-    assert parsed.agent.llm.model == "anthropic/claude-sonnet-4-6"
+    assert parsed.agent.llm.model == 'anthropic/claude-sonnet-4-6'

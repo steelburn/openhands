@@ -12,9 +12,9 @@ from openhands.app_server.types import (
 )
 
 __all__ = [
-    "AppMode",
-    "ServerConfigInterface",
-    "MissingSettingsError",
-    "LLMAuthenticationError",
-    "SessionExpiredError",
+    'AppMode',
+    'ServerConfigInterface',
+    'MissingSettingsError',
+    'LLMAuthenticationError',
+    'SessionExpiredError',
 ]

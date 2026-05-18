@@ -6,7 +6,7 @@ from storage.base import Base
 
 
 class SlackTeam(Base):
-    __tablename__ = "slack_teams"
+    __tablename__ = 'slack_teams'
 
     id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     team_id: Mapped[str] = mapped_column(
@@ -15,6 +15,6 @@ class SlackTeam(Base):
     bot_access_token: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime,
-        server_default=text("CURRENT_TIMESTAMP"),
+        server_default=text('CURRENT_TIMESTAMP'),
         nullable=False,
     )

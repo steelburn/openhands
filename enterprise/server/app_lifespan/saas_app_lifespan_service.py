@@ -24,8 +24,8 @@ class SaasAppLifespanService(AppLifespanService):
     """
 
     async def __aenter__(self):
-        api_key = os.environ.get("POSTHOG_CLIENT_KEY", "")
-        host = os.environ.get("POSTHOG_HOST", "https://us.i.posthog.com")
+        api_key = os.environ.get('POSTHOG_CLIENT_KEY', '')
+        host = os.environ.get('POSTHOG_HOST', 'https://us.i.posthog.com')
 
         init_analytics_service(
             api_key=api_key,
@@ -41,4 +41,4 @@ class SaasAppLifespanService(AppLifespanService):
             if svc is not None:
                 svc.shutdown()
         except Exception:
-            logger.exception("Error shutting down analytics service")
+            logger.exception('Error shutting down analytics service')

@@ -34,7 +34,7 @@ from openhands.sdk.llm.utils.verified_models import VERIFIED_MODELS
 _logger = logging.getLogger(__name__)
 
 _VERIFIED_MODEL_SET: set[str] = {
-    f"{provider}/{name}"
+    f'{provider}/{name}'
     for provider, models in VERIFIED_MODELS.items()
     for name in models
 }
@@ -44,7 +44,7 @@ def _to_llm_models(models_response: ModelsResponse) -> list[LLMModel]:
     """Convert raw model strings into ``LLMModel`` objects with verified flags."""
     results: list[LLMModel] = []
     for model_name in models_response.models:
-        parts = model_name.split("/", 1)
+        parts = model_name.split('/', 1)
         if len(parts) == 2:
             provider, name = parts
         else:
@@ -68,7 +68,7 @@ def _to_providers(models_response: ModelsResponse) -> list[Provider]:
     seen: set[str] = set()
     providers: list[Provider] = []
     for model_name in models_response.models:
-        parts = model_name.split("/", 1)
+        parts = model_name.split('/', 1)
         if len(parts) != 2:
             continue
         name = parts[0]
@@ -105,13 +105,13 @@ class DefaultLLMModelService(LLMModelService):
             return []
         try:
             response = self._bedrock_client.list_foundation_models(
-                byOutputModality="TEXT", byInferenceType="ON_DEMAND"
+                byOutputModality='TEXT', byInferenceType='ON_DEMAND'
             )
-            return ["bedrock/" + m["modelId"] for m in response["modelSummaries"]]
+            return ['bedrock/' + m['modelId'] for m in response['modelSummaries']]
         except Exception as e:
             _logger.warning(
-                "%s. Please config AWS_REGION_NAME AWS_ACCESS_KEY_ID"
-                " AWS_SECRET_ACCESS_KEY if you want use bedrock model.",
+                '%s. Please config AWS_REGION_NAME AWS_ACCESS_KEY_ID'
+                ' AWS_SECRET_ACCESS_KEY if you want use bedrock model.',
                 e,
             )
             return []
@@ -138,14 +138,14 @@ class DefaultLLMModelService(LLMModelService):
             extra_models.extend(bedrock_models)
 
         if self._ollama_base_url:
-            ollama_url = self._ollama_base_url.strip("/") + "/api/tags"
+            ollama_url = self._ollama_base_url.strip('/') + '/api/tags'
             try:
                 async with httpx.AsyncClient() as client:
                     resp = await client.get(ollama_url, timeout=3)
-                    ollama_models_list = resp.json()["models"]
-                extra_models.extend("ollama/" + m["name"] for m in ollama_models_list)
+                    ollama_models_list = resp.json()['models']
+                extra_models.extend('ollama/' + m['name'] for m in ollama_models_list)
             except httpx.HTTPError as e:
-                _logger.error(f"Error getting OLLAMA models: {e}")
+                _logger.error(f'Error getting OLLAMA models: {e}')
 
         self._cached_response = get_supported_llm_models(
             verified_models=verified_models,
@@ -214,7 +214,7 @@ class DefaultLLMModelServiceInjector(LLMModelServiceInjector):
     aws_secret_access_key: SecretStr | None = None
     ollama_base_url: str | None = Field(
         default=None,
-        description="Base URL for a local Ollama instance (e.g. http://localhost:11434)",
+        description='Base URL for a local Ollama instance (e.g. http://localhost:11434)',
     )
 
     _bedrock_client: Any | None = None
@@ -230,7 +230,7 @@ class DefaultLLMModelServiceInjector(LLMModelServiceInjector):
             import boto3
 
             self._bedrock_client = boto3.client(
-                service_name="bedrock",
+                service_name='bedrock',
                 region_name=self.aws_region_name,
                 aws_access_key_id=self.aws_access_key_id.get_secret_value(),
                 aws_secret_access_key=self.aws_secret_access_key.get_secret_value(),

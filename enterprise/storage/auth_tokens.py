@@ -4,7 +4,7 @@ from storage.base import Base
 
 
 class AuthTokens(Base):
-    __tablename__ = "auth_tokens"
+    __tablename__ = 'auth_tokens'
 
     id: Mapped[int] = mapped_column(Identity(), primary_key=True)
     keycloak_user_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
@@ -20,9 +20,9 @@ class AuthTokens(Base):
 
     __table_args__ = (
         Index(
-            "idx_auth_tokens_keycloak_user_identity_provider",
-            "keycloak_user_id",
-            "identity_provider",
+            'idx_auth_tokens_keycloak_user_identity_provider',
+            'keycloak_user_id',
+            'identity_provider',
             unique=True,
         ),
     )

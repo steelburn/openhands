@@ -12,13 +12,13 @@ def resolve_display_name(user_info: dict) -> str | None:
     can return name=None when no real name is available, while user_store
     callers can append their own username fallback.
     """
-    name = user_info.get("name", "")
+    name = user_info.get('name', '')
     if name and name.strip():
         return name.strip()
 
-    given = user_info.get("given_name", "").strip()
-    family = user_info.get("family_name", "").strip()
-    combined = f"{given} {family}".strip()
+    given = user_info.get('given_name', '').strip()
+    family = user_info.get('family_name', '').strip()
+    combined = f'{given} {family}'.strip()
     if combined:
         return combined
 

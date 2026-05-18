@@ -28,9 +28,9 @@ from storage.user import User
 @pytest.fixture
 async def async_engine():
     engine = create_async_engine(
-        "sqlite+aiosqlite:///:memory:",
+        'sqlite+aiosqlite:///:memory:',
         poolclass=StaticPool,
-        connect_args={"check_same_thread": False},
+        connect_args={'check_same_thread': False},
     )
     return engine
 
@@ -65,7 +65,7 @@ def other_org_id():
 async def _seed_minimal(session_maker, user_id_str, current_org_id, *extra_org_ids):
     """Create a role, org(s), user, and org_member rows in the in-memory DB."""
     async with session_maker() as session:
-        role = Role(name="member", rank=3)
+        role = Role(name='member', rank=3)
         session.add(role)
         await session.flush()
 
@@ -74,7 +74,7 @@ async def _seed_minimal(session_maker, user_id_str, current_org_id, *extra_org_i
             session.add(
                 Org(
                     id=o,
-                    name=f"Org {o}",
+                    name=f'Org {o}',
                     org_version=1,
                     enable_proactive_conversation_starters=True,
                 )
@@ -96,8 +96,8 @@ async def _seed_minimal(session_maker, user_id_str, current_org_id, *extra_org_i
                     org_id=o,
                     user_id=uuid.UUID(user_id_str),
                     role_id=role.id,
-                    status="active",
-                    llm_api_key="test-api-key",
+                    status='active',
+                    llm_api_key='test-api-key',
                 )
             )
         await session.commit()
@@ -106,10 +106,10 @@ async def _seed_minimal(session_maker, user_id_str, current_org_id, *extra_org_i
 def _stores_patched(async_session_maker):
     """Return the standard set of patches used by SaasUserAuth helpers."""
     return (
-        patch("storage.user_store.a_session_maker", async_session_maker),
-        patch("storage.org_store.a_session_maker", async_session_maker),
-        patch("storage.org_member_store.a_session_maker", async_session_maker),
-        patch("storage.role_store.a_session_maker", async_session_maker),
+        patch('storage.user_store.a_session_maker', async_session_maker),
+        patch('storage.org_store.a_session_maker', async_session_maker),
+        patch('storage.org_member_store.a_session_maker', async_session_maker),
+        patch('storage.role_store.a_session_maker', async_session_maker),
     )
 
 
@@ -121,7 +121,7 @@ class TestGetEffectiveOrgId:
         await _seed_minimal(async_session_maker, user_id, org_id)
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr("mock"),
+            refresh_token=SecretStr('mock'),
         )
         with (
             _stores_patched(async_session_maker)[0],
@@ -138,7 +138,7 @@ class TestGetEffectiveOrgId:
         await _seed_minimal(async_session_maker, user_id, org_id, other_org_id)
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr("mock"),
+            refresh_token=SecretStr('mock'),
             _x_org_id_header=str(other_org_id),
         )
         with (
@@ -160,7 +160,7 @@ class TestGetEffectiveOrgId:
             session.add(
                 Org(
                     id=other_org_id,
-                    name="Outside Org",
+                    name='Outside Org',
                     org_version=1,
                     enable_proactive_conversation_starters=True,
                 )
@@ -169,7 +169,7 @@ class TestGetEffectiveOrgId:
 
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr("mock"),
+            refresh_token=SecretStr('mock'),
             _x_org_id_header=str(other_org_id),
         )
         with (
@@ -185,8 +185,8 @@ class TestGetEffectiveOrgId:
     async def test_malformed_header_raises_400(self, async_session_maker, user_id):
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr("mock"),
-            _x_org_id_header="not-a-uuid",
+            refresh_token=SecretStr('mock'),
+            _x_org_id_header='not-a-uuid',
         )
         with pytest.raises(HTTPException) as exc_info:
             await user_auth.get_effective_org_id()
@@ -202,7 +202,7 @@ class TestGetEffectiveOrgId:
         await _seed_minimal(async_session_maker, user_id, org_id)
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr("mock"),
+            refresh_token=SecretStr('mock'),
             api_key_org_id=other_org_id,
         )
         effective = await user_auth.get_effective_org_id()
@@ -214,7 +214,7 @@ class TestGetEffectiveOrgId:
     ):
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr("mock"),
+            refresh_token=SecretStr('mock'),
             api_key_org_id=org_id,
             _x_org_id_header=str(other_org_id),
         )
@@ -229,7 +229,7 @@ class TestGetEffectiveOrgId:
     ):
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr("mock"),
+            refresh_token=SecretStr('mock'),
             api_key_org_id=org_id,
             _x_org_id_header=str(org_id),
         )
@@ -243,7 +243,7 @@ class TestGetEffectiveOrgId:
         await _seed_minimal(async_session_maker, user_id, org_id, other_org_id)
         user_auth = SaasUserAuth(
             user_id=user_id,
-            refresh_token=SecretStr("mock"),
+            refresh_token=SecretStr('mock'),
             _x_org_id_header=str(other_org_id),
         )
         with (

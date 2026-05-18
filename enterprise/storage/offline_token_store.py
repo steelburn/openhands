@@ -56,5 +56,5 @@ class OfflineTokenStore:
 
         TODO: This method should be replaced with dependency injection.
         """
-        logger.debug(f"offline_token_store.get_instance::{user_id}")
+        logger.debug(f'offline_token_store.get_instance::{user_id}')
         return OfflineTokenStore(user_id)
