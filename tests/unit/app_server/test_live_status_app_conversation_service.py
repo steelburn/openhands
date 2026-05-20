@@ -3758,9 +3758,11 @@ class TestSynthesizeAcpResumeInitialMessage:
 
         assert result is not None
         text = result.content[0].text
-        assert 'input=' in text
-        assert 'auth.py' in text
-        assert 'output=ok' in text
+        # New rendering: input/output on separate labelled lines, not as dict repr
+        assert 'input:' in text
+        assert 'path=auth.py' in text
+        assert 'output:' in text
+        assert 'ok' in text
 
     @pytest.mark.asyncio
     async def test_long_conversation_truncated_to_max_chars(self, service):
@@ -3908,3 +3910,44 @@ class TestSynthesizeAcpResumeInitialMessage:
         assert '/sandbox-abc' not in text
         # Basename must still be present so the agent knows which file
         assert 'hello.py' in text
+
+    @pytest.mark.asyncio
+    async def test_action_event_finish_message_rendered(self, service):
+        """FinishAction message is rendered as [AGENT]: summary after tool events."""
+        from openhands.sdk.event import ActionEvent
+
+        finish_ev = ActionEvent.model_validate(
+            {
+                'source': 'agent',
+                'thought': [],
+                'thinking_blocks': [],
+                'tool_name': 'finish',
+                'tool_call_id': 'fin-1',
+                'tool_call': {
+                    'id': 'fin-1',
+                    'name': 'finish',
+                    'arguments': '{"message": "All done. Created calculator.py and tests pass."}',
+                    'origin': 'completion',
+                },
+                'llm_response_id': 'resp-1',
+                'action': {
+                    'message': 'All done. Created calculator.py and tests pass.',
+                    'kind': 'FinishAction',
+                },
+            }
+        )
+        msg_ev = self._make_message_event('user', 'Write calculator.py')
+        # Newest-first order (DESC): finish event appears before user msg in page
+        service.event_service.search_events = AsyncMock(
+            return_value=self._make_page([finish_ev, msg_ev])
+        )
+
+        result = await service._synthesize_acp_resume_initial_message(uuid4())
+
+        assert result is not None
+        text = result.content[0].text
+        assert '[AGENT]: All done. Created calculator.py and tests pass.' in text
+        # Agent summary should appear after user message in chronological order
+        user_pos = text.index('[USER]:')
+        agent_pos = text.index('[AGENT]:')
+        assert user_pos < agent_pos

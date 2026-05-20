@@ -96,6 +96,7 @@ from openhands.app_server.utils.llm_metadata import (
     should_set_litellm_extra_body,
 )
 from openhands.sdk import Agent, AgentContext, LocalWorkspace, MessageEvent
+from openhands.sdk.event import ActionEvent
 from openhands.sdk.event.acp_tool_call import ACPToolCallEvent
 from openhands.sdk.hooks import HookConfig
 from openhands.sdk.llm import LLM
@@ -151,6 +152,26 @@ def _content_to_text(content: Sequence) -> str:
 
 
 _ABS_PATH_RE = re.compile(r'/[^\s\'",:}\]]{10,}')
+
+
+def _format_raw_input(raw: dict, max_chars: int) -> str:
+    """Render a tool's raw_input dict in a readable form.
+
+    Multiline string values (file content, scripts) are rendered with real
+    newlines so the agent can read them as code, not as escaped repr strings.
+    Single-line values are rendered as ``key=value`` on one line.
+    """
+    parts: list[str] = []
+    for k, v in raw.items():
+        if isinstance(v, str):
+            v_san = _sanitize_paths(v)
+            if '\n' in v_san:
+                parts.append(f'{k}:\n{v_san}')
+            else:
+                parts.append(f'{k}={v_san}')
+        else:
+            parts.append(f'{k}={_sanitize_paths(str(v))}')
+    return _truncate_text('\n'.join(parts), max_chars)
 
 
 def _sanitize_paths(text: str) -> str:
@@ -1581,16 +1602,23 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                     continue
                 status = 'failed' if event.is_error else (event.status or 'completed')
                 name = event.title or event.tool_kind or 'tool'
-                details: list[str] = []
+                detail_parts: list[str] = []
                 if event.raw_input:
-                    details.append(
-                        f'input={_truncate_text(_sanitize_paths(str(event.raw_input)), 500)}'
+                    detail_parts.append(
+                        f'input:\n{_format_raw_input(dict(event.raw_input), 500)}'
                     )
                 if event.raw_output:
-                    details.append(
-                        f'output={_truncate_text(_sanitize_paths(str(event.raw_output)), 500)}'
+                    detail_parts.append(
+                        f'output:\n{_truncate_text(_sanitize_paths(str(event.raw_output)), 500)}'
                     )
-                detail_str = f'\n  {"; ".join(details)}' if details else ''
+                detail_str = (
+                    '\n'
+                    + '\n'.join(
+                        f'  {ln}' for part in detail_parts for ln in part.splitlines()
+                    )
+                    if detail_parts
+                    else ''
+                )
                 lines.append(
                     _truncate_text(
                         f'[TOOL USE: {name}] ({status}){detail_str}',
@@ -1598,6 +1626,15 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                     )
                 )
                 lines.append('')
+            elif isinstance(event, ActionEvent):
+                # Render the agent's own finish message as a summary line.
+                # This is the most concise description of what was accomplished.
+                msg = getattr(event.action, 'message', None) if event.action else None
+                if msg and isinstance(msg, str):
+                    lines.append(
+                        f'[AGENT]: {_truncate_text(msg.strip(), _ACP_RESUME_MESSAGE_MAX_CHARS)}'
+                    )
+                    lines.append('')
 
         if not lines:
             return None
