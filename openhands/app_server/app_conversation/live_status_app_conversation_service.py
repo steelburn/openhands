@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import tempfile
 import zipfile
 from collections import defaultdict
@@ -147,6 +148,29 @@ def _content_to_text(content: Sequence) -> str:
             continue
         parts.append(f'[{type(item).__name__}]')
     return '\n'.join(p for p in parts if p)
+
+
+_ABS_PATH_RE = re.compile(r'/[^\s\'",:}\]]{10,}')
+
+
+def _sanitize_paths(text: str) -> str:
+    """Replace absolute filesystem paths with their basename.
+
+    ACP tool raw_input/raw_output often contains the full ephemeral sandbox
+    path (e.g. /private/var/folders/.../hello.py).  That path is meaningless
+    in a resumed session and could confuse the agent about file locations.
+    We keep only the basename so the agent retains the filename intent.
+    """
+
+    def _replace(m: re.Match) -> str:  # type: ignore[type-arg]
+        path = m.group(0)
+        # Only shorten paths that look like absolute filesystem paths, not URLs.
+        if path.startswith('//') or '://' in path:
+            return path
+        base = os.path.basename(path.rstrip('/'))
+        return base if base else path
+
+    return _ABS_PATH_RE.sub(_replace, text)
 
 
 # Planning agent instruction to prevent "Ready to proceed?" behavior
@@ -1524,6 +1548,14 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             return initial_message
         all_events.reverse()
 
+        # Deduplicate ACPToolCallEvents: keep only the terminal (last) event per
+        # tool_call_id so that ACP's streaming "pending → pending → completed"
+        # sequence renders as a single completed entry.
+        _tool_terminal: dict[str, ACPToolCallEvent] = {}
+        for event in all_events:
+            if isinstance(event, ACPToolCallEvent) and event.tool_call_id:
+                _tool_terminal[event.tool_call_id] = event
+
         lines: list[str] = []
         for event in all_events:
             if isinstance(event, MessageEvent):
@@ -1537,14 +1569,26 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                     lines.append(f'{role_label}: {text}')
                     lines.append('')
             elif isinstance(event, ACPToolCallEvent):
+                # Skip non-terminal events for this tool_call_id.
+                if (
+                    event.tool_call_id
+                    and _tool_terminal.get(event.tool_call_id) is not event
+                ):
+                    continue
+                # Also skip placeholder events with no input and no output — these
+                # are ACP streaming artifacts emitted before Claude knows the params.
+                if not event.raw_input and not event.raw_output and not event.is_error:
+                    continue
                 status = 'failed' if event.is_error else (event.status or 'completed')
                 name = event.title or event.tool_kind or 'tool'
                 details: list[str] = []
                 if event.raw_input:
-                    details.append(f'input={_truncate_text(str(event.raw_input), 500)}')
+                    details.append(
+                        f'input={_truncate_text(_sanitize_paths(str(event.raw_input)), 500)}'
+                    )
                 if event.raw_output:
                     details.append(
-                        f'output={_truncate_text(str(event.raw_output), 500)}'
+                        f'output={_truncate_text(_sanitize_paths(str(event.raw_output)), 500)}'
                     )
                 detail_str = f'\n  {"; ".join(details)}' if details else ''
                 lines.append(

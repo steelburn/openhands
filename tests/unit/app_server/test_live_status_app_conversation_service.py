@@ -3438,15 +3438,25 @@ class TestSynthesizeAcpResumeInitialMessage:
             source='user' if role == 'user' else 'agent', llm_message=msg
         )
 
-    def _make_tool_event(self, title, is_error=False, status=None):
+    def _make_tool_event(
+        self,
+        title,
+        is_error=False,
+        status=None,
+        tool_call_id=None,
+        raw_input=None,
+        raw_output=None,
+    ):
         from openhands.sdk.event.acp_tool_call import ACPToolCallEvent
 
         return ACPToolCallEvent(
             source='agent',
-            tool_call_id='tc-1',
+            tool_call_id=tool_call_id or f'tc-{title}',
             title=title,
             is_error=is_error,
             status=status,
+            raw_input=raw_input or {},
+            raw_output=raw_output,
         )
 
     @pytest.mark.asyncio
@@ -3500,8 +3510,19 @@ class TestSynthesizeAcpResumeInitialMessage:
     async def test_tool_events_produce_tool_use_lines(self, service):
         """ACPToolCallEvents appear as [TOOL USE: …] summary lines."""
         events = [
-            self._make_tool_event('Write File', is_error=False, status='completed'),
-            self._make_tool_event('Run Tests', is_error=True),
+            self._make_tool_event(
+                'Write File',
+                is_error=False,
+                status='completed',
+                tool_call_id='tc-write',
+                raw_input={'content': 'x'},
+            ),
+            self._make_tool_event(
+                'Run Tests',
+                is_error=True,
+                tool_call_id='tc-run',
+                raw_input={'cmd': 'pytest'},
+            ),
         ]
         service.event_service.search_events = AsyncMock(
             return_value=self._make_page(events)
@@ -3520,7 +3541,7 @@ class TestSynthesizeAcpResumeInitialMessage:
         # search_events is called with TIMESTAMP_DESC (newest first); mock matches that order.
         events = [
             self._make_message_event('assistant', 'Done reading'),
-            self._make_tool_event('Read File'),
+            self._make_tool_event('Read File', raw_input={'path': 'auth.py'}),
             self._make_message_event('user', 'First message'),
         ]
         service.event_service.search_events = AsyncMock(
@@ -3619,7 +3640,7 @@ class TestSynthesizeAcpResumeInitialMessage:
 
         events = [
             self._make_message_event('user', 'Original task'),
-            self._make_tool_event('Execute Code'),
+            self._make_tool_event('Execute Code', raw_input={'cmd': 'python test.py'}),
             self._make_message_event('assistant', 'All done'),
         ]
         service.event_service.search_events = AsyncMock(
@@ -3784,3 +3805,106 @@ class TestSynthesizeAcpResumeInitialMessage:
             service.event_service.search_events.call_count
             == _ACP_RESUME_MAX_EVENTS // 100
         )
+
+    @pytest.mark.asyncio
+    async def test_tool_dedup_shows_only_terminal_state(self, service):
+        """Multiple events for the same tool_call_id render only the terminal one.
+
+        ACP streams pending → pending → completed for a single tool call.
+        Only the completed entry (with raw_input + raw_output) should appear.
+        """
+        from openhands.sdk.event.acp_tool_call import ACPToolCallEvent
+
+        tc_id = 'tc-write-42'
+        placeholder = ACPToolCallEvent(
+            source='agent',
+            tool_call_id=tc_id,
+            title='Write',
+            status='pending',
+            raw_input={},
+        )
+        pending_with_input = ACPToolCallEvent(
+            source='agent',
+            tool_call_id=tc_id,
+            title='Write hello.py',
+            status='pending',
+            raw_input={'file_path': '/tmp/sandbox/hello.py', 'content': 'x\n'},
+        )
+        completed = ACPToolCallEvent(
+            source='agent',
+            tool_call_id=tc_id,
+            title='Write hello.py',
+            status='completed',
+            raw_input={'file_path': '/tmp/sandbox/hello.py', 'content': 'x\n'},
+            raw_output='File created successfully at: /tmp/sandbox/hello.py',
+        )
+        # search returns newest-first
+        service.event_service.search_events = AsyncMock(
+            return_value=self._make_page([completed, pending_with_input, placeholder])
+        )
+
+        result = await service._synthesize_acp_resume_initial_message(uuid4())
+
+        assert result is not None
+        text = result.content[0].text
+        # Only the completed entry should appear — once, not three times.
+        assert text.count('[TOOL USE: Write') == 1
+        assert '(completed)' in text
+        assert '(pending)' not in text
+
+    @pytest.mark.asyncio
+    async def test_placeholder_tool_event_skipped(self, service):
+        """Tool events with no raw_input and no raw_output are not rendered.
+
+        These are ACP streaming artifacts emitted before Claude knows the params.
+        """
+        from openhands.sdk.event.acp_tool_call import ACPToolCallEvent
+
+        placeholder = ACPToolCallEvent(
+            source='agent',
+            tool_call_id='tc-orphan',
+            title='Write',
+            status='pending',
+            raw_input={},
+        )
+        real_msg = self._make_message_event('user', 'Do something')
+        service.event_service.search_events = AsyncMock(
+            return_value=self._make_page([placeholder, real_msg])
+        )
+
+        result = await service._synthesize_acp_resume_initial_message(uuid4())
+
+        assert result is not None
+        text = result.content[0].text
+        assert '[TOOL USE:' not in text
+        assert '[USER]: Do something' in text
+
+    @pytest.mark.asyncio
+    async def test_absolute_paths_stripped_from_tool_details(self, service):
+        """Absolute sandbox paths in raw_input/raw_output are reduced to basename."""
+        from openhands.sdk.event.acp_tool_call import ACPToolCallEvent
+
+        tool = ACPToolCallEvent(
+            source='agent',
+            tool_call_id='tc-path',
+            title='Write hello.py',
+            status='completed',
+            raw_input={
+                'file_path': '/private/var/folders/tmp/sandbox-abc/hello.py',
+                'content': 'print("hi")\n',
+            },
+            raw_output='File created successfully at: /private/var/folders/tmp/sandbox-abc/hello.py',
+        )
+        service.event_service.search_events = AsyncMock(
+            return_value=self._make_page([tool])
+        )
+
+        result = await service._synthesize_acp_resume_initial_message(uuid4())
+
+        assert result is not None
+        text = result.content[0].text
+        # Absolute path must not appear
+        assert '/private/var/folders' not in text
+        assert '/sandbox-abc' not in text
+        # Basename must still be present so the agent knows which file
+        assert 'hello.py' in text
