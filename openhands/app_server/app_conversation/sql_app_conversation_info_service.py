@@ -34,6 +34,7 @@ from sqlalchemy import (
     select,
 )
 from sqlalchemy.engine import CursorResult
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -344,13 +345,13 @@ class SQLAppConversationInfoService(AppConversationInfoService):
 
         return results
 
-    async def save_app_conversation_info(
+    def _to_stored_metadata(
         self, info: AppConversationInfo
-    ) -> AppConversationInfo:
+    ) -> StoredConversationMetadata:
         metrics = info.metrics or MetricsSnapshot()
         usage = metrics.accumulated_token_usage or TokenUsage()
 
-        stored = StoredConversationMetadata(
+        return StoredConversationMetadata(
             conversation_id=str(info.id),
             selected_repository=info.selected_repository,
             selected_branch=info.selected_branch,
@@ -383,8 +384,62 @@ class SQLAppConversationInfoService(AppConversationInfoService):
             tags=info.tags if info.tags else None,
         )
 
-        await self.db_session.merge(stored)
+    @staticmethod
+    def _looks_like_duplicate_metadata_error(error: IntegrityError) -> bool:
+        orig = getattr(error, 'orig', None)
+        constraint_name = getattr(orig, 'constraint_name', None)
+        if constraint_name is None:
+            constraint_name = getattr(
+                getattr(orig, 'diag', None), 'constraint_name', None
+            )
+        if constraint_name == 'conversation_metadata_pkey':
+            return True
+        if getattr(orig, 'pgcode', None) == '23505':
+            return True
+        if getattr(orig, 'sqlstate', None) == '23505':
+            return True
+
+        message = str(error).lower()
+        return 'conversation_metadata' in message and (
+            'duplicate' in message or 'unique' in message
+        )
+
+    async def _update_existing_metadata_after_duplicate(
+        self, stored: StoredConversationMetadata
+    ) -> bool:
+        result = await self.db_session.execute(
+            select(StoredConversationMetadata).where(
+                StoredConversationMetadata.conversation_id == stored.conversation_id
+            )
+        )
+        existing = result.scalar_one_or_none()
+        if existing is None:
+            return False
+
+        # Last writer wins is acceptable for this startup race: both writers are
+        # saving metadata for the same newly created conversation, and the later
+        # state is at least as complete as the row inserted by the concurrent save.
+        for column in StoredConversationMetadata.__table__.columns:
+            if column.name == 'conversation_id':
+                continue
+            setattr(existing, column.name, getattr(stored, column.name))
         await self.db_session.commit()
+        return True
+
+    async def save_app_conversation_info(
+        self, info: AppConversationInfo
+    ) -> AppConversationInfo:
+        stored = self._to_stored_metadata(info)
+
+        try:
+            await self.db_session.merge(stored)
+            await self.db_session.commit()
+        except IntegrityError as error:
+            await self.db_session.rollback()
+            if not self._looks_like_duplicate_metadata_error(error):
+                raise
+            if not await self._update_existing_metadata_after_duplicate(stored):
+                raise
         return info
 
     async def update_conversation_statistics(
@@ -575,8 +630,10 @@ class SQLAppConversationInfoService(AppConversationInfoService):
         )
 
     def _fix_timezone(self, value: datetime | None) -> datetime:
-        """Sqlite does not store timezones - and since we can't update the existing models
-        we assume UTC if the timezone is missing. Returns current UTC time if value is None.
+        """Ensure a datetime has timezone information.
+
+        Sqlite does not store timezones, so assume UTC if the timezone is missing.
+        Returns current UTC time if value is None.
         """
         if value is None:
             # Fallback for legacy data: use current time to match model defaults.

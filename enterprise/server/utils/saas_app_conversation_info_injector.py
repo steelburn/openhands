@@ -1,5 +1,6 @@
 """Enterprise injector for SQLAppConversationInfoService with SAAS filtering."""
 
+import logging
 from datetime import datetime
 from typing import AsyncGenerator
 from uuid import UUID
@@ -25,6 +26,8 @@ from openhands.app_server.app_conversation.sql_app_conversation_info_service imp
 from openhands.app_server.errors import AuthError
 from openhands.app_server.services.injector import InjectorState
 from openhands.app_server.user.specifiy_user_context import ADMIN
+
+logger = logging.getLogger(__name__)
 
 
 class SaasSQLAppConversationInfoService(SQLAppConversationInfoService):
@@ -392,12 +395,26 @@ class SaasSQLAppConversationInfoService(SQLAppConversationInfoService):
             )
             saas_result = await self.db_session.execute(saas_query)
             existing_saas_metadata = saas_result.scalar_one_or_none()
-            assert existing_saas_metadata is None or (
-                existing_saas_metadata.user_id == user_id_uuid
-                and existing_saas_metadata.org_id == org_id
-            )
 
-            if not existing_saas_metadata:
+            if existing_saas_metadata:
+                if existing_saas_metadata.user_id != user_id_uuid:
+                    raise AuthError('Conversation belongs to a different user')
+
+                if existing_saas_metadata.org_id != org_id:
+                    if resolver_org_id is not None:
+                        existing_saas_metadata.org_id = resolver_org_id
+                    else:
+                        logger.warning(
+                            'Preserving existing conversation SAAS org metadata '
+                            'during conflicting save',
+                            extra={
+                                'conversation_id': str(info.id),
+                                'existing_org_id': str(existing_saas_metadata.org_id),
+                                'requested_org_id': str(org_id),
+                                'user_id': str(user_id_uuid),
+                            },
+                        )
+            else:
                 # Create new SAAS metadata with the determined org_id
                 saas_metadata = StoredConversationMetadataSaas(
                     conversation_id=str(info.id),

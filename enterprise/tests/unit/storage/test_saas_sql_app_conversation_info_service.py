@@ -1420,3 +1420,95 @@ class TestResolverOrgIdRouting:
 
         assert saas_metadata is not None
         assert saas_metadata.org_id == ORG1_ID
+        assert saas_metadata.user_id == USER1_ID
+
+    @pytest.mark.asyncio
+    async def test_resolver_save_repairs_webhook_org_race(
+        self,
+        async_session_with_users: AsyncSession,
+    ):
+        """Resolver context is authoritative if a webhook saved current org first."""
+        from storage.stored_conversation_metadata_saas import (
+            StoredConversationMetadataSaas,
+        )
+
+        from enterprise.integrations.resolver_context import ResolverUserContext
+
+        conv_id = uuid4()
+        conv_info = AppConversationInfo(
+            id=conv_id,
+            created_by_user_id=str(USER1_ID),
+            sandbox_id='sandbox_webhook_first',
+            title='Webhook First Conversation',
+        )
+
+        webhook_service = SaasSQLAppConversationInfoService(
+            db_session=async_session_with_users,
+            user_context=SpecifyUserContext(user_id=None),
+        )
+        await webhook_service.save_app_conversation_info(conv_info)
+
+        resolver_context = MagicMock(spec=ResolverUserContext)
+        resolver_context.get_user_id = AsyncMock(return_value=str(USER1_ID))
+        resolver_context.resolver_org_id = ORG2_ID
+        resolver_service = SaasSQLAppConversationInfoService(
+            db_session=async_session_with_users,
+            user_context=resolver_context,
+        )
+
+        await resolver_service.save_app_conversation_info(conv_info)
+
+        result = await async_session_with_users.execute(
+            select(StoredConversationMetadataSaas).where(
+                StoredConversationMetadataSaas.conversation_id == str(conv_id)
+            )
+        )
+        saas_metadata = result.scalar_one_or_none()
+        assert saas_metadata is not None
+        assert saas_metadata.user_id == USER1_ID
+        assert saas_metadata.org_id == ORG2_ID
+
+    @pytest.mark.asyncio
+    async def test_webhook_save_preserves_existing_resolver_org(
+        self,
+        async_session_with_users: AsyncSession,
+    ):
+        """A later webhook save must not downgrade resolver-routed metadata."""
+        from storage.stored_conversation_metadata_saas import (
+            StoredConversationMetadataSaas,
+        )
+
+        from enterprise.integrations.resolver_context import ResolverUserContext
+
+        resolver_context = MagicMock(spec=ResolverUserContext)
+        resolver_context.get_user_id = AsyncMock(return_value=str(USER1_ID))
+        resolver_context.resolver_org_id = ORG2_ID
+        resolver_service = SaasSQLAppConversationInfoService(
+            db_session=async_session_with_users,
+            user_context=resolver_context,
+        )
+
+        conv_id = uuid4()
+        conv_info = AppConversationInfo(
+            id=conv_id,
+            created_by_user_id=str(USER1_ID),
+            sandbox_id='sandbox_resolver_first',
+            title='Resolver First Conversation',
+        )
+        await resolver_service.save_app_conversation_info(conv_info)
+
+        webhook_service = SaasSQLAppConversationInfoService(
+            db_session=async_session_with_users,
+            user_context=SpecifyUserContext(user_id=None),
+        )
+        await webhook_service.save_app_conversation_info(conv_info)
+
+        result = await async_session_with_users.execute(
+            select(StoredConversationMetadataSaas).where(
+                StoredConversationMetadataSaas.conversation_id == str(conv_id)
+            )
+        )
+        saas_metadata = result.scalar_one_or_none()
+        assert saas_metadata is not None
+        assert saas_metadata.user_id == USER1_ID
+        assert saas_metadata.org_id == ORG2_ID
