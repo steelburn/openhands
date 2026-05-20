@@ -3951,3 +3951,123 @@ class TestSynthesizeAcpResumeInitialMessage:
         user_pos = text.index('[USER]:')
         agent_pos = text.index('[AGENT]:')
         assert user_pos < agent_pos
+
+    @pytest.mark.asyncio
+    async def test_edit_diff_tool_shows_only_filename(self, service):
+        """Edit tools with old_string/new_string show only file=<name>, not the diff.
+
+        The diff is noise for a resumed agent — the file on the persistent
+        /workspace volume is the source of truth and can be re-read.
+        """
+        from openhands.sdk.event.acp_tool_call import ACPToolCallEvent
+
+        edit = ACPToolCallEvent(
+            source='agent',
+            tool_call_id='tc-edit',
+            title='Edit auth.py',
+            status='completed',
+            raw_input={
+                'file_path': 'auth.py',
+                'old_string': 'def old_func():\n    pass',
+                'new_string': 'def new_func():\n    return 42',
+                'replace_all': False,
+            },
+            raw_output='The file auth.py has been updated successfully.',
+        )
+        service.event_service.search_events = AsyncMock(
+            return_value=self._make_page([edit])
+        )
+
+        result = await service._synthesize_acp_resume_initial_message(uuid4())
+
+        assert result is not None
+        text = result.content[0].text
+        assert 'auth.py' in text
+        # Diff content must not appear — too noisy
+        assert 'old_string' not in text
+        assert 'new_string' not in text
+        assert 'old_func' not in text
+        assert 'new_func' not in text
+
+    @pytest.mark.asyncio
+    async def test_terminal_boilerplate_stripped_from_output(self, service):
+        """pytest header lines are stripped; test results are kept."""
+        from openhands.sdk.event.acp_tool_call import ACPToolCallEvent
+
+        pytest_output = (
+            '============================= test session starts ==============================\n'
+            'platform linux -- Python 3.12.0, pytest-8.0.0, pluggy-1.5.0 -- /usr/bin/python\n'
+            'cachedir: .pytest_cache\n'
+            'rootdir: /sandbox-abc123\n'
+            'plugins: asyncio-0.23.0\n'
+            'asyncio: mode=Mode.STRICT\n'
+            'collecting ... collected 3 items\n'
+            '\n'
+            'test_foo.py::test_a PASSED                                     [ 33%]\n'
+            'test_foo.py::test_b PASSED                                     [ 66%]\n'
+            'test_foo.py::test_c PASSED                                     [100%]\n'
+            '\n'
+            '============================== 3 passed in 0.01s ==============================\n'
+        )
+        tool = ACPToolCallEvent(
+            source='agent',
+            tool_call_id='tc-term',
+            title='pytest',
+            status='completed',
+            raw_input={'command': 'pytest test_foo.py -v'},
+            raw_output=pytest_output,
+        )
+        service.event_service.search_events = AsyncMock(
+            return_value=self._make_page([tool])
+        )
+
+        result = await service._synthesize_acp_resume_initial_message(uuid4())
+
+        assert result is not None
+        text = result.content[0].text
+        # Boilerplate stripped
+        assert 'platform linux' not in text
+        assert 'cachedir' not in text
+        assert 'rootdir' not in text
+        assert 'plugins' not in text
+        assert 'asyncio:' not in text
+        assert 'collecting' not in text
+        assert 'test session starts' not in text
+        # Results kept
+        assert 'test_a PASSED' in text
+        assert '3 passed in 0.01s' in text
+
+    @pytest.mark.asyncio
+    async def test_failed_terminal_output_shows_tail(self, service):
+        """For failed command output the tail (failure details) is shown, not the head."""
+        from openhands.sdk.event.acp_tool_call import ACPToolCallEvent
+
+        # Simulate a long output where failure is at the end
+        passing = '\n'.join(f'test_foo.py::test_{i} PASSED' for i in range(20))
+        failure = (
+            'test_foo.py::test_fail FAILED\n'
+            'AssertionError: expected 1 got 2\n'
+            '1 failed, 20 passed in 0.05s'
+        )
+        long_output = passing + '\n' + failure
+
+        tool = ACPToolCallEvent(
+            source='agent',
+            tool_call_id='tc-fail',
+            title='pytest',
+            status='pending',  # is_error drives tail logic
+            is_error=True,
+            raw_input={'command': 'pytest'},
+            raw_output=long_output,
+        )
+        service.event_service.search_events = AsyncMock(
+            return_value=self._make_page([tool])
+        )
+
+        result = await service._synthesize_acp_resume_initial_message(uuid4())
+
+        assert result is not None
+        text = result.content[0].text
+        # Failure details at the end must appear
+        assert 'AssertionError' in text
+        assert '1 failed, 20 passed' in text

@@ -154,13 +154,58 @@ def _content_to_text(content: Sequence) -> str:
 _ABS_PATH_RE = re.compile(r'/[^\s\'",:}\]]{10,}')
 
 
-def _format_raw_input(raw: dict, max_chars: int) -> str:
+_EDIT_DIFF_KEYS = frozenset({'old_string', 'new_string', 'replace_all'})
+
+# Pytest/terminal boilerplate lines to strip from command output.
+_TERMINAL_BOILERPLATE_RE = re.compile(
+    r'^(?:'
+    r'={10,}.*test session starts.*={10,}'
+    r'|platform \w+'
+    r'|cachedir:'
+    r'|rootdir:'
+    r'|plugins:'
+    r'|asyncio:'
+    r'|collecting \.\.\.'
+    r')',
+    re.MULTILINE,
+)
+
+
+def _strip_terminal_boilerplate(text: str) -> str:
+    """Remove pytest/shell boilerplate header lines from command output.
+
+    Strips ``platform``, ``cachedir``, ``rootdir``, ``plugins``, ``asyncio``,
+    and ``collecting ...`` lines that carry no useful information for a resumed
+    agent.  The test result lines (PASSED/FAILED/ERROR) and summary are kept.
+    """
+    lines = [ln for ln in text.splitlines() if not _TERMINAL_BOILERPLATE_RE.match(ln)]
+    # Collapse runs of blank lines left behind after stripping.
+    out: list[str] = []
+    prev_blank = False
+    for ln in lines:
+        blank = not ln.strip()
+        if blank and prev_blank:
+            continue
+        out.append(ln)
+        prev_blank = blank
+    return '\n'.join(out).strip()
+
+
+def _format_raw_input(raw: dict, max_chars: int, is_edit_diff: bool = False) -> str:
     """Render a tool's raw_input dict in a readable form.
 
-    Multiline string values (file content, scripts) are rendered with real
-    newlines so the agent can read them as code, not as escaped repr strings.
+    For Edit-diff tools (old_string / new_string present) only the filename is
+    shown — the actual changes are on the persistent /workspace volume and the
+    agent can re-read the file.  Showing large diffs in the resume adds noise
+    without adding information the agent couldn't recover itself.
+
+    For other tools, multiline string values (file content, scripts) are rendered
+    with real newlines so the agent reads actual code, not escaped repr strings.
     Single-line values are rendered as ``key=value`` on one line.
     """
+    if is_edit_diff:
+        fp = _sanitize_paths(str(raw.get('file_path', '')))
+        return f'file={fp}'
     parts: list[str] = []
     for k, v in raw.items():
         if isinstance(v, str):
@@ -1602,15 +1647,24 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                     continue
                 status = 'failed' if event.is_error else (event.status or 'completed')
                 name = event.title or event.tool_kind or 'tool'
+                raw_in = dict(event.raw_input) if event.raw_input else {}
+                is_edit_diff = bool(raw_in.keys() & _EDIT_DIFF_KEYS)
                 detail_parts: list[str] = []
-                if event.raw_input:
+                if raw_in:
                     detail_parts.append(
-                        f'input:\n{_format_raw_input(dict(event.raw_input), 500)}'
+                        f'input:\n{_format_raw_input(raw_in, 800, is_edit_diff=is_edit_diff)}'
                     )
                 if event.raw_output:
-                    detail_parts.append(
-                        f'output:\n{_truncate_text(_sanitize_paths(str(event.raw_output)), 500)}'
+                    raw_out = _strip_terminal_boilerplate(
+                        _sanitize_paths(str(event.raw_output))
                     )
+                    # For failed runs show the tail (failure details), not the head
+                    # (passing tests). Failures are always at the end of pytest output.
+                    if event.is_error and len(raw_out) > 800:
+                        raw_out = '...\n' + raw_out[-800:]
+                    else:
+                        raw_out = _truncate_text(raw_out, 800)
+                    detail_parts.append(f'output:\n{raw_out}')
                 detail_str = (
                     '\n'
                     + '\n'.join(
