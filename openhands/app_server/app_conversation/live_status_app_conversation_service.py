@@ -362,7 +362,16 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             request_agent = start_conversation_request.agent
             tags: dict[str, str] = {}
             if request_agent.agent_kind == 'acp':
-                llm_model = None
+                # ACP agents don't expose the active LLM via ``request_agent.llm``
+                # (the SDK uses a placeholder LLM whose ``model`` is the
+                # "acp-managed" sentinel — see ``ACPAgent._make_dummy_llm``).
+                # The real model comes back on the agent-server response as
+                # ``info.current_model_id``, lifted from
+                # ``ACPAgent.current_model_id`` which the SDK populates from
+                # the UNSTABLE ``models.currentModelId`` field on the ACP
+                # session response. ``getattr`` keeps us forward-compatible
+                # with older SDK builds that predate the field.
+                llm_model = getattr(info, 'current_model_id', None)
                 agent_kind = 'acp'
                 # Persist the active ACP provider key so the conversation UI
                 # can resolve a brand label ("Claude Code", "Codex", …) via
