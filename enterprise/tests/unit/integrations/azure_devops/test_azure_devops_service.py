@@ -98,3 +98,40 @@ async def test_get_latest_token_leaves_cached_token_when_refresh_unavailable():
 
     assert token is None
     assert service.token.get_secret_value() == 'stored-token'
+
+
+@pytest.mark.asyncio
+async def test_pr_comment_urls_do_not_duplicate_organization():
+    service = SaaSAzureDevOpsService(token=SecretStr('token'), base_domain='alonaking')
+    service._make_request = AsyncMock(return_value=({'id': 1}, {}))  # type: ignore[method-assign]
+
+    await service.add_pr_comment_to_thread(
+        'alonaking/My Project/My Repo',
+        12,
+        5,
+        'hello',
+    )
+
+    url = service._make_request.await_args.kwargs['url']
+    assert url.startswith(
+        'https://dev.azure.com/alonaking/My%20Project/_apis/git/repositories/My%20Repo/'
+    )
+    assert 'alonaking/alonaking' not in url
+
+
+@pytest.mark.asyncio
+async def test_work_item_comment_urls_do_not_duplicate_organization():
+    service = SaaSAzureDevOpsService(token=SecretStr('token'), base_domain='alonaking')
+    service._make_request = AsyncMock(return_value=({'id': 1}, {}))  # type: ignore[method-assign]
+
+    await service.add_work_item_comment(
+        'alonaking/My Project/My Repo',
+        42,
+        'hello',
+    )
+
+    url = service._make_request.await_args.kwargs['url']
+    assert url.startswith(
+        'https://dev.azure.com/alonaking/My%20Project/_apis/wit/workItems/42/'
+    )
+    assert 'alonaking/alonaking' not in url
