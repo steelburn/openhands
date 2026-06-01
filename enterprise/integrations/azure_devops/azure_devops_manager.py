@@ -7,6 +7,7 @@ from integrations.azure_devops.azure_devops_view import (
     AzureDevOpsPRComment,
     AzureDevOpsViewType,
     actor_email,
+    mark_openhands_comment,
 )
 from integrations.manager import Manager
 from integrations.models import Message, SourceType
@@ -106,6 +107,7 @@ class AzureDevOpsManager(Manager[AzureDevOpsViewType]):
     async def send_message(
         self, message: str, azure_view: ResolverViewInterface
     ) -> None:
+        message = mark_openhands_comment(message)
         azure_service = AzureDevOpsServiceImpl(
             external_auth_id=azure_view.user_info.keycloak_user_id
         )

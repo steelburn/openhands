@@ -32,9 +32,20 @@ from openhands.app_server.utils.logger import openhands_logger as logger
 from openhands.sdk import TextContent
 
 OH_LABEL, INLINE_OH_LABEL = get_oh_labels(HOST)
+OPENHANDS_COMMENT_MARKER = '<!-- openhands-azure-devops-resolver -->'
 
 PR_COMMENT_EVENT = 'ms.vss-code.git-pullrequest-comment-event'
 WORK_ITEM_COMMENT_EVENT = 'workitem.commented'
+
+
+def mark_openhands_comment(comment: str) -> str:
+    if OPENHANDS_COMMENT_MARKER in comment:
+        return comment
+    return f'{OPENHANDS_COMMENT_MARKER}\n{comment}'
+
+
+def _is_openhands_comment(comment: str) -> bool:
+    return OPENHANDS_COMMENT_MARKER in comment
 
 
 def _strip_ref_prefix(ref_name: str | None) -> str | None:
@@ -319,6 +330,8 @@ class AzureDevOpsFactory:
         comment = ((payload.get('resource') or {}).get('comment') or {}).get(
             'content'
         ) or ''
+        if _is_openhands_comment(comment):
+            return False
         return has_exact_mention(comment, INLINE_OH_LABEL)
 
     @staticmethod
@@ -326,7 +339,10 @@ class AzureDevOpsFactory:
         if AzureDevOpsFactory.event_key(message) != WORK_ITEM_COMMENT_EVENT:
             return False
         payload = message.message.get('payload') or {}
-        return has_exact_mention(_extract_work_item_comment(payload), INLINE_OH_LABEL)
+        comment = _extract_work_item_comment(payload)
+        if _is_openhands_comment(comment):
+            return False
+        return has_exact_mention(comment, INLINE_OH_LABEL)
 
     @staticmethod
     async def create_azure_devops_view_from_payload(

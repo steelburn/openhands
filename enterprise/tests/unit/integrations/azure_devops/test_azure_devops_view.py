@@ -7,6 +7,7 @@ from integrations.azure_devops.azure_devops_view import (
     AzureDevOpsPRComment,
     AzureDevOpsWorkItemComment,
     actor_email,
+    mark_openhands_comment,
 )
 from integrations.models import Message, SourceType
 from jinja2 import Environment, FileSystemLoader
@@ -105,12 +106,26 @@ def _make_work_item_message(body: str = '@openhands please fix work item') -> Me
 def test_is_pr_comment_requires_exact_mention():
     assert AzureDevOpsFactory.is_pr_comment(_make_pr_message()) is True
     assert AzureDevOpsFactory.is_pr_comment(_make_pr_message('hello')) is False
+    assert (
+        AzureDevOpsFactory.is_pr_comment(
+            _make_pr_message(mark_openhands_comment('@openhands generated summary'))
+        )
+        is False
+    )
 
 
 def test_is_work_item_comment_requires_exact_mention():
     assert AzureDevOpsFactory.is_work_item_comment(_make_work_item_message()) is True
     assert (
         AzureDevOpsFactory.is_work_item_comment(_make_work_item_message('hello'))
+        is False
+    )
+    assert (
+        AzureDevOpsFactory.is_work_item_comment(
+            _make_work_item_message(
+                mark_openhands_comment('@openhands generated summary')
+            )
+        )
         is False
     )
 

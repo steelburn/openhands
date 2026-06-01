@@ -3,6 +3,7 @@ from typing import Any, ClassVar
 from uuid import UUID
 
 import httpx
+from integrations.azure_devops.azure_devops_view import mark_openhands_comment
 from integrations.utils import get_summary_instruction
 from integrations.v1_utils import handle_callback_error
 from pydantic import Field
@@ -91,6 +92,7 @@ class AzureDevOpsV1CallbackProcessor(EventCallbackProcessor):
             raise RuntimeError('Missing keycloak user ID for Azure DevOps')
 
         azure_service = AzureDevOpsServiceImpl(external_auth_id=keycloak_user_id)
+        summary = mark_openhands_comment(summary)
         repository = self.azure_devops_view_data['repository']
         issue_number = int(self.azure_devops_view_data['issue_number'])
         if self.azure_devops_view_data.get('is_pr'):
