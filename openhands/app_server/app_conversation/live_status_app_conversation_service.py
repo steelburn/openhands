@@ -1593,18 +1593,11 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
     ) -> StartConversationRequest:
         """Build a StartConversationRequest for ACP agent conversations.
 
-        Unlike the LLM path, ACP agents run as separate subprocesses; the
-        provider credentials reach the subprocess as environment variables
-        rather than via an injected LLM object.
-
-        Both the provider credentials (the UI-saved ``llm.api_key`` /
-        ``base_url``) and user secrets (Secrets panel + git provider tokens)
-        flow through the single ``AgentContext.secrets`` channel — the
-        cipher-protected channel that rides the encrypted ``request.secrets``
-        boundary. ``ACPAgentSettings.create_agent()`` folds the provider creds
-        (keyed by the provider's env-var names) into ``agent_context.secrets``
-        (software-agent-sdk #3464), and the SDK gap-fills the values into the
-        subprocess env at launch.
+        Provider creds (``llm.api_key`` / ``base_url``) and user secrets both
+        flow through ``AgentContext.secrets``. ``acp_settings.create_agent()``
+        folds the provider creds (keyed by env-var name, sdk#3464) into
+        ``agent_context.secrets``; the SDK gap-fills them into the subprocess
+        env at launch.
 
         Args:
             sandbox: Sandbox information
@@ -1642,14 +1635,9 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         acp_settings = user.agent_settings  # already verified to be ACPAgentSettings
         assert isinstance(acp_settings, ACPAgentSettings)
 
-        # Pass user secrets via AgentContext and let create_agent() fold the
-        # ACP provider creds (llm.api_key / base_url) into agent_context.secrets
-        # — keyed by the provider's env-var names (software-agent-sdk #3464).
-        # The SDK renders names as a <CUSTOM_SECRETS> block in the ACP prompt
-        # and gap-fills values into the subprocess env at launch. We pass
-        # ``SecretSource`` objects verbatim; resolving them here would eagerly
-        # hit the auth service for every LookupSecret on every conversation
-        # start, from the wrong process.
+        # acp_settings.create_agent() folds provider creds into agent_context.secrets
+        # (sdk#3464). Pass SecretSource objects verbatim — the SDK resolves them
+        # at subprocess launch, not here, to avoid eager LookupSecret calls.
         agent_context = AgentContext(secrets=secrets) if secrets else None
         settings_update = (
             {'agent_context': agent_context} if agent_context is not None else {}
