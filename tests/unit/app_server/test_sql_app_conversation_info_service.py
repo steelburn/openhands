@@ -1270,3 +1270,51 @@ class TestFixTimezone:
         aware_dt = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         result = service._fix_timezone(aware_dt)
         assert result == aware_dt
+
+
+class TestAcpAgentSettingsSnapshotPersistence:
+    """The ACP agent-spec snapshot column round-trips and never holds secrets.
+
+    Covers agent-canvas#1015 (conversation-scoped spec) and #1016 (the spec is
+    persisted to a plain JSON column, so it must carry no credentials at rest).
+    """
+
+    def _acp_snapshot(self):
+        from openhands.sdk.llm import LLM
+        from openhands.sdk.settings import ACPAgentSettings
+
+        # A spec as it would be stored: secret-free (the live service strips
+        # creds via _snapshot_acp_settings before persisting).
+        return ACPAgentSettings(
+            acp_server='claude-code',
+            acp_model='claude-opus-4-6',
+            llm=LLM(model='claude-sonnet-4-5', usage_id='acp'),
+        )
+
+    @pytest.mark.asyncio
+    async def test_snapshot_round_trips(self, service):
+        info = AppConversationInfo(
+            id=uuid4(),
+            created_by_user_id='u1',
+            sandbox_id='sandbox_1',
+            agent_kind='acp',
+            acp_agent_settings_snapshot=self._acp_snapshot(),
+        )
+
+        await service.save_app_conversation_info(info)
+        retrieved = await service.get_app_conversation_info(info.id)
+
+        assert retrieved is not None
+        snap = retrieved.acp_agent_settings_snapshot
+        assert snap is not None
+        assert snap.acp_server == 'claude-code'
+        assert snap.acp_model == 'claude-opus-4-6'
+        assert snap.llm.model == 'claude-sonnet-4-5'
+
+    @pytest.mark.asyncio
+    async def test_non_acp_snapshot_is_null(self, service, sample_conversation_info):
+        await service.save_app_conversation_info(sample_conversation_info)
+        retrieved = await service.get_app_conversation_info(sample_conversation_info.id)
+
+        assert retrieved is not None
+        assert retrieved.acp_agent_settings_snapshot is None

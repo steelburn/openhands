@@ -138,6 +138,80 @@ _ACP_RESUME_MESSAGE_MAX_CHARS = 8_000  # per message turn
 _ACP_RESUME_TOOL_MAX_CHARS = 2_000  # per tool event
 
 
+# --- ACP agent-spec snapshot (#1015) ---------------------------------------
+# The cloud backend rebuilds the ACP agent from the user's *global* settings
+# whenever a recycled sandbox is restarted (#14640). Re-resolving from live
+# settings lets a settings edit between create and resume silently re-target an
+# in-flight conversation (e.g. Claude Code -> Codex, or a model swap). We freeze
+# the agent spec onto the conversation at creation and rebuild from it on
+# resume, mirroring how the regular agent rides the agent-server's meta.json
+# snapshot. Secrets are never frozen: provider creds, acp_env, mcp_config and
+# agent_context are re-resolved from the live encrypted vault on every build so
+# nothing secret persists at rest in the conversation_metadata JSON column,
+# which dumps with expose_secrets (#1016).
+
+
+def _snapshot_acp_settings(settings: ACPAgentSettings) -> ACPAgentSettings:
+    """Return a secret-free, conversation-scoped copy of an ACP agent spec.
+
+    Clears every secret-bearing field (LLM credentials, ``acp_env``,
+    ``mcp_config``, ``agent_context``) so the snapshot can be persisted to the
+    plain ``conversation_metadata`` JSON column without leaking secrets at rest.
+    The identity fields that must stay stable across a resume — ``acp_server``,
+    ``acp_model``, ``acp_session_mode``, ``acp_command``/``acp_args``, timeouts
+    and the metrics ``llm.model`` — are preserved verbatim.
+    """
+    return settings.model_copy(
+        update={
+            'llm': settings.llm.model_copy(
+                update={
+                    'api_key': None,
+                    'base_url': None,
+                    'aws_access_key_id': None,
+                    'aws_secret_access_key': None,
+                    'aws_session_token': None,
+                }
+            ),
+            'acp_env': {},
+            'mcp_config': None,
+            'agent_context': None,
+        }
+    )
+
+
+def _restore_acp_settings(
+    snapshot: ACPAgentSettings, live: ACPAgentSettings
+) -> ACPAgentSettings:
+    """Rebuild effective ACP settings from a frozen snapshot + live secrets.
+
+    The snapshot pins the agent identity; the secret-bearing fields it dropped
+    are re-attached from the user's current (live) settings — i.e. from the
+    encrypted vault — so credentials stay fresh and are never read from the
+    at-rest snapshot. Provider credentials (``llm.api_key``/``base_url``) are
+    only re-attached when the live provider still matches the snapshot's: after
+    a mid-conversation provider switch the live key belongs to a *different*
+    provider, so injecting it under the snapshot provider's env var would be
+    wrong. In that case the subprocess falls back to its ambient/materialised
+    auth rather than receiving a mismatched key. (Per-provider credential
+    storage that removes this limitation is tracked by #1022.)
+    """
+    update: dict[str, object] = {
+        'acp_env': dict(live.acp_env),
+        'mcp_config': live.mcp_config,
+    }
+    if live.acp_server == snapshot.acp_server:
+        update['llm'] = snapshot.llm.model_copy(
+            update={
+                'api_key': live.llm.api_key,
+                'base_url': live.llm.base_url,
+                'aws_access_key_id': live.llm.aws_access_key_id,
+                'aws_secret_access_key': live.llm.aws_secret_access_key,
+                'aws_session_token': live.llm.aws_session_token,
+            }
+        )
+    return snapshot.model_copy(update=update)
+
+
 def _truncate_keep_head(text: str, max_chars: int) -> str:
     """Truncate to at most max_chars, keeping the start."""
     if max_chars <= 0:
@@ -559,6 +633,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             # the same agent back through the AgentBase discriminator.
             request_agent = start_conversation_request.agent
             tags: dict[str, str] = {}
+            acp_agent_settings_snapshot: ACPAgentSettings | None = None
             if request_agent.agent_kind == 'acp':
                 llm_model = None
                 agent_kind = 'acp'
@@ -568,6 +643,21 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 acp_user = await self.user_context.get_user_info()
                 if isinstance(acp_user.agent_settings, ACPAgentSettings):
                     tags['acp_server'] = acp_user.agent_settings.acp_server
+                    # Freeze the ACP agent spec onto the conversation at
+                    # creation so a later global-settings edit can't re-target
+                    # it when a recycled sandbox is rebuilt (#1015). On resume
+                    # the row already carries a snapshot; preserve it, since the
+                    # merge below would otherwise overwrite the frozen spec with
+                    # a fresh one resolved from (possibly changed) live settings.
+                    existing = await self.app_conversation_info_service.get_app_conversation_info(  # noqa: E501
+                        info.id
+                    )
+                    acp_agent_settings_snapshot = (
+                        existing.acp_agent_settings_snapshot
+                        if existing is not None
+                        and existing.acp_agent_settings_snapshot is not None
+                        else _snapshot_acp_settings(acp_user.agent_settings)
+                    )
             else:
                 llm_model = request_agent.llm.model
                 agent_kind = 'openhands'
@@ -580,6 +670,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 llm_model=llm_model,
                 agent_kind=agent_kind,
                 tags=tags,
+                acp_agent_settings_snapshot=acp_agent_settings_snapshot,
                 # Git parameters
                 selected_repository=request.selected_repository,
                 selected_branch=request.selected_branch,
@@ -1956,8 +2047,28 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             initial_message = resume_result
 
         # --- build the ACP agent ------------------------------------------
-        acp_settings = user.agent_settings  # already verified to be ACPAgentSettings
-        assert isinstance(acp_settings, ACPAgentSettings)
+        live_settings = user.agent_settings  # already verified to be ACPAgentSettings
+        assert isinstance(live_settings, ACPAgentSettings)
+
+        # Use the conversation-scoped spec snapshot frozen at creation, if one
+        # exists, instead of the live (mutable, global) settings. This keeps the
+        # agent identity stable when a recycled sandbox is rebuilt (#14640): a
+        # settings edit between create and resume can no longer silently switch
+        # an in-flight conversation's provider or model. Secret-bearing fields
+        # were stripped from the snapshot and are re-attached here from the live
+        # vault. Falls back to live settings on a fresh conversation, or for ACP
+        # conversations created before snapshotting landed.
+        existing_info = (
+            await self.app_conversation_info_service.get_app_conversation_info(  # noqa: E501
+                conversation_id
+            )
+        )
+        snapshot = existing_info.acp_agent_settings_snapshot if existing_info else None
+        acp_settings = (
+            _restore_acp_settings(snapshot, live_settings)
+            if snapshot is not None
+            else live_settings
+        )
 
         # acp_settings.create_agent() folds provider creds into agent_context.secrets
         # (sdk#3464). Pass SecretSource objects verbatim — the SDK resolves them

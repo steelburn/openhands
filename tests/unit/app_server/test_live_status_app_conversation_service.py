@@ -1715,6 +1715,115 @@ class TestLiveStatusAppConversationService:
         assert saved_info.id == conversation_id
 
     @pytest.mark.asyncio
+    @patch(
+        'openhands.app_server.app_conversation.live_status_app_conversation_service.AsyncRemoteWorkspace'
+    )
+    @patch(
+        'openhands.app_server.app_conversation.live_status_app_conversation_service.ConversationInfo'
+    )
+    async def test_start_app_conversation_persists_acp_spec_snapshot(
+        self, mock_conversation_info_class, mock_remote_workspace_class
+    ):
+        """A fresh ACP conversation freezes a secret-free spec snapshot (#1015)."""
+        from openhands.sdk.settings import ACPAgentSettings
+
+        conversation_id = uuid4()
+
+        acp_user = _TestUserInfo(
+            id='test_user_123',
+            llm_model='',
+            llm_base_url=None,
+            llm_api_key=None,
+            sandbox_grouping_strategy=SandboxGroupingStrategy.ADD_TO_ANY,
+            confirmation_mode=False,
+            security_analyzer=None,
+            search_api_key=None,
+            mcp_config=None,
+            disabled_skills=[],
+        )
+        acp_user.agent_settings = ACPAgentSettings(
+            acp_server='claude-code',
+            acp_model='claude-opus-4-6',
+            llm=LLM(
+                model='claude-sonnet-4-5',
+                api_key=SecretStr('sk-ui-key'),
+                usage_id='acp',
+            ),
+        )
+        self.mock_user_context.get_user_id = AsyncMock(return_value='test_user_123')
+        self.mock_user_context.get_user_info = AsyncMock(return_value=acp_user)
+
+        # Fresh conversation: no persisted snapshot yet -> the service freezes one.
+        self.mock_app_conversation_info_service.get_app_conversation_info = AsyncMock(
+            return_value=None
+        )
+        self.mock_app_conversation_info_service.save_app_conversation_info = AsyncMock()
+
+        mock_sandbox_spec = Mock(spec=SandboxSpecInfo)
+        mock_sandbox_spec.working_dir = '/test/workspace'
+        self.mock_sandbox.sandbox_spec_id = str(uuid4())
+        self.mock_sandbox.id = str(uuid4())
+        self.mock_sandbox.session_api_key = 'test_session_key'
+        self.mock_sandbox.exposed_urls = [
+            ExposedUrl(name=AGENT_SERVER, url='http://agent-server:8000', port=60000)
+        ]
+        self.mock_sandbox_service.get_sandbox = AsyncMock(
+            return_value=self.mock_sandbox
+        )
+        self.mock_sandbox_spec_service.get_sandbox_spec = AsyncMock(
+            return_value=mock_sandbox_spec
+        )
+        mock_remote_workspace_class.return_value = Mock()
+
+        async def mock_wait_for_sandbox(task):
+            task.sandbox_id = self.mock_sandbox.id
+            yield task
+
+        async def mock_run_setup_scripts(task, sandbox, workspace, agent_server_url):
+            yield task
+
+        self.service._wait_for_sandbox_start = mock_wait_for_sandbox
+        self.service.run_setup_scripts = mock_run_setup_scripts
+        self.service._seed_sandbox_profiles = AsyncMock()
+
+        # Only the built request's agent_kind matters; the build itself is mocked.
+        mock_start_request = Mock(spec=StartConversationRequest)
+        mock_start_request.agent = SimpleNamespace(agent_kind='acp')
+        mock_start_request.model_dump.return_value = {'test': 'data'}
+        self.service._build_start_conversation_request_for_user = AsyncMock(
+            return_value=mock_start_request
+        )
+
+        mock_conversation_info = Mock()
+        mock_conversation_info.id = conversation_id
+        mock_conversation_info_class.model_validate.return_value = (
+            mock_conversation_info
+        )
+
+        mock_response = Mock()
+        mock_response.json.return_value = {'id': str(conversation_id)}
+        mock_response.raise_for_status = Mock()
+        self.mock_httpx_client.post = AsyncMock(return_value=mock_response)
+        self.mock_event_callback_service.save_event_callback = AsyncMock()
+
+        async for _ in self.service._start_app_conversation(
+            AppConversationStartRequest()
+        ):
+            pass
+
+        self.mock_app_conversation_info_service.save_app_conversation_info.assert_called_once()  # noqa: E501
+        saved_info = self.mock_app_conversation_info_service.save_app_conversation_info.call_args[
+            0
+        ][0]
+        assert saved_info.agent_kind == 'acp'
+        snap = saved_info.acp_agent_settings_snapshot
+        assert snap is not None
+        assert snap.acp_server == 'claude-code'
+        assert snap.acp_model == 'claude-opus-4-6'
+        # Credentials are never frozen into the at-rest snapshot (#1016).
+        assert snap.llm.api_key is None
+
+    @pytest.mark.asyncio
     async def test_configure_llm_and_mcp_with_custom_remote_servers(self):
         """Test _configure_llm_and_mcp merges custom remote servers."""
         from fastmcp.mcp_config import MCPConfig, RemoteMCPServer
@@ -3290,6 +3399,11 @@ class TestBuildAcpStartConversationRequestSecrets:
         service.event_service.search_events = AsyncMock(
             return_value=EventPage(items=[], next_page_id=None)
         )
+        # No persisted spec snapshot for a fresh conversation, so the build uses
+        # the live settings (see TestAcpAgentSettingsSnapshot for the resume path).
+        service.app_conversation_info_service.get_app_conversation_info = AsyncMock(
+            return_value=None
+        )
         sandbox = Mock(spec=SandboxInfo)
         return service._build_acp_start_conversation_request(
             sandbox=sandbox,
@@ -3664,6 +3778,9 @@ class TestSynthesizeAcpResumeInitialMessage:
         service.user_context.get_user_info = AsyncMock(return_value=user)
         service.user_context.get_user_email = AsyncMock(return_value=None)
         service._setup_secrets_for_git_providers = AsyncMock(return_value={})
+        service.app_conversation_info_service.get_app_conversation_info = AsyncMock(
+            return_value=None
+        )
 
         import tempfile
 
@@ -3720,6 +3837,9 @@ class TestSynthesizeAcpResumeInitialMessage:
         service.user_context.get_user_info = AsyncMock(return_value=user)
         service.user_context.get_user_email = AsyncMock(return_value=None)
         service._setup_secrets_for_git_providers = AsyncMock(return_value={})
+        service.app_conversation_info_service.get_app_conversation_info = AsyncMock(
+            return_value=None
+        )
 
         import tempfile
 
@@ -4132,3 +4252,219 @@ class TestSynthesizeAcpResumeInitialMessage:
         # Failure details at the end must appear
         assert 'AssertionError' in text
         assert '1 failed, 20 passed' in text
+
+
+class TestAcpAgentSettingsSnapshot:
+    """ACP agent-spec snapshot at creation + restore on resume (#1015).
+
+    The cloud backend rebuilds the ACP agent from the user's *global* settings
+    whenever a recycled sandbox is restarted. These tests pin the behaviour that
+    a settings edit between create and resume can no longer silently re-target an
+    in-flight conversation, while keeping credentials out of the at-rest snapshot
+    (#1016).
+    """
+
+    @pytest.fixture
+    def service(self):
+        return LiveStatusAppConversationService(
+            init_git_in_empty_workspace=True,
+            user_context=Mock(spec=UserContext),
+            app_conversation_info_service=Mock(),
+            app_conversation_start_task_service=Mock(),
+            event_callback_service=Mock(),
+            event_service=Mock(),
+            sandbox_service=Mock(),
+            sandbox_spec_service=Mock(),
+            jwt_service=Mock(),
+            pending_message_service=Mock(),
+            sandbox_startup_timeout=30,
+            sandbox_startup_poll_frequency=1,
+            max_num_conversations_per_sandbox=20,
+            httpx_client=Mock(),
+            web_url=None,
+            openhands_provider_base_url=None,
+            access_token_hard_timeout=None,
+            app_mode='test',
+        )
+
+    def _acp_settings(self, acp_server='claude-code', acp_model=None, api_key=None):
+        from openhands.sdk.settings import ACPAgentSettings
+
+        return ACPAgentSettings(
+            acp_server=acp_server,  # type: ignore[arg-type]
+            acp_model=acp_model,
+            llm=LLM(
+                model='claude-sonnet-4-5',
+                api_key=SecretStr(api_key) if api_key else None,
+                usage_id='acp',
+            ),
+        )
+
+    def _make_user(self, settings):
+        user = _TestUserInfo(
+            id='u1',
+            llm_model='',
+            llm_base_url=None,
+            llm_api_key=None,
+            sandbox_grouping_strategy=SandboxGroupingStrategy.ADD_TO_ANY,
+            confirmation_mode=False,
+            security_analyzer=None,
+            search_api_key=None,
+            mcp_config=None,
+            disabled_skills=[],
+        )
+        user.agent_settings = settings
+        return user
+
+    async def _build(self, service, user, existing_snapshot, tmp_path):
+        from openhands.agent_server.models import EventPage
+
+        service.user_context.get_user_info = AsyncMock(return_value=user)
+        service.user_context.get_user_email = AsyncMock(return_value=None)
+        service._setup_secrets_for_git_providers = AsyncMock(return_value={})
+        service.event_service.search_events = AsyncMock(
+            return_value=EventPage(items=[], next_page_id=None)
+        )
+        existing_info = (
+            AppConversationInfo(
+                id=uuid4(),
+                created_by_user_id='u1',
+                sandbox_id='sandbox_1',
+                agent_kind='acp',
+                acp_agent_settings_snapshot=existing_snapshot,
+            )
+            if existing_snapshot is not None
+            else None
+        )
+        service.app_conversation_info_service.get_app_conversation_info = AsyncMock(
+            return_value=existing_info
+        )
+        return await service._build_acp_start_conversation_request(
+            sandbox=Mock(spec=SandboxInfo),
+            conversation_id=uuid4(),
+            initial_message=None,
+            working_dir=str(tmp_path),
+        )
+
+    # --- _snapshot_acp_settings ------------------------------------------------
+
+    def test_snapshot_strips_all_secrets(self):
+        """No credential survives into the persisted (expose_secrets) snapshot."""
+        from openhands.app_server.app_conversation.live_status_app_conversation_service import (  # noqa: E501
+            _snapshot_acp_settings,
+        )
+        from openhands.sdk.context import AgentContext
+        from openhands.sdk.secret import StaticSecret
+        from openhands.sdk.settings import ACPAgentSettings
+
+        settings = ACPAgentSettings(
+            acp_server='claude-code',
+            acp_model='claude-opus-4-6',
+            llm=LLM(
+                model='claude-sonnet-4-5',
+                api_key=SecretStr('sk-secret-key'),
+                aws_secret_access_key=SecretStr('aws-secret'),
+                usage_id='acp',
+            ),
+            acp_env={'EXTRA_TOKEN': 'env-secret'},
+            agent_context=AgentContext(
+                secrets={'PANEL': StaticSecret(value=SecretStr('panel-secret'))}
+            ),
+        )
+
+        snap = _snapshot_acp_settings(settings)
+
+        # Identity preserved
+        assert snap.acp_server == 'claude-code'
+        assert snap.acp_model == 'claude-opus-4-6'
+        assert snap.llm.model == 'claude-sonnet-4-5'
+        # Secrets cleared
+        assert snap.llm.api_key is None
+        assert snap.llm.aws_secret_access_key is None
+        assert snap.acp_env == {}
+        assert snap.agent_context is None
+
+        # Even an expose_secrets dump (how the JSON column persists) is clean.
+        from pydantic import TypeAdapter
+
+        blob = json.dumps(
+            TypeAdapter(ACPAgentSettings).dump_python(
+                snap, mode='json', context={'expose_secrets': True}
+            )
+        )
+        for secret in ('sk-secret-key', 'aws-secret', 'env-secret', 'panel-secret'):
+            assert secret not in blob
+
+    # --- _restore_acp_settings -------------------------------------------------
+
+    def test_restore_reattaches_live_creds_same_provider(self):
+        from openhands.app_server.app_conversation.live_status_app_conversation_service import (  # noqa: E501
+            _restore_acp_settings,
+            _snapshot_acp_settings,
+        )
+
+        snap = _snapshot_acp_settings(
+            self._acp_settings(acp_server='claude-code', acp_model='claude-opus-4-6')
+        )
+        live = self._acp_settings(acp_server='claude-code', api_key='sk-live-key')
+
+        effective = _restore_acp_settings(snap, live)
+
+        assert effective.acp_server == 'claude-code'
+        assert effective.acp_model == 'claude-opus-4-6'
+        assert effective.llm.api_key.get_secret_value() == 'sk-live-key'
+
+    def test_restore_refuses_mismatched_cred_on_provider_switch(self):
+        from openhands.app_server.app_conversation.live_status_app_conversation_service import (  # noqa: E501
+            _restore_acp_settings,
+            _snapshot_acp_settings,
+        )
+
+        snap = _snapshot_acp_settings(self._acp_settings(acp_server='claude-code'))
+        # User switched their global default to Codex (with a Codex key).
+        live = self._acp_settings(acp_server='codex', api_key='sk-codex-key')
+
+        effective = _restore_acp_settings(snap, live)
+
+        # Snapshot provider wins; the mismatched live key is NOT injected.
+        assert effective.acp_server == 'claude-code'
+        assert effective.llm.api_key is None
+
+    # --- resume race via _build_acp_start_conversation_request -----------------
+
+    @pytest.mark.asyncio
+    async def test_create_uses_live_settings(self, service, tmp_path):
+        """No snapshot yet -> the agent is built from the live settings."""
+        user = self._make_user(
+            self._acp_settings(acp_server='claude-code', acp_model='claude-opus-4-6')
+        )
+        req = await self._build(
+            service, user, existing_snapshot=None, tmp_path=tmp_path
+        )
+        assert req.agent.acp_model == 'claude-opus-4-6'
+
+    @pytest.mark.asyncio
+    async def test_resume_uses_snapshot_not_live_settings(self, service, tmp_path):
+        """Snapshot present + live settings changed -> snapshot identity wins."""
+        from openhands.app_server.app_conversation.live_status_app_conversation_service import (  # noqa: E501
+            _snapshot_acp_settings,
+        )
+
+        # Conversation was created on Claude Code / opus...
+        snapshot = _snapshot_acp_settings(
+            self._acp_settings(acp_server='claude-code', acp_model='claude-opus-4-6')
+        )
+        # ...but the user has since switched their global default to Codex.
+        live = self._acp_settings(
+            acp_server='codex', acp_model='gpt-5.2-codex', api_key='sk-codex-key'
+        )
+        user = self._make_user(live)
+
+        req = await self._build(
+            service, user, existing_snapshot=snapshot, tmp_path=tmp_path
+        )
+
+        # The resumed agent stays Claude Code / opus, not Codex.
+        assert req.agent.acp_model == 'claude-opus-4-6'
+        joined_cmd = ' '.join(req.agent.acp_command)
+        assert 'codex' not in joined_cmd.lower()

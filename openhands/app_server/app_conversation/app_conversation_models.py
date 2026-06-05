@@ -23,6 +23,7 @@ from openhands.app_server.settings.settings_models import SandboxGroupingStrateg
 from openhands.sdk.conversation import ConversationExecutionStatus
 from openhands.sdk.llm import MetricsSnapshot
 from openhands.sdk.plugin import PluginSource
+from openhands.sdk.settings import ACPAgentSettings
 
 __all__ = ['SandboxGroupingStrategy']
 
@@ -103,6 +104,23 @@ class AppConversationInfo(BaseModel):
     pr_number: list[int] = Field(default_factory=list)
     llm_model: str | None = None
     agent_kind: str = 'openhands'
+
+    # Conversation-scoped snapshot of the ACP agent spec, frozen at creation.
+    # The cloud backend rebuilds the ACP agent from the user's *global* settings
+    # whenever a recycled sandbox is restarted (#14640); re-resolving from live
+    # settings lets a settings edit between create and resume silently re-target
+    # an in-flight conversation (e.g. Claude Code -> Codex). Pinning the spec
+    # here makes the agent identity conversation-scoped, mirroring how the
+    # regular agent rides the agent-server's meta.json snapshot (#1015).
+    # Secret-bearing fields are stripped before persisting — provider creds,
+    # acp_env, mcp_config and agent_context are re-resolved from the live
+    # encrypted vault on every build, so nothing secret persists at rest (#1016).
+    # Internal: persisted via the explicit SQL mapping and read back by
+    # attribute on resume; excluded from serialization so it neither bloats
+    # conversation-list responses nor leaks the spec into the public API.
+    acp_agent_settings_snapshot: ACPAgentSettings | None = Field(
+        default=None, exclude=True
+    )
 
     metrics: MetricsSnapshot | None = None
 

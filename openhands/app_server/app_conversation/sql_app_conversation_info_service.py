@@ -58,6 +58,7 @@ from openhands.app_server.utils.sql_utils import (
 from openhands.sdk import ConversationStats
 from openhands.sdk.event import ConversationStateUpdateEvent
 from openhands.sdk.llm import MetricsSnapshot, TokenUsage
+from openhands.sdk.settings import ACPAgentSettings
 
 logger = logging.getLogger(__name__)
 
@@ -114,6 +115,17 @@ class StoredConversationMetadata(Base):
     # Tags for conversation metadata (e.g., automation context, skills used)
     tags: Mapped[dict[str, str] | None] = mapped_column(
         create_json_type_decorator(dict[str, str]), nullable=True
+    )
+
+    # Snapshot of the ACP agent spec, frozen at conversation creation so a later
+    # edit to the user's global agent settings can't silently re-target an
+    # in-flight conversation when its sandbox is recycled and rebuilt (#1015).
+    # Secret-bearing fields are stripped before persisting (provider creds etc.
+    # are re-resolved from the live encrypted vault on every build), so this
+    # plain JSON column never holds secrets at rest (#1016). NULL for non-ACP
+    # conversations and for ACP conversations created before this column landed.
+    acp_agent_settings_snapshot: Mapped[ACPAgentSettings | None] = mapped_column(
+        create_json_type_decorator(ACPAgentSettings | None), nullable=True
     )
 
 
@@ -381,6 +393,7 @@ class SQLAppConversationInfoService(AppConversationInfoService):
             ),
             public=info.public,
             tags=info.tags if info.tags else None,
+            acp_agent_settings_snapshot=info.acp_agent_settings_snapshot,
         )
 
         await self.db_session.merge(stored)
@@ -570,6 +583,7 @@ class SQLAppConversationInfoService(AppConversationInfoService):
             sub_conversation_ids=sub_conversation_ids or [],
             public=stored.public,
             tags=stored.tags or {},
+            acp_agent_settings_snapshot=stored.acp_agent_settings_snapshot,
             created_at=created_at,
             updated_at=updated_at,
         )
