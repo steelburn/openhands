@@ -93,10 +93,7 @@ class TestAcpSessionSnapshotService:
 
         def handler(request):
             assert request.headers['X-Session-API-Key'] == 'test-key'
-            assert (
-                request.url.path
-                == f'/api/acp_session_blob/{conversation_id}/codex'
-            )
+            assert request.url.path == f'/api/acp_session_blob/{conversation_id}/codex'
             return httpx.Response(200, content=blob)
 
         with _mock_async_client(handler):
@@ -361,9 +358,7 @@ class TestPrepareNativeAcpResume:
         result = await service._prepare_native_acp_resume(
             sandbox=_make_sandbox(),
             conversation_id=uuid4(),
-            existing_info=self._info(
-                tags={}, acp_agent_settings_snapshot=snapshot
-            ),
+            existing_info=self._info(tags={}, acp_agent_settings_snapshot=snapshot),
             expected_cwd='/workspace/project',
         )
         assert result == 'sess-123'
@@ -622,9 +617,7 @@ class TestNativeResumePrecedenceInBuild:
         service._acp_snapshot_service.restore_into_sandbox = AsyncMock(
             return_value=True
         )
-        service._synthesize_acp_resume_initial_message = AsyncMock(
-            return_value=None
-        )
+        service._synthesize_acp_resume_initial_message = AsyncMock(return_value=None)
 
         request = await service._build_acp_start_conversation_request(
             sandbox=_make_sandbox(),

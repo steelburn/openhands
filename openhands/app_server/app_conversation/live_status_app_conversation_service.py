@@ -101,7 +101,8 @@ from openhands.app_server.utils.llm_metadata import (
     get_llm_metadata,
     should_set_litellm_extra_body,
 )
-from openhands.sdk import Agent, AgentBase, AgentContext, LocalWorkspace
+from openhands.sdk import Agent, AgentContext, LocalWorkspace
+from openhands.sdk.agent.acp_agent import ACPAgent
 from openhands.sdk.event import RESUME_CONTEXT_MARKER, render_resume_transcript
 from openhands.sdk.event.acp_tool_call import ACPToolCallEvent
 from openhands.sdk.hooks import HookConfig
@@ -2067,8 +2068,8 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         return session_id
 
     def _apply_acp_resume_fields(
-        self, acp_agent: AgentBase, resume_session_id: str | None
-    ) -> AgentBase:
+        self, acp_agent: ACPAgent, resume_session_id: str | None
+    ) -> ACPAgent:
         """Stamp per-conversation resume/isolation fields onto the ACP agent.
 
         ``acp_isolate_data_dir`` relocates the CLI's data root to the
