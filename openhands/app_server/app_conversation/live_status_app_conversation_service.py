@@ -23,6 +23,10 @@ from openhands.agent_server.models import (
     StartConversationRequest,
     TextContent,
 )
+from openhands.app_server.app_conversation.acp_session_snapshot_service import (
+    AcpSessionSnapshotService,
+    supports_native_session_resume,
+)
 from openhands.app_server.app_conversation.app_conversation_info_service import (
     AppConversationInfoService,
 )
@@ -39,10 +43,6 @@ from openhands.app_server.app_conversation.app_conversation_models import (
     ConversationTrigger,
     PluginSpec,
     SandboxGroupingStrategy,
-)
-from openhands.app_server.app_conversation.acp_session_snapshot_service import (
-    AcpSessionSnapshotService,
-    supports_native_session_resume,
 )
 from openhands.app_server.app_conversation.app_conversation_service import (
     AppConversationService,
@@ -647,6 +647,11 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             request_agent = start_conversation_request.agent
             tags: dict[str, str] = {}
             acp_agent_settings_snapshot: ACPAgentSettings | None = None
+            # Preserve the durable ACP session mirror across this full-row save
+            # (it is written out-of-band by the webhook on_event path; #1126).
+            acp_session_id: str | None = None
+            acp_session_cwd: str | None = None
+            acp_agent_version: str | None = None
             if request_agent.agent_kind == 'acp':
                 llm_model = None
                 agent_kind = 'acp'
@@ -671,6 +676,10 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                         and existing.acp_agent_settings_snapshot is not None
                         else _snapshot_acp_settings(acp_user.agent_settings)
                     )
+                    if existing is not None:
+                        acp_session_id = existing.acp_session_id
+                        acp_session_cwd = existing.acp_session_cwd
+                        acp_agent_version = existing.acp_agent_version
             else:
                 llm_model = request_agent.llm.model
                 agent_kind = 'openhands'
@@ -684,6 +693,9 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 agent_kind=agent_kind,
                 tags=tags,
                 acp_agent_settings_snapshot=acp_agent_settings_snapshot,
+                acp_session_id=acp_session_id,
+                acp_session_cwd=acp_session_cwd,
+                acp_agent_version=acp_agent_version,
                 # Git parameters
                 selected_repository=request.selected_repository,
                 selected_branch=request.selected_branch,

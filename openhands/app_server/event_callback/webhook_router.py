@@ -480,6 +480,13 @@ async def on_conversation_update(
         metrics=conversation_info.stats.get_combined_metrics(),
         # Store merged tags (includes automation context, skills, etc.)
         tags=merged_tags,
+        # Preserve the ACP resume state harvested from the event stream — this
+        # full-row save must not clobber the durable mirror the on_event path
+        # writes (#14506 / agent-canvas#1126).
+        acp_agent_settings_snapshot=existing.acp_agent_settings_snapshot,
+        acp_session_id=existing.acp_session_id,
+        acp_session_cwd=existing.acp_session_cwd,
+        acp_agent_version=existing.acp_agent_version,
     )
     await app_conversation_info_service.save_app_conversation_info(
         app_conversation_info
