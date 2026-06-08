@@ -15,6 +15,7 @@ import { useSearchProviders } from "#/hooks/query/use-search-providers";
 import { useProviderModels } from "#/hooks/query/use-provider-models";
 import { useConfig } from "#/hooks/query/use-config";
 import { Typography } from "#/ui/typography";
+import { isOheManagedMode } from "#/utils/ohe-managed-mode";
 
 interface ModelSelectorProps {
   isDisabled?: boolean;
@@ -50,10 +51,8 @@ export function ModelSelector({
     error: modelsError,
   } = useProviderModels(selectedProvider);
   const { data: config } = useConfig();
-  const isOheManagedMode =
-    config?.app_mode === "saas" &&
-    config?.feature_flags?.deployment_mode === "self_hosted";
-  const openHandsProviderLabel = isOheManagedMode
+  const isManagedMode = isOheManagedMode(config);
+  const openHandsProviderLabel = isManagedMode
     ? t(I18nKey.SETTINGS$ADMIN_MANAGED_PROVIDER)
     : undefined;
   const getProviderLabel = React.useCallback(
@@ -172,7 +171,7 @@ export function ModelSelector({
         </Autocomplete>
       </fieldset>
 
-      {selectedProvider === "openhands" && isOheManagedMode ? (
+      {selectedProvider === "openhands" && isManagedMode ? (
         <Typography.Paragraph
           testId="admin-managed-models-help"
           className="text-xs text-tertiary-alt"
@@ -181,7 +180,7 @@ export function ModelSelector({
         </Typography.Paragraph>
       ) : null}
 
-      {selectedProvider === "openhands" && !isOheManagedMode ? (
+      {selectedProvider === "openhands" && !isManagedMode ? (
         <HelpLink
           testId="openhands-account-help"
           text={t(I18nKey.SETTINGS$NEED_OPENHANDS_ACCOUNT)}

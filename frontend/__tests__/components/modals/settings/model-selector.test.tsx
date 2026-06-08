@@ -43,7 +43,7 @@ vi.mock("#/hooks/query/use-provider-models", () => ({
   }),
 }));
 
-let mockConfig = {
+let mockConfig: Record<string, unknown> = {
   app_mode: "oss",
   feature_flags: {},
 };
@@ -120,6 +120,28 @@ describe("ModelSelector", () => {
     );
     expect(screen.getByTestId("admin-managed-models-help")).toHaveTextContent(
       "These models are configured for this OpenHands Enterprise instance by your administrator.",
+    );
+    expect(
+      screen.queryByTestId("openhands-account-help"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("labels managed OpenHands models as admin-managed on all-hands.dev test installs", async () => {
+    mockConfig = {
+      app_mode: "saas",
+      feature_flags: { deployment_mode: "cloud" },
+      managed_litellm_base_url: "http://openhands-litellm:4000",
+    };
+
+    const user = userEvent.setup();
+    renderWithQuery(<ModelSelector />);
+
+    const providerSelector = screen.getByLabelText("LLM Provider");
+    await user.click(providerSelector);
+    await user.click(screen.getByText("Admin-managed"));
+
+    expect(screen.getByLabelText("LLM Provider")).toHaveValue(
+      "Admin-managed",
     );
     expect(
       screen.queryByTestId("openhands-account-help"),

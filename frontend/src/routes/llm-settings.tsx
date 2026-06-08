@@ -47,6 +47,11 @@ import { Typography } from "#/ui/typography";
 import { useOrgTypeAndAccess } from "#/hooks/use-org-type-and-access";
 import { useMe } from "#/hooks/query/use-me";
 import { usePermission } from "#/hooks/organizations/use-permissions";
+import {
+  isManagedLiteLlmBaseUrl,
+  isOheManagedMode,
+  normalizeBaseUrl,
+} from "#/utils/ohe-managed-mode";
 
 const LLM_EXCLUDED_KEYS = new Set(["llm.model", "llm.api_key", "llm.base_url"]);
 
@@ -75,16 +80,6 @@ const KNOWN_PROVIDER_DEFAULT_BASE_URLS: Partial<Record<string, Set<string>>> = {
   ]),
 };
 
-const normalizeBaseUrl = (baseUrl: string) => {
-  try {
-    const parsedUrl = new URL(baseUrl);
-    const normalizedPath = parsedUrl.pathname.replace(/\/+$/, "") || "";
-    return `${parsedUrl.origin}${normalizedPath}`;
-  } catch {
-    return baseUrl.trim().replace(/\/+$/, "");
-  }
-};
-
 const isProviderDefaultBaseUrl = (
   model: string,
   baseUrl: string,
@@ -93,17 +88,11 @@ const isProviderDefaultBaseUrl = (
   const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
   const { provider } = extractModelAndProvider(model);
 
-  if (provider) {
-    const isManagedOpenHandsProvider =
-      provider === "openhands" || provider === "litellm_proxy";
-    if (
-      isManagedOpenHandsProvider &&
-      managedLiteLlmBaseUrl &&
-      normalizedBaseUrl === normalizeBaseUrl(managedLiteLlmBaseUrl)
-    ) {
-      return true;
-    }
+  if (isManagedLiteLlmBaseUrl(baseUrl, managedLiteLlmBaseUrl)) {
+    return true;
+  }
 
+  if (provider) {
     const knownDefaults = KNOWN_PROVIDER_DEFAULT_BASE_URLS[provider];
     if (knownDefaults) {
       return knownDefaults.has(normalizedBaseUrl);
@@ -113,6 +102,19 @@ const isProviderDefaultBaseUrl = (
   return Object.values(KNOWN_PROVIDER_DEFAULT_BASE_URLS).some((knownDefaults) =>
     knownDefaults?.has(normalizedBaseUrl),
   );
+};
+
+const isManagedLiteLlmSettings = (
+  model: string,
+  baseUrl: string,
+  managedLiteLlmBaseUrl?: string,
+) => {
+  const { provider } = extractModelAndProvider(model);
+  if (baseUrl.trim().length > 0) {
+    return isManagedLiteLlmBaseUrl(baseUrl, managedLiteLlmBaseUrl);
+  }
+
+  return provider === "openhands" || provider === "litellm_proxy";
 };
 
 export function LlmSettingsScreen({
@@ -185,8 +187,7 @@ export function LlmSettingsScreen({
   );
 
   const isSaasMode = config?.app_mode === "saas";
-  const isOheManagedMode =
-    isSaasMode && config?.feature_flags?.deployment_mode === "self_hosted";
+  const isManagedMode = isOheManagedMode(config);
   const managedLiteLlmBaseUrl = config?.managed_litellm_base_url?.trim();
 
   React.useEffect(() => {
@@ -239,13 +240,24 @@ export function LlmSettingsScreen({
         return "basic";
       }
 
+      const currentModel = currentSettings.llm_model ?? "";
+      const trimmedBaseUrl = currentSettings.llm_base_url?.trim() ?? "";
+      if (
+        isManagedMode &&
+        isManagedLiteLlmSettings(
+          currentModel,
+          trimmedBaseUrl,
+          managedLiteLlmBaseUrl,
+        )
+      ) {
+        return "basic";
+      }
+
       const schemaView = inferInitialView(currentSettings, filteredSchema);
       if (schemaView !== "basic") {
         return schemaView;
       }
 
-      const currentModel = currentSettings.llm_model ?? "";
-      const trimmedBaseUrl = currentSettings.llm_base_url?.trim() ?? "";
       const hasCustomBaseUrl =
         trimmedBaseUrl.length > 0 &&
         !isProviderDefaultBaseUrl(
@@ -256,7 +268,7 @@ export function LlmSettingsScreen({
 
       return hasCustomBaseUrl ? "all" : "basic";
     },
-    [initialViewHint, isSaasMode, managedLiteLlmBaseUrl, scope],
+    [initialViewHint, isManagedMode, isSaasMode, managedLiteLlmBaseUrl, scope],
   );
 
   const buildHeader = React.useCallback(
@@ -277,7 +289,7 @@ export function LlmSettingsScreen({
       const shouldUseOpenHandsKey =
         isSaasMode && activeProvider === "openhands";
       const showOpenHandsApiKeyHelp =
-        modelValue.startsWith("openhands/") && !isOheManagedMode;
+        modelValue.startsWith("openhands/") && !isManagedMode;
 
       const renderApiKeyInput = (testId: string, helpTestId: string) => {
         if (shouldUseOpenHandsKey) {
@@ -411,7 +423,7 @@ export function LlmSettingsScreen({
     },
     [
       infoMessageKey,
-      isOheManagedMode,
+      isManagedMode,
       isSaasMode,
       defaultModel,
       profileName,

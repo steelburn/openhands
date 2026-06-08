@@ -647,6 +647,66 @@ describe("LlmSettingsScreen", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("defaults to basic Admin-managed view for OHE org profiles on all-hands.dev test installs", async () => {
+    const schema = structuredClone(
+      MOCK_DEFAULT_USER_SETTINGS.agent_settings_schema!,
+    );
+    const llmSection = schema.sections.find((section) => section.key === "llm");
+
+    if (!llmSection) {
+      throw new Error("Expected llm section in test schema");
+    }
+
+    llmSection.fields.push({
+      key: "llm.timeout",
+      label: "Timeout",
+      section: "llm",
+      section_label: "LLM",
+      value_type: "integer",
+      default: 30,
+      choices: [],
+      depends_on: [],
+      prominence: "minor",
+      secret: false,
+      required: false,
+    });
+
+    vi.spyOn(organizationService, "getOrganizationSettings").mockResolvedValue(
+      buildSettings({
+        llm_model: "openhands/claude-sonnet-4-5-20250929",
+        llm_base_url: "http://openhands-litellm:4000",
+        agent_settings_schema: schema,
+        agent_settings: {
+          llm: {
+            model: "openhands/claude-sonnet-4-5-20250929",
+            base_url: "http://openhands-litellm:4000",
+          },
+        },
+      }),
+    );
+
+    await renderLlmSettingsScreen({
+      appMode: "saas",
+      deploymentMode: "cloud",
+      managedLiteLlmBaseUrl: "http://openhands-litellm:4000",
+      scope: "org",
+    });
+
+    const basicForm = await screen.findByTestId("llm-settings-form-basic");
+    expect(
+      screen.queryByTestId("llm-settings-form-advanced"),
+    ).not.toBeInTheDocument();
+    expect(within(basicForm).getByTestId("llm-provider-input")).not.toHaveValue(
+      "OpenHands",
+    );
+    expect(
+      within(basicForm).queryByTestId("openhands-api-key-help"),
+    ).not.toBeInTheDocument();
+    expect(
+      within(basicForm).queryByTestId("llm-api-key-input"),
+    ).not.toBeInTheDocument();
+  });
+
   it("defaults to basic view on first personal SaaS visit even when effective settings include inherited org-only LLM fields", async () => {
     const schema = structuredClone(
       MOCK_DEFAULT_USER_SETTINGS.agent_settings_schema!,
