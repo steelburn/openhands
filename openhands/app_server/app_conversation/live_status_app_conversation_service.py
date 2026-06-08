@@ -145,16 +145,12 @@ _ACP_RESUME_TOOL_MAX_CHARS = 2_000  # per tool event
 
 
 # --- ACP agent-spec snapshot (#1015) ---------------------------------------
-# The cloud backend rebuilds the ACP agent from the user's *global* settings
-# whenever a recycled sandbox is restarted (#14640). Re-resolving from live
-# settings lets a settings edit between create and resume silently re-target an
-# in-flight conversation (e.g. Claude Code -> Codex, or a model swap). We freeze
-# the agent spec onto the conversation at creation and rebuild from it on
-# resume, mirroring how the regular agent rides the agent-server's meta.json
-# snapshot. Secrets are never frozen: provider creds, acp_env, mcp_config and
-# agent_context are re-resolved from the live encrypted vault on every build so
-# nothing secret persists at rest in the conversation_metadata JSON column,
-# which dumps with expose_secrets (#1016).
+# Freeze the agent spec onto the conversation at creation and rebuild from it on
+# resume, instead of re-resolving the user's live *global* settings — otherwise
+# a settings edit between create and resume re-targets an in-flight conversation
+# (e.g. Claude Code -> Codex). Secrets are never frozen: creds, acp_env,
+# mcp_config and agent_context are re-resolved from the live vault on each build,
+# so nothing secret persists at rest in the conversation_metadata column.
 
 
 def _snapshot_acp_settings(settings: ACPAgentSettings) -> ACPAgentSettings:

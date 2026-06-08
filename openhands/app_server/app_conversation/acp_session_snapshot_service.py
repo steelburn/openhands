@@ -1,22 +1,14 @@
-"""Durable snapshots of ACP CLI session files — the "files half" of native resume.
+"""Durable snapshots of an ACP CLI's opaque session files — the "files half" of
+native ``session/load`` resume (agent-canvas#1126; the session-id half lives on
+``conversation_metadata``).
 
-Native ``session/load`` resume across a sandbox recycle needs two durable
-halves (agent-canvas#1126):
-
-- the **session id**, mirrored onto ``conversation_metadata`` from the
-  agent_state webhook stream and fed back via ``ACPAgent.acp_resume_session_id``;
-- the **CLI's opaque session files** (Codex ``sessions/**``, Claude Code
-  ``projects/**``), handled here.
-
-The app server pulls the allowlisted blob from the sandbox at turn boundaries
-(``GET /api/acp_session_blob/...``, an agent-server route that excludes
-``auth.json``/``.credentials.json``/``history.jsonl`` by construction) and
-stores it in the app server's ``FileStore`` — the same sandbox-independent
-substrate the events use, so the snapshot survives exactly what the events
-survive. Before a recycled conversation is rebuilt the blob is seeded back
-into the fresh sandbox (``PUT``, seed-if-absent so a live copy always wins).
-The sandbox never holds store credentials; all blob I/O rides the existing
-app-server↔sandbox channel authenticated by the session API key.
+Captures the allowlisted session subtree (Codex ``sessions/**``, Claude Code
+``projects/**``) from the sandbox at turn boundaries into the app server's
+``FileStore`` (the same substrate the events use, so it survives exactly what
+the events do), and seeds it back into a fresh sandbox before rebuild
+(seed-if-absent, so a live copy wins). The agent-server route excludes
+``auth.json``/``.credentials.json``/``history.jsonl`` by construction and the
+sandbox never holds store credentials, so no secret rides a blob.
 """
 
 import asyncio
@@ -67,7 +59,9 @@ class AcpSessionSnapshotService:
 
     file_store: FileStore
     timeout: float = _BLOB_TIMEOUT_SECONDS
-    # Conversations with a capture currently in flight (dedup, keyed by hex id).
+    # Best-effort in-process dedup of concurrent captures (keyed by hex id). It
+    # is instance-local; a multi-instance double-capture is harmless since the
+    # write is idempotent (overwrites the same blob).
     _in_flight: set[str] = field(default_factory=set)
 
     def _blob_path(self, user_id: str | None, conversation_id: UUID, provider: str):

@@ -187,8 +187,8 @@ async def _track_conversation_terminal(
     )
 
 
-# Execution statuses that mark an ACP turn boundary — the quiescent points
-# where the CLI has flushed its session JSONL and a snapshot is consistent.
+# ACP turn-boundary statuses: capture here, where the CLI has flushed its
+# session files and a snapshot is consistent.
 _ACP_SNAPSHOT_STATUSES = frozenset(
     {
         ConversationExecutionStatus.FINISHED,
