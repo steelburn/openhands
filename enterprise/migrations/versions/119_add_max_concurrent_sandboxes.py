@@ -11,8 +11,8 @@ state at migration time and should not change if constants are updated later.
 See server.constants for current values: DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES,
 DEFAULT_COMMERCIAL_ORG_CONCURRENT_SANDBOXES.
 
-Revision ID: 113
-Revises: 112
+Revision ID: 119
+Revises: 118
 Create Date: 2026-04-29
 """
 
@@ -22,8 +22,8 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '114'
-down_revision: Union[str, None] = '113'
+revision: str = '119'
+down_revision: Union[str, None] = '118'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
