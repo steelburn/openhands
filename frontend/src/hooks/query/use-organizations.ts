@@ -9,15 +9,17 @@ export const useOrganizations = () => {
 
   // Organizations are a SaaS-only feature - disable in OSS mode
   const isOssMode = config?.app_mode === "oss";
+  const hidePersonalWorkspaces =
+    config?.feature_flags?.hide_personal_workspaces === true;
 
   return useQuery({
     queryKey: ["organizations"],
     queryFn: organizationService.getOrganizations,
     staleTime: 1000 * 60 * 5, // 5 minutes
     enabled: !!userIsAuthenticated && !isOssMode,
-    select: (data) => ({
+    select: (data) => {
       // Sort organizations with personal workspace first, then alphabetically by name
-      organizations: [...data.items].sort((a, b) => {
+      const sorted = [...data.items].sort((a, b) => {
         const aIsPersonal = a.is_personal ?? false;
         const bIsPersonal = b.is_personal ?? false;
         if (aIsPersonal && !bIsPersonal) return -1;
@@ -25,8 +27,22 @@ export const useOrganizations = () => {
         return (a.name ?? "").localeCompare(b.name ?? "", undefined, {
           sensitivity: "base",
         });
-      }),
-      currentOrgId: data.currentOrgId,
-    }),
+      });
+
+      // In org-only installs, hide personal workspaces — but only when the
+      // user belongs to at least one team org, so a user whose only
+      // workspace is personal (e.g. the default org isn't created yet) is
+      // never left with zero workspaces.
+      const hasTeamOrg = sorted.some((org) => !(org.is_personal ?? false));
+      const organizations =
+        hidePersonalWorkspaces && hasTeamOrg
+          ? sorted.filter((org) => !(org.is_personal ?? false))
+          : sorted;
+
+      return {
+        organizations,
+        currentOrgId: data.currentOrgId,
+      };
+    },
   });
 };
