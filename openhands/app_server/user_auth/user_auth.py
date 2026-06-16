@@ -24,6 +24,7 @@ from openhands.app_server.secrets.secrets_store import SecretsStore
 from openhands.app_server.settings.settings_models import Settings
 from openhands.app_server.settings.settings_store import SettingsStore
 from openhands.app_server.shared import server_config
+from openhands.app_server.utils.concurrency import get_max_concurrent_sandboxes_fallback
 from openhands.app_server.utils.import_utils import get_impl
 
 
@@ -108,8 +109,9 @@ class UserAuth(ABC):
     async def get_max_concurrent_sandboxes(self, default: int = 10) -> int:
         """Get the user's maximum concurrent sandboxes limit.
 
-        In OSS mode, this returns the default value.
-        Enterprise implementations can override to check org/user-specific limits.
+        In OSS mode, this returns MAX_CONCURRENT_CONVERSATIONS when set,
+        otherwise the default value. Enterprise implementations can override to
+        check org/user-specific limits.
 
         Args:
             default: The fallback limit if no user/org-specific limit is set.
@@ -117,7 +119,7 @@ class UserAuth(ABC):
         Returns:
             The effective maximum number of concurrent sandboxes allowed.
         """
-        return default
+        return get_max_concurrent_sandboxes_fallback(default)
 
     @classmethod
     @abstractmethod

@@ -46,6 +46,10 @@ from openhands.app_server.secrets.secrets_models import Secrets
 from openhands.app_server.settings.settings_models import Settings
 from openhands.app_server.settings.settings_store import SettingsStore
 from openhands.app_server.user_auth.user_auth import AuthType, UserAuth
+from openhands.app_server.utils.concurrency import (
+    SandboxConcurrencyLimitConfigError,
+    require_max_concurrent_conversations_env,
+)
 
 token_manager = TokenManager()
 
@@ -586,10 +590,11 @@ class SaasUserAuth(UserAuth):
         Resolution order:
         1. OrgMember.max_concurrent_sandboxes_override (if not NULL)
         2. Org.max_concurrent_sandboxes (org default)
-        3. The provided default value
+        3. MAX_CONCURRENT_CONVERSATIONS, if set
+        4. Configuration error if no limit is configured
 
         Args:
-            default: The fallback limit if no user/org-specific limit is set.
+            default: Ignored for SaaS/enterprise auth; present for interface compatibility.
 
         Returns:
             The effective maximum number of concurrent sandboxes allowed.
@@ -600,7 +605,7 @@ class SaasUserAuth(UserAuth):
             # Get user to find their current org
             user = await UserStore.get_user_by_id(self.user_id)
             if not user or not user.current_org_id:
-                return default
+                return require_max_concurrent_conversations_env()
 
             org_id = user.current_org_id
 
@@ -614,10 +619,19 @@ class SaasUserAuth(UserAuth):
             if org and org.max_concurrent_sandboxes is not None:
                 return org.max_concurrent_sandboxes
 
+        except SandboxConcurrencyLimitConfigError:
+            raise
         except Exception as e:
             logger.warning(f'Failed to get user sandbox limit: {e}')
+            try:
+                return require_max_concurrent_conversations_env()
+            except SandboxConcurrencyLimitConfigError as config_error:
+                raise SandboxConcurrencyLimitConfigError(
+                    'Failed to resolve sandbox concurrency limit and '
+                    'MAX_CONCURRENT_CONVERSATIONS is not configured'
+                ) from config_error
 
-        return default
+        return require_max_concurrent_conversations_env()
 
     @classmethod
     async def get_instance(cls, request: Request) -> UserAuth:

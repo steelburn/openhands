@@ -2025,6 +2025,7 @@ class TestGetOrgMembersEndpoint:
                     role='owner',
                     role_rank=10,
                     status='active',
+                    effective_max_concurrent_sandboxes=12,
                 )
             ],
             current_page=1,
@@ -2220,6 +2221,7 @@ class TestGetOrgMembersEndpoint:
                     role='admin',
                     role_rank=20,
                     status='active',
+                    effective_max_concurrent_sandboxes=12,
                 )
             ],
             current_page=2,
@@ -2679,6 +2681,7 @@ class TestUpdateOrgMemberEndpoint:
             role='admin',
             role_rank=20,
             status='active',
+            effective_max_concurrent_sandboxes=12,
         )
         with (
             patch(
@@ -2996,6 +2999,7 @@ class TestGetMeEndpoint:
             llm_api_key=llm_api_key,
             agent_settings_diff=agent_settings_diff,
             status=status_val,
+            effective_max_concurrent_sandboxes=12,
         )
 
     @pytest.mark.asyncio

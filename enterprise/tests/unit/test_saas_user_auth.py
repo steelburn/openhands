@@ -24,6 +24,7 @@ from storage.user_authorization import UserAuthorizationType
 
 from openhands.app_server.integrations.provider import ProviderToken, ProviderType
 from openhands.app_server.secrets.secrets_models import Secrets
+from openhands.app_server.utils.concurrency import SandboxConcurrencyLimitConfigError
 
 
 @pytest.fixture
@@ -1183,7 +1184,8 @@ class TestGetMaxConcurrentSandboxes:
     This method resolves concurrent sandbox limits in the following order:
     1. OrgMember.max_concurrent_sandboxes_override (if not NULL)
     2. Org.max_concurrent_sandboxes (org default)
-    3. The provided default value
+    3. MAX_CONCURRENT_CONVERSATIONS env var fallback
+    4. Configuration error if no limit is configured
     """
 
     @pytest.fixture
@@ -1220,6 +1222,11 @@ class TestGetMaxConcurrentSandboxes:
         member.user_id = uuid.UUID(user_id)
         member.max_concurrent_sandboxes_override = None
         return member
+
+    @pytest.fixture(autouse=True)
+    def configured_concurrency_env(self, monkeypatch):
+        """Configure the legacy env fallback for tests without DB limits."""
+        monkeypatch.setenv('MAX_CONCURRENT_CONVERSATIONS', '12')
 
     @pytest.fixture
     def mock_org_with_limit(self, org_id):
@@ -1273,6 +1280,35 @@ class TestGetMaxConcurrentSandboxes:
             mock_get_org.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_ignores_invalid_env_when_member_override_is_set(
+        self, user_id, mock_user, mock_org_member_with_override, monkeypatch
+    ):
+        """
+        GIVEN: User has a member override and MAX_CONCURRENT_CONVERSATIONS is invalid
+        WHEN: get_max_concurrent_sandboxes is called
+        THEN: Returns the member override without parsing the env fallback
+        """
+        monkeypatch.setenv('MAX_CONCURRENT_CONVERSATIONS', 'invalid')
+        user_auth = SaasUserAuth(
+            user_id=user_id,
+            refresh_token=SecretStr('refresh_token'),
+        )
+
+        with (
+            patch('server.auth.saas_user_auth.UserStore') as mock_user_store,
+            patch(
+                'storage.org_member_store.OrgMemberStore.get_org_member',
+                new_callable=AsyncMock,
+            ) as mock_get_org_member,
+        ):
+            mock_user_store.get_user_by_id = AsyncMock(return_value=mock_user)
+            mock_get_org_member.return_value = mock_org_member_with_override
+
+            result = await user_auth.get_max_concurrent_sandboxes()
+
+            assert result == 15
+
+    @pytest.mark.asyncio
     async def test_returns_org_default_when_override_is_none(
         self,
         user_id,
@@ -1317,7 +1353,7 @@ class TestGetMaxConcurrentSandboxes:
         """
         GIVEN: User has org_member with override=None, org has max_concurrent_sandboxes=None
         WHEN: get_max_concurrent_sandboxes is called
-        THEN: Returns the default value (10)
+        THEN: Returns the MAX_CONCURRENT_CONVERSATIONS fallback (12)
         """
         mock_org_no_limit = MagicMock()
         mock_org_no_limit.id = org_id
@@ -1345,7 +1381,44 @@ class TestGetMaxConcurrentSandboxes:
 
             result = await user_auth.get_max_concurrent_sandboxes()
 
-            assert result == 10  # default
+            assert result == 12
+
+    @pytest.mark.asyncio
+    async def test_raises_when_no_db_limit_and_no_env_fallback(
+        self, user_id, org_id, mock_user, mock_org_member_no_override, monkeypatch
+    ):
+        """
+        GIVEN: User has no member override, org limit, or env fallback
+        WHEN: get_max_concurrent_sandboxes is called
+        THEN: Raises a configuration error instead of using a hardcoded limit
+        """
+        monkeypatch.delenv('MAX_CONCURRENT_CONVERSATIONS')
+        mock_org_no_limit = MagicMock()
+        mock_org_no_limit.id = org_id
+        mock_org_no_limit.max_concurrent_sandboxes = None
+
+        user_auth = SaasUserAuth(
+            user_id=user_id,
+            refresh_token=SecretStr('refresh_token'),
+        )
+
+        with (
+            patch('server.auth.saas_user_auth.UserStore') as mock_user_store,
+            patch(
+                'storage.org_member_store.OrgMemberStore.get_org_member',
+                new_callable=AsyncMock,
+            ) as mock_get_org_member,
+            patch(
+                'storage.org_store.OrgStore.get_org_by_id',
+                new_callable=AsyncMock,
+            ) as mock_get_org,
+        ):
+            mock_user_store.get_user_by_id = AsyncMock(return_value=mock_user)
+            mock_get_org_member.return_value = mock_org_member_no_override
+            mock_get_org.return_value = mock_org_no_limit
+
+            with pytest.raises(SandboxConcurrencyLimitConfigError):
+                await user_auth.get_max_concurrent_sandboxes()
 
     @pytest.mark.asyncio
     async def test_returns_custom_default_when_no_limits_set(
@@ -1354,7 +1427,7 @@ class TestGetMaxConcurrentSandboxes:
         """
         GIVEN: No limits are set anywhere
         WHEN: get_max_concurrent_sandboxes is called with custom default (5)
-        THEN: Returns the custom default (5)
+        THEN: Returns the MAX_CONCURRENT_CONVERSATIONS fallback (12)
         """
         mock_org_no_limit = MagicMock()
         mock_org_no_limit.id = org_id
@@ -1382,14 +1455,14 @@ class TestGetMaxConcurrentSandboxes:
 
             result = await user_auth.get_max_concurrent_sandboxes(default=5)
 
-            assert result == 5
+            assert result == 12
 
     @pytest.mark.asyncio
     async def test_returns_default_when_user_has_no_current_org_id(self, user_id):
         """
         GIVEN: User has no current_org_id
         WHEN: get_max_concurrent_sandboxes is called
-        THEN: Returns the default value (10) immediately
+        THEN: Returns the MAX_CONCURRENT_CONVERSATIONS fallback (12) immediately
         """
         mock_user_no_org = MagicMock()
         mock_user_no_org.current_org_id = None
@@ -1404,14 +1477,14 @@ class TestGetMaxConcurrentSandboxes:
 
             result = await user_auth.get_max_concurrent_sandboxes()
 
-            assert result == 10
+            assert result == 12
 
     @pytest.mark.asyncio
     async def test_returns_default_when_user_does_not_exist(self, user_id):
         """
         GIVEN: User does not exist in database
         WHEN: get_max_concurrent_sandboxes is called
-        THEN: Returns the default value (10)
+        THEN: Returns the MAX_CONCURRENT_CONVERSATIONS fallback (12)
         """
         user_auth = SaasUserAuth(
             user_id=user_id,
@@ -1423,7 +1496,7 @@ class TestGetMaxConcurrentSandboxes:
 
             result = await user_auth.get_max_concurrent_sandboxes()
 
-            assert result == 10
+            assert result == 12
 
     @pytest.mark.asyncio
     async def test_returns_org_default_when_org_member_not_found(
@@ -1465,7 +1538,7 @@ class TestGetMaxConcurrentSandboxes:
         """
         GIVEN: OrgMember exists but org does not exist
         WHEN: get_max_concurrent_sandboxes is called
-        THEN: Returns the default value (10)
+        THEN: Returns the MAX_CONCURRENT_CONVERSATIONS fallback (12)
         """
         user_auth = SaasUserAuth(
             user_id=user_id,
@@ -1489,7 +1562,7 @@ class TestGetMaxConcurrentSandboxes:
 
             result = await user_auth.get_max_concurrent_sandboxes()
 
-            assert result == 10
+            assert result == 12
 
     # UNHAPPY PATH TESTS
 
@@ -1500,7 +1573,7 @@ class TestGetMaxConcurrentSandboxes:
         """
         GIVEN: A database error occurs during lookup
         WHEN: get_max_concurrent_sandboxes is called
-        THEN: Returns the default value (10) without raising
+        THEN: Returns the MAX_CONCURRENT_CONVERSATIONS fallback (12) without raising
         """
         user_auth = SaasUserAuth(
             user_id=user_id,
@@ -1524,7 +1597,7 @@ class TestGetMaxConcurrentSandboxes:
 
             result = await user_auth.get_max_concurrent_sandboxes()
 
-            assert result == 10
+            assert result == 12
 
     @pytest.mark.asyncio
     async def test_handles_org_store_error_gracefully(
@@ -1533,7 +1606,7 @@ class TestGetMaxConcurrentSandboxes:
         """
         GIVEN: OrgStore raises an error
         WHEN: get_max_concurrent_sandboxes is called after org_member check
-        THEN: Returns the default value (10) without raising
+        THEN: Returns the MAX_CONCURRENT_CONVERSATIONS fallback (12) without raising
         """
         user_auth = SaasUserAuth(
             user_id=user_id,
@@ -1557,4 +1630,4 @@ class TestGetMaxConcurrentSandboxes:
 
             result = await user_auth.get_max_concurrent_sandboxes()
 
-            assert result == 10
+            assert result == 12

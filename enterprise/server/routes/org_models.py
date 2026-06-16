@@ -9,11 +9,7 @@ from pydantic import (
     field_validator,
     model_validator,
 )
-from server.constants import (
-    DEFAULT_COMMERCIAL_ORG_CONCURRENT_SANDBOXES,
-    DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES,
-    LITE_LLM_API_URL,
-)
+from server.constants import LITE_LLM_API_URL
 from storage.org import Org
 from storage.org_member import OrgMember
 from storage.role import Role
@@ -21,6 +17,9 @@ from storage.role import Role
 from openhands.app_server.settings.settings_models import (
     _load_persisted_agent_settings,
     _load_persisted_conversation_settings,
+)
+from openhands.app_server.utils.concurrency import (
+    require_max_concurrent_conversations_env,
 )
 from openhands.app_server.utils.llm import MASKED_API_KEY, resolve_llm_base_url
 from openhands.sdk.settings import (
@@ -187,7 +186,9 @@ class OrgResponse(BaseModel):
     v1_enabled: bool | None = None
     credits: float | None = None
     is_personal: bool = False
-    max_concurrent_sandboxes: int = DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
+    max_concurrent_sandboxes: int = Field(
+        default_factory=require_max_concurrent_conversations_env
+    )
 
     @classmethod
     def from_org(
@@ -220,11 +221,7 @@ class OrgResponse(BaseModel):
             is_personal=str(org.id) == user_id if user_id else False,
             max_concurrent_sandboxes=org.max_concurrent_sandboxes
             if org.max_concurrent_sandboxes is not None
-            else (
-                DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
-                if str(org.id) == user_id
-                else DEFAULT_COMMERCIAL_ORG_CONCURRENT_SANDBOXES
-            ),
+            else require_max_concurrent_conversations_env(),
         )
 
 
@@ -490,7 +487,9 @@ class OrgMemberResponse(BaseModel):
     role_rank: int
     status: str | None
     max_concurrent_sandboxes_override: int | None = None
-    effective_max_concurrent_sandboxes: int = DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
+    effective_max_concurrent_sandboxes: int = Field(
+        default_factory=require_max_concurrent_conversations_env
+    )
 
 
 class OrgMemberPage(BaseModel):
@@ -525,7 +524,9 @@ class MeResponse(BaseModel):
     conversation_settings_diff: dict[str, Any] = Field(default_factory=dict)
     status: str | None = None
     max_concurrent_sandboxes_override: int | None = None
-    effective_max_concurrent_sandboxes: int = DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
+    effective_max_concurrent_sandboxes: int = Field(
+        default_factory=require_max_concurrent_conversations_env
+    )
 
     @staticmethod
     def _mask_key(secret: str | SecretStr | None) -> str:
@@ -545,13 +546,17 @@ class MeResponse(BaseModel):
         member: OrgMember,
         role: Role,
         email: str,
-        org_max_concurrent_sandboxes: int = DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES,
+        org_max_concurrent_sandboxes: int | None = None,
     ) -> 'MeResponse':
         """Create a MeResponse from an OrgMember, Role, and user email."""
         effective_limit = (
             member.max_concurrent_sandboxes_override
             if member.max_concurrent_sandboxes_override is not None
-            else org_max_concurrent_sandboxes
+            else (
+                org_max_concurrent_sandboxes
+                if org_max_concurrent_sandboxes is not None
+                else require_max_concurrent_conversations_env()
+            )
         )
         return cls(
             org_id=str(member.org_id),
@@ -573,7 +578,9 @@ class OrgAppSettingsResponse(BaseModel):
 
     enable_proactive_conversation_starters: bool = True
     max_budget_per_task: float | None = None
-    max_concurrent_sandboxes: int = DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
+    max_concurrent_sandboxes: int = Field(
+        default_factory=require_max_concurrent_conversations_env
+    )
 
     @classmethod
     def from_org(cls, org: Org) -> 'OrgAppSettingsResponse':
@@ -592,7 +599,7 @@ class OrgAppSettingsResponse(BaseModel):
             max_budget_per_task=org.max_budget_per_task,
             max_concurrent_sandboxes=org.max_concurrent_sandboxes
             if org.max_concurrent_sandboxes is not None
-            else DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES,
+            else require_max_concurrent_conversations_env(),
         )
 
 

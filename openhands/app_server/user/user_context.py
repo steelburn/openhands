@@ -6,6 +6,7 @@ from openhands.app_server.services.injector import Injector
 from openhands.app_server.user.user_models import (
     UserInfo,
 )
+from openhands.app_server.utils.concurrency import get_max_concurrent_sandboxes_fallback
 from openhands.sdk.secret import SecretSource
 from openhands.sdk.utils.models import DiscriminatedUnionMixin
 
@@ -84,7 +85,8 @@ class UserContext(ABC):
         The resolution order is:
         1. User-specific override (if set)
         2. Organization default (if in enterprise/SaaS mode)
-        3. The provided default value (OSS mode fallback)
+        3. MAX_CONCURRENT_CONVERSATIONS, if set
+        4. The provided default value (OSS mode fallback)
 
         Args:
             default: The fallback limit if no user/org-specific limit is set.
@@ -92,7 +94,7 @@ class UserContext(ABC):
         Returns:
             The effective maximum number of concurrent sandboxes allowed.
         """
-        return default
+        return get_max_concurrent_sandboxes_fallback(default)
 
 
 class UserContextInjector(DiscriminatedUnionMixin, Injector[UserContext], ABC):

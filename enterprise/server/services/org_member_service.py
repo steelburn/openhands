@@ -2,11 +2,7 @@
 
 from uuid import UUID
 
-from server.constants import (
-    DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES,
-    ROLE_ADMIN,
-    ROLE_OWNER,
-)
+from server.constants import ROLE_ADMIN, ROLE_OWNER
 from server.routes.org_models import (
     CannotModifySelfError,
     InsufficientPermissionError,
@@ -26,6 +22,9 @@ from storage.org_store import OrgStore
 from storage.role_store import RoleStore
 from storage.user_store import UserStore
 
+from openhands.app_server.utils.concurrency import (
+    require_max_concurrent_conversations_env,
+)
 from openhands.app_server.utils.logger import openhands_logger as logger
 
 
@@ -68,8 +67,8 @@ class OrgMemberService:
         org = await OrgStore.get_org_by_id(org_id)
         org_max_concurrent_sandboxes = (
             org.max_concurrent_sandboxes
-            if org and org.max_concurrent_sandboxes
-            else DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
+            if org and org.max_concurrent_sandboxes is not None
+            else require_max_concurrent_conversations_env()
         )
 
         return MeResponse.from_org_member(
@@ -117,8 +116,8 @@ class OrgMemberService:
         org = await OrgStore.get_org_by_id(org_id)
         org_max_concurrent_sandboxes = (
             org.max_concurrent_sandboxes
-            if org and org.max_concurrent_sandboxes
-            else DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
+            if org and org.max_concurrent_sandboxes is not None
+            else require_max_concurrent_conversations_env()
         )
 
         # Call store to get paginated members
@@ -342,8 +341,8 @@ class OrgMemberService:
         org = await OrgStore.get_org_by_id(org_id)
         org_max_concurrent_sandboxes = (
             org.max_concurrent_sandboxes
-            if org and org.max_concurrent_sandboxes
-            else DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
+            if org and org.max_concurrent_sandboxes is not None
+            else require_max_concurrent_conversations_env()
         )
 
         # Track if any updates were made
