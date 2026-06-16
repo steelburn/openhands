@@ -22,8 +22,6 @@ from server.routes.org_models import (
 )
 from storage.org import Org
 
-from openhands.app_server.utils.concurrency import SandboxConcurrencyLimitConfigError
-
 
 @pytest.fixture(autouse=True)
 def configured_concurrency_env(monkeypatch):
@@ -56,17 +54,18 @@ class TestOrgResponseConcurrencyLimits:
 
         assert response.max_concurrent_sandboxes == 12
 
-    def test_org_response_raises_without_default_or_env(self, monkeypatch):
-        """Test that OrgResponse does not use a hardcoded fallback."""
+    def test_org_response_uses_personal_default_without_env(self, monkeypatch):
+        """Test that OrgResponse preserves the personal-org display fallback."""
         monkeypatch.delenv('MAX_CONCURRENT_CONVERSATIONS')
 
-        with pytest.raises(SandboxConcurrencyLimitConfigError):
-            OrgResponse(
-                id='test-org-id',
-                name='Test Org',
-                contact_name='Test Contact',
-                contact_email='test@example.com',
-            )
+        response = OrgResponse(
+            id='test-org-id',
+            name='Test Org',
+            contact_name='Test Contact',
+            contact_email='test@example.com',
+        )
+
+        assert response.max_concurrent_sandboxes == 3
 
     def test_org_response_from_org_includes_max_concurrent_sandboxes(self):
         """Test that OrgResponse.from_org includes max_concurrent_sandboxes."""
