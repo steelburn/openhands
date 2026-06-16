@@ -76,7 +76,9 @@ _org_app_settings_injector = OrgAppSettingsServiceInjector()
 org_app_settings_service_dependency = Depends(_org_app_settings_injector.depends)
 
 _org_conversation_service_injector = OrgConversationServiceInjector()
-org_conversation_service_dependency = Depends(_org_conversation_service_injector.depends)
+org_conversation_service_dependency = Depends(
+    _org_conversation_service_injector.depends
+)
 
 
 @org_router.get('', response_model=OrgPage)
@@ -1528,11 +1530,13 @@ async def list_org_conversations(
     # Search
     search: Annotated[
         str | None,
-        Query(title='Search text matching conversation name, creator name, email, or sandbox ID'),
+        Query(
+            title='Search text matching conversation name, creator name, email, or sandbox ID'
+        ),
     ] = None,
     # Sorting
     sort_by: Annotated[
-        str | None,
+        str,
         Query(
             title='Field to sort by',
             description='Options: created_at, updated_at, llm_model, accumulated_cost, title',
@@ -1674,7 +1678,7 @@ async def list_org_conversations(
         )
 
 
-@router.get(
+@org_router.get(
     '/{org_id}/conversations/stats',
     response_model=OrgConversationStats,
 )
@@ -1725,7 +1729,7 @@ async def get_org_conversation_stats(
         )
 
 
-@router.get(
+@org_router.get(
     '/{org_id}/conversations/export',
     response_class=StreamingResponse,
 )
@@ -1733,10 +1737,12 @@ async def export_org_conversations_csv(
     org_id: UUID,
     search: Annotated[
         str | None,
-        Query(title='Search text matching conversation name, creator name, email, or sandbox ID'),
+        Query(
+            title='Search text matching conversation name, creator name, email, or sandbox ID'
+        ),
     ] = None,
     sort_by: Annotated[
-        str | None,
+        str,
         Query(title='Field to sort by'),
     ] = 'updated_at',
     sort_order: Annotated[
@@ -1803,32 +1809,36 @@ async def export_org_conversations_csv(
                     return ''
                 s = str(val)
                 if ',' in s or '"' in s or '\n' in s:
-                    return f'"{s.replace("\"", "\"\"")}"'
+                    return f'"{s.replace('"', '""')}"'
                 return s
 
-            csv_lines.append(','.join([
-                escape(item.id),
-                escape(item.title),
-                escape(item.llm_model),
-                escape(item.agent_kind),
-                escape(item.user_id),
-                escape(item.user_email),
-                escape(item.created_at),
-                escape(item.updated_at),
-                escape(item.sandbox_id),
-                escape(item.sandbox_status),
-                escape(item.runtime_url),
-                escape(item.execution_status),
-                escape(item.selected_repository),
-                escape(item.selected_branch),
-                escape(item.trigger),
-                str(item.accumulated_cost),
-                str(item.prompt_tokens),
-                str(item.completion_tokens),
-                str(item.total_tokens),
-                str(item.cache_read_tokens),
-                str(item.cache_write_tokens),
-            ]))
+            csv_lines.append(
+                ','.join(
+                    [
+                        escape(item.id),
+                        escape(item.title),
+                        escape(item.llm_model),
+                        escape(item.agent_kind),
+                        escape(item.user_id),
+                        escape(item.user_email),
+                        escape(item.created_at),
+                        escape(item.updated_at),
+                        escape(item.sandbox_id),
+                        escape(item.sandbox_status),
+                        escape(item.runtime_url),
+                        escape(item.execution_status),
+                        escape(item.selected_repository),
+                        escape(item.selected_branch),
+                        escape(item.trigger),
+                        str(item.accumulated_cost),
+                        str(item.prompt_tokens),
+                        str(item.completion_tokens),
+                        str(item.total_tokens),
+                        str(item.cache_read_tokens),
+                        str(item.cache_write_tokens),
+                    ]
+                )
+            )
 
         async def generate():
             for line in csv_lines:
@@ -1836,15 +1846,14 @@ async def export_org_conversations_csv(
 
         # Generate filename with timestamp
         from datetime import datetime
+
         timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
         filename = f'conversations_export_{timestamp}.csv'
 
         return StreamingResponse(
             generate(),
             media_type='text/csv',
-            headers={
-                'Content-Disposition': f'attachment; filename="{filename}"'
-            }
+            headers={'Content-Disposition': f'attachment; filename="{filename}"'},
         )
 
     except Exception as e:
@@ -1858,7 +1867,7 @@ async def export_org_conversations_csv(
         )
 
 
-@router.get(
+@org_router.get(
     '/{org_id}/conversations/{conversation_id}',
     response_model=OrgConversationResponse,
 )
@@ -1918,7 +1927,7 @@ async def get_org_conversation(
         )
 
 
-@router.post(
+@org_router.post(
     '/{org_id}/conversations/{conversation_id}/stop',
 )
 async def stop_org_conversation(
