@@ -1791,7 +1791,18 @@ class TestTransactionReleasedBeforeNetworkIO:
 
         async def execute(*args, **kwargs):
             state['in_txn'] = True
-            return results.pop(0)
+            result = results.pop(0)
+            # Wrap list results to support both iteration (for batch_get_sandboxes)
+            # and scalars().all() (for _get_user_running_sandboxes)
+            if isinstance(result, list):
+                mock_result = MagicMock()
+                mock_scalars = MagicMock()
+                mock_scalars.all.return_value = result
+                mock_result.scalars.return_value = mock_scalars
+                # Make the mock result iterable (for batch_get_sandboxes tuple access)
+                mock_result.__iter__ = MagicMock(return_value=iter(result))
+                return mock_result
+            return result
 
         async def commit():
             state['in_txn'] = False
@@ -1912,8 +1923,18 @@ class TestTransactionReleasedBeforeNetworkIO:
 
     @pytest.mark.asyncio
     async def test_start_sandbox_insert_stays_pending(self, remote_sandbox_service):
+        # Mock check_concurrency_limit to avoid needing to mock the full chain
+        remote_sandbox_service.check_concurrency_limit = AsyncMock()
+
         # pause_old_sandboxes runs first: /list then a query returning no rows.
-        state = self._instrument(remote_sandbox_service, [[]])
+        # Then check_concurrency_limit calls _get_user_running_sandboxes which makes
+        # another /list call and query. So we need: [list_result, query_result, list_result, query_result]
+        state = self._instrument(remote_sandbox_service, [
+            [{'session_id': 'old-sandbox', 'status': 'running'}],  # list result
+            [],  # query result (no running sandboxes for user)
+            [{'session_id': 'old-sandbox', 'status': 'running'}],  # list result
+            [],  # query result (no running sandboxes for user)
+        ])
 
         result = await remote_sandbox_service.start_sandbox()
 
