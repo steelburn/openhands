@@ -90,6 +90,9 @@ class Permission(str, Enum):
     # Manage Automations
     MANAGE_AUTOMATIONS = 'manage_automations'
 
+    # Organization Conversations (Admin/Owner only)
+    VIEW_ORG_CONVERSATIONS = 'view_org_conversations'
+
 
 class RoleName(str, Enum):
     """Role names used in the system."""
@@ -128,6 +131,8 @@ ROLE_PERMISSIONS: dict[RoleName, frozenset[Permission]] = {
             Permission.MANAGE_ORG_CLAIMS,
             # Manage Automations
             Permission.MANAGE_AUTOMATIONS,
+            # Organization Conversations (Admin/Owner only)
+            Permission.VIEW_ORG_CONVERSATIONS,
         ]
     ),
     RoleName.ADMIN: frozenset(
@@ -153,6 +158,8 @@ ROLE_PERMISSIONS: dict[RoleName, frozenset[Permission]] = {
             Permission.MANAGE_ORG_CLAIMS,
             # Manage Automations
             Permission.MANAGE_AUTOMATIONS,
+            # Organization Conversations (Admin/Owner only)
+            Permission.VIEW_ORG_CONVERSATIONS,
         ]
     ),
     RoleName.MEMBER: frozenset(
