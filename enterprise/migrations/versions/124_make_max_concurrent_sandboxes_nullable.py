@@ -25,6 +25,10 @@ def upgrade() -> None:
         nullable=True,
         server_default=None,
     )
+    op.execute("""
+        UPDATE org
+        SET max_concurrent_sandboxes = NULL
+    """)
 
 
 def downgrade() -> None:
