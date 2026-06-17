@@ -26960,5 +26960,29 @@
   },
   "SETTINGS$MARKETPLACE_DELETE": {
     "en": "Delete"
+  },
+  "SETTINGS$SKILLS_TRIGGERS_LABEL": {
+    "en": "Triggers"
+  },
+  "SETTINGS$SKILLS_EMPTY_HINT": {
+    "en": "Skills will appear here once configured"
+  },
+  "SETTINGS$SKILLS_PUBLIC_SECTION": {
+    "en": "Public Skills"
+  },
+  "SETTINGS$SKILLS_USER_SECTION": {
+    "en": "Your Skills"
+  },
+  "SETTINGS$SKILLS_ORG_SECTION": {
+    "en": "Organization Skills"
+  },
+  "SETTINGS$SKILLS_ALL_SECTION": {
+    "en": "All Skills"
+  },
+  "SETTINGS$SKILLS_ENABLED": {
+    "en": "Enabled"
+  },
+  "SETTINGS$SKILLS_DISABLED": {
+    "en": "Disabled"
   }
 }
