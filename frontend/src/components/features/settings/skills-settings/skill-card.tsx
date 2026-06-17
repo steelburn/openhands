@@ -7,7 +7,7 @@ interface SkillCardProps {
   name: string;
   type: string;
   source: string;
-  triggers?: string[];
+  triggers?: string[] | null;
   isEnabled: boolean;
   onToggle: (enabled: boolean) => void;
   className?: string;
@@ -17,7 +17,7 @@ export function SkillCard({
   name,
   type,
   source,
-  triggers = [],
+  triggers,
   isEnabled,
   onToggle,
   className,
@@ -259,7 +259,7 @@ export function SkillCard({
               </div>
 
               {/* Triggers */}
-              {triggers.length > 0 && (
+              {triggers && triggers.length > 0 && (
                 <div className="flex items-center gap-1.5 mt-2 flex-wrap">
                   <span className="text-xs text-content-tertiary">Triggers:</span>
                   {triggers.map((trigger) => (
