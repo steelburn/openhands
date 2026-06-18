@@ -202,6 +202,12 @@ async def test_settings_api_endpoints(test_client):
     # V1 API sets api_key to None for security and uses llm_api_key_set flag instead
     assert vals['llm']['api_key'] is None
     assert response_data['llm_api_key_set'] is True
+    # Verify marketplace fields are present in response
+    assert 'inherited_marketplaces' in response_data
+    assert 'registered_marketplaces' in response_data
+    # Both should be lists (may be empty)
+    assert isinstance(response_data['inherited_marketplaces'], list)
+    assert isinstance(response_data['registered_marketplaces'], list)
 
     # Test updating with partial settings — legacy flat fields should preserve existing
     partial_settings = {

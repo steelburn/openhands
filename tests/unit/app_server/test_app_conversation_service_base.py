@@ -1178,6 +1178,8 @@ class TestLoadAndMergeAllSkills:
             assert call_kwargs['agent_server_url'] == 'http://localhost:8000'
             assert call_kwargs['session_api_key'] == 'test-api-key'
             assert call_kwargs['project_dir'] == '/workspace/repo'
+            # Verify registered_marketplaces is passed (can be None or a list)
+            assert 'registered_marketplaces' in call_kwargs
 
     @pytest.mark.asyncio
     @patch(

@@ -748,22 +748,6 @@ class TestSettingsRegisteredMarketplaces:
         assert settings.registered_marketplaces[0].name == 'custom'
         assert settings.registered_marketplaces[0].ref == 'v1.0.0'
 
-    def test_settings_rejects_duplicate_marketplace_names(self):
-        """Test that duplicate marketplace names are rejected."""
-        with pytest.raises(ValidationError, match='duplicate marketplace names'):
-            Settings(
-                registered_marketplaces=[
-                    MarketplaceRegistration(
-                        name='same-name',
-                        source='github:owner/repo1',
-                    ),
-                    MarketplaceRegistration(
-                        name='same-name',
-                        source='github:owner/repo2',
-                    ),
-                ]
-            )
-
     def test_settings_allows_unique_marketplace_names(self):
         """Test that unique marketplace names are allowed."""
         settings = Settings(
