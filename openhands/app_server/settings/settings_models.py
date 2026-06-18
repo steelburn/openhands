@@ -169,6 +169,19 @@ class Settings(BaseModel):
 
     model_config = ConfigDict(populate_by_name=True)
 
+    @model_validator(mode='after')
+    def validate_unique_marketplace_names(self) -> 'Settings':
+        """Ensure marketplace names are unique within registered_marketplaces."""
+        if not self.registered_marketplaces:
+            return self
+        names = [mp.name for mp in self.registered_marketplaces]
+        duplicates = {name for name in names if names.count(name) > 1}
+        if duplicates:
+            raise ValueError(
+                f'Duplicate marketplace names are not allowed: {sorted(duplicates)}'
+            )
+        return self
+
     def __init__(self, **data: Any):
         # Import Secrets here to avoid circular imports
         from openhands.app_server.secrets.secrets_models import Secrets

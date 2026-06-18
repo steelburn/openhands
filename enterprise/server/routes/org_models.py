@@ -24,6 +24,7 @@ from openhands.sdk.settings import (
     ConversationSettings,
     OpenHandsAgentSettings,
 )
+from openhands.storage.data_models.settings import MarketplaceRegistration
 
 
 class OrgCreationError(Exception):
@@ -547,7 +548,7 @@ class OrgAppSettingsResponse(BaseModel):
 
     enable_proactive_conversation_starters: bool = True
     max_budget_per_task: float | None = None
-    registered_marketplaces: list[dict] = []
+    registered_marketplaces: list[MarketplaceRegistration] = Field(default_factory=list)
 
     @classmethod
     def from_org(cls, org: Org) -> 'OrgAppSettingsResponse':
@@ -561,7 +562,12 @@ class OrgAppSettingsResponse(BaseModel):
         """
         # Extract registered_marketplaces from extension_settings
         extension = org.extension_settings or {}
-        marketplaces = extension.get('registered_marketplaces', [])
+        marketplaces_raw = extension.get('registered_marketplaces', [])
+        # Convert dicts to MarketplaceRegistration objects
+        marketplaces = [
+            MarketplaceRegistration(**mp) if isinstance(mp, dict) else mp
+            for mp in marketplaces_raw
+        ]
 
         return cls(
             enable_proactive_conversation_starters=org.enable_proactive_conversation_starters
@@ -577,7 +583,7 @@ class OrgAppSettingsUpdate(BaseModel):
 
     enable_proactive_conversation_starters: bool | None = None
     max_budget_per_task: float | None = None
-    registered_marketplaces: list[dict] | None = None
+    registered_marketplaces: list[MarketplaceRegistration] | None = None
 
     @field_validator('max_budget_per_task')
     @classmethod

@@ -763,3 +763,174 @@ class TestSettingsRegisteredMarketplaces:
             ]
         )
         assert len(settings.registered_marketplaces) == 2
+
+    def test_settings_with_mixed_marketplaces(self):
+        """Test Settings with marketplace containing all optional fields."""
+        settings = Settings(
+            registered_marketplaces=[
+                MarketplaceRegistration(
+                    name='full-featured',
+                    source='github:owner/repo',
+                    ref='v1.0.0',
+                    repo_path='marketplaces/internal',
+                    auto_load='all',
+                ),
+                MarketplaceRegistration(
+                    name='minimal',
+                    source='github:owner/minimal',
+                ),
+                MarketplaceRegistration(
+                    name='auto-load-only',
+                    source='github:owner/auto',
+                    auto_load='all',
+                ),
+            ]
+        )
+        assert len(settings.registered_marketplaces) == 3
+
+        # Verify full-featured marketplace
+        full = settings.registered_marketplaces[0]
+        assert full.name == 'full-featured'
+        assert full.ref == 'v1.0.0'
+        assert full.repo_path == 'marketplaces/internal'
+        assert full.auto_load == 'all'
+
+        # Verify minimal marketplace has None for optional fields
+        minimal = settings.registered_marketplaces[1]
+        assert minimal.ref is None
+        assert minimal.repo_path is None
+        assert minimal.auto_load is None
+
+    def test_settings_registered_marketplaces_serialization_roundtrip(self):
+        """Test that marketplace data survives serialization roundtrip."""
+        original = Settings(
+            registered_marketplaces=[
+                MarketplaceRegistration(
+                    name='test',
+                    source='github:owner/repo',
+                    ref='main',
+                    auto_load='all',
+                ),
+            ]
+        )
+
+        # Serialize to dict
+        data = original.model_dump()
+        assert 'registered_marketplaces' in data
+        assert len(data['registered_marketplaces']) == 1
+
+        # Deserialize back
+        restored = Settings.model_validate(data)
+        assert len(restored.registered_marketplaces) == 1
+        assert restored.registered_marketplaces[0].name == 'test'
+        assert restored.registered_marketplaces[0].ref == 'main'
+        assert restored.registered_marketplaces[0].auto_load == 'all'
+
+
+class TestMarketplaceRegistrationValidationEdgeCases:
+    """Edge case tests for MarketplaceRegistration validation."""
+
+    def test_name_with_hyphens_and_underscores(self):
+        """Test that names with hyphens and underscores are valid."""
+        reg = MarketplaceRegistration(
+            name='my_marketplace-name', source='github:owner/repo'
+        )
+        assert reg.name == 'my_marketplace-name'
+
+    def test_name_with_numbers(self):
+        """Test that names with numbers are valid."""
+        reg = MarketplaceRegistration(name='marketplace123', source='github:owner/repo')
+        assert reg.name == 'marketplace123'
+
+    def test_name_strips_surrounding_whitespace(self):
+        """Test that surrounding whitespace is stripped from name."""
+        reg = MarketplaceRegistration(name='  trimmed  ', source='github:owner/repo')
+        assert reg.name == 'trimmed'
+
+    def test_source_strips_surrounding_whitespace(self):
+        """Test that surrounding whitespace is stripped from source."""
+        reg = MarketplaceRegistration(name='test', source='  github:owner/repo  ')
+        assert reg.source == 'github:owner/repo'
+
+    def test_local_path_with_subdirectories(self):
+        """Test that local paths with subdirectories are valid."""
+        reg = MarketplaceRegistration(
+            name='nested',
+            source='marketplaces/team/internal',
+        )
+        assert reg.source == 'marketplaces/team/internal'
+
+    def test_source_validation_rejects_leading_dot(self):
+        """Test that sources starting with dot are rejected (hidden files)."""
+        with pytest.raises(ValidationError, match='must be relative'):
+            MarketplaceRegistration(name='test', source='.hidden/repo')
+
+    def test_source_validation_rejects_double_dot_in_middle(self):
+        """Test that sources with .. in middle are rejected."""
+        with pytest.raises(ValidationError, match="cannot contain '..'"):
+            MarketplaceRegistration(name='test', source='path/../escape')
+
+    def test_source_validation_rejects_git_protocol(self):
+        """Test that git:// protocol URLs are valid."""
+        reg = MarketplaceRegistration(
+            name='test',
+            source='git://github.com/owner/repo',
+        )
+        assert reg.source == 'git://github.com/owner/repo'
+
+    def test_repo_path_validation_rejects_double_dot(self):
+        """Test that repo_path with .. is rejected."""
+        with pytest.raises(ValidationError, match="cannot contain '..'"):
+            MarketplaceRegistration(
+                name='test',
+                source='github:owner/repo',
+                repo_path='path/../escape',
+            )
+
+
+class TestSettingsDuplicateMarketplaceNames:
+    """Tests for duplicate marketplace name validation in Settings."""
+
+    def test_settings_rejects_duplicate_marketplace_names(self):
+        """Test that Settings rejects duplicate marketplace names."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError, match='Duplicate marketplace names'):
+            Settings(
+                registered_marketplaces=[
+                    MarketplaceRegistration(
+                        name='plugins',
+                        source='github:owner/repo1',
+                    ),
+                    MarketplaceRegistration(
+                        name='plugins',  # Duplicate name
+                        source='github:owner/repo2',
+                    ),
+                ]
+            )
+
+    def test_settings_allows_same_source_different_names(self):
+        """Test that same source with different names is allowed."""
+        settings = Settings(
+            registered_marketplaces=[
+                MarketplaceRegistration(
+                    name='plugins-1',
+                    source='github:owner/repo',
+                ),
+                MarketplaceRegistration(
+                    name='plugins-2',  # Different name, same source
+                    source='github:owner/repo',
+                ),
+            ]
+        )
+        assert len(settings.registered_marketplaces) == 2
+
+    def test_settings_allows_empty_marketplaces(self):
+        """Test that Settings allows empty registered_marketplaces."""
+        settings = Settings(registered_marketplaces=[])
+        assert settings.registered_marketplaces == []
+
+    def test_settings_allows_none_marketplaces(self):
+        """Test that Settings allows None registered_marketplaces (uses default)."""
+        settings = Settings()
+        assert settings.registered_marketplaces == []

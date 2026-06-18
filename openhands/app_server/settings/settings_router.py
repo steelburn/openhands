@@ -118,7 +118,8 @@ async def _get_org_marketplaces(
 ) -> list[dict]:
     """Get organization-level marketplaces from the database.
 
-    This is only available in enterprise mode. Returns empty list in OSS mode.
+    In OSS mode, returns empty list. Enterprise should override this
+    via the enterprise service layer (OrgAppSettingsService).
 
     Args:
         user_id: The user ID to get org for
@@ -126,9 +127,8 @@ async def _get_org_marketplaces(
     Returns:
         List of marketplace dictionaries from org extension_settings
     """
-    # Try to get org marketplaces from enterprise service
-    # This is a placeholder - in enterprise, this would query the Org model
-    # For now, return empty list and let enterprise override this function
+    # In OSS mode, org marketplaces are not available.
+    # Enterprise implements this via OrgAppSettingsService which queries the Org model.
     return []
 
 

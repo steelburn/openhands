@@ -175,26 +175,30 @@ function SkillsSettingsScreen() {
       .filter((skill) => !skill.isEnabled)
       .map((skill) => skill.name);
 
-    const updatedMarketplaces = skillsState
-      .filter((skill) => skill.isAutoLoad)
-      .map((skill) => ({
-        source: skill.repository,
-        name: skill.repository.split("/").pop() || skill.repository,
-        auto_load: "all" as const,
-      }));
+    // Build marketplace list from manually added repositories
+    // and skills that have auto_load enabled
+    const marketplaceMap = new Map<string, MarketplaceRegistration>();
 
-    const existingSources = new Set(skillsState.map((s) => s.repository));
-    const additionalMarketplaces = (
-      settings?.registered_marketplaces || []
-    ).filter((mp) => !existingSources.has(mp.source));
+    // Add manually added repositories (highest priority)
+    for (const repo of repositories) {
+      marketplaceMap.set(repo.source, repo);
+    }
+
+    // Add auto-load skills as marketplaces (if not already present)
+    for (const skill of skillsState) {
+      if (skill.isAutoLoad && !marketplaceMap.has(skill.repository)) {
+        marketplaceMap.set(skill.repository, {
+          source: skill.repository,
+          name: skill.repository.split("/").pop() || skill.repository,
+          auto_load: "all",
+        });
+      }
+    }
 
     saveSettings(
       {
         disabled_skills: disabledSkills,
-        registered_marketplaces: [
-          ...updatedMarketplaces,
-          ...additionalMarketplaces,
-        ],
+        registered_marketplaces: Array.from(marketplaceMap.values()),
       },
       {
         onSuccess: () => {
