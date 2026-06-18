@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import re
 from typing import Literal
 
@@ -71,6 +69,11 @@ class MarketplaceRegistration(BaseModel):
         ),
     )
 
+    def model_dump(self, **kwargs) -> dict:
+        """Serialize, stripping None values for optional fields."""
+        data = super().model_dump(**kwargs)
+        return {k: v for k, v in data.items() if v is not None}
+
     @field_validator('name')
     @classmethod
     def validate_name(cls, v: str) -> str:
@@ -127,7 +130,3 @@ class MarketplaceRegistration(BaseModel):
                 "repo_path cannot contain '..' (parent directory traversal)"
             )
         return v
-
-
-# Note: This file only exports MarketplaceRegistration.
-# The Settings class was moved to openhands.app_server.settings.settings_models

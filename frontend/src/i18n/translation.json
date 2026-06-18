@@ -10932,6 +10932,7 @@
   },
   "SETTINGS$NAME": {
     "en": "Name",
+    "uk": "Назва",
     "ja": "名前",
     "zh-CN": "名称",
     "zh-TW": "名稱",
@@ -10943,9 +10944,8 @@
     "it": "Nome",
     "pt": "Nome",
     "es": "Nombre",
-    "ca": "Nom",
-    "tr": "Ad",
-    "uk": "Ім'я"
+    "tr": "İsim",
+    "ca": "Nom"
   },
   "SECRETS$DESCRIPTION": {
     "en": "Description",
@@ -11017,20 +11017,20 @@
   },
   "SETTINGS$ACTIONS": {
     "en": "Actions",
+    "uk": "Дії",
     "ja": "アクション",
     "zh-CN": "操作",
     "zh-TW": "操作",
     "ko-KR": "작업",
     "no": "Handlinger",
-    "ar": "الإجراءات",
+    "ar": "إجراءات",
     "de": "Aktionen",
     "fr": "Actions",
     "it": "Azioni",
     "pt": "Ações",
     "es": "Acciones",
-    "ca": "Accions",
-    "tr": "Eylemler",
-    "uk": "Дії"
+    "tr": "İşlemler",
+    "ca": "Accions"
   },
   "SETTINGS$API_KEY_CREATED": {
     "en": "API Key Created",

@@ -10,8 +10,6 @@ thin proxy that:
 All source-specific skill loading is handled by the agent-server.
 """
 
-from __future__ import annotations
-
 import logging
 from typing import TYPE_CHECKING
 

@@ -7,20 +7,13 @@ import { cn } from "#/utils/utils";
 import { useSaveSettings } from "#/hooks/mutation/use-save-settings";
 import { useSettings } from "#/hooks/query/use-settings";
 import { useSkills } from "#/hooks/query/use-skills";
-import { SkillInfo, MarketplaceRegistration } from "#/types/settings";
+import { SkillInfo, MarketplaceRegistration, SkillWithState } from "#/types/settings";
 import {
   displayErrorToast,
   displaySuccessToast,
 } from "#/utils/custom-toast-handlers";
 import { retrieveAxiosErrorMessage } from "#/utils/retrieve-axios-error-message";
 import { I18nKey } from "#/i18n/declaration";
-
-interface SkillWithState extends SkillInfo {
-  id: string;
-  repository: string;
-  isEnabled: boolean;
-  isAutoLoad: boolean;
-}
 
 function WhiteToggle({
   isToggled,

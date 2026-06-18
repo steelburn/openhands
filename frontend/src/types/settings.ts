@@ -115,14 +115,21 @@ export type SettingsScope = "personal" | "org";
 export type MarketplaceRegistration = {
   name: string;
   source: string;
-  ref?: string | null;
-  repo_path?: string | null;
-  auto_load?: "all" | null;
+  ref?: string;
+  repo_path?: string;
+  auto_load?: "all";
 };
 
 export type MarketplaceWithScope = MarketplaceRegistration & {
   scope: "instance" | "org" | "personal";
 };
+
+export interface SkillWithState extends SkillInfo {
+  id: string;
+  repository: string;
+  isEnabled: boolean;
+  isAutoLoad: boolean;
+}
 
 export type Settings = {
   llm_model: string;

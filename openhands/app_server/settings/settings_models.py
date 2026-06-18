@@ -171,11 +171,25 @@ class Settings(BaseModel):
 
     @model_validator(mode='after')
     def validate_unique_marketplace_names(self) -> 'Settings':
-        """Ensure marketplace names are unique within registered_marketplaces."""
-        if not self.registered_marketplaces:
-            return self
-        names = [mp.name for mp in self.registered_marketplaces]
-        duplicates = {name for name in names if names.count(name) > 1}
+        """Ensure marketplace names are unique across all scopes.
+
+        Checks for duplicate names between:
+        - inherited_marketplaces (instance/org level)
+        - registered_marketplaces (user level)
+        """
+        # Collect all marketplace names from all scopes
+        all_names = []
+
+        # Add inherited (from instance/org)
+        for mp in self.inherited_marketplaces:
+            all_names.append(mp.name)
+
+        # Add personal (user level)
+        for mp in self.registered_marketplaces:
+            all_names.append(mp.name)
+
+        # Check for duplicates
+        duplicates = {name for name in all_names if all_names.count(name) > 1}
         if duplicates:
             raise ValueError(
                 f'Duplicate marketplace names are not allowed: {sorted(duplicates)}'

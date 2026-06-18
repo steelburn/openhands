@@ -118,17 +118,63 @@ async def _get_org_marketplaces(
 ) -> list[dict]:
     """Get organization-level marketplaces from the database.
 
-    In OSS mode, returns empty list. Enterprise should override this
-    via the enterprise service layer (OrgAppSettingsService).
+    In Enterprise mode, uses OrgAppSettingsService to get the user's org.
+    In OSS mode, queries the default org's extension_settings directly.
 
     Args:
         user_id: The user ID to get org for
 
     Returns:
-        List of marketplace dictionaries from org extension_settings
+        List of marketplace dictionaries from org extension_settings.
     """
-    # In OSS mode, org marketplaces are not available.
-    # Enterprise implements this via OrgAppSettingsService which queries the Org model.
+    if not user_id:
+        return []
+
+    # Try Enterprise: Use OrgAppSettingsService
+    try:
+        from enterprise.server.services.org_app_settings_service import (
+            OrgAppSettingsService,
+        )
+        from enterprise.storage.org_app_settings_store import OrgAppSettingsStore
+
+        # Import these at runtime to avoid circular imports
+        from openhands.app_server.config import get_db_session
+        from openhands.app_server.user.user_context import UserContext
+
+        # Create a minimal user context for the user_id
+        class MinimalUserContext(UserContext):
+            async def get_user_id(self) -> str | None:
+                return user_id
+
+        # Get db session and create service
+        async with get_db_session() as db_session:
+            store = OrgAppSettingsStore(db_session=db_session)
+            service = OrgAppSettingsService(
+                store=store,
+                user_context=MinimalUserContext(),
+            )
+            settings = await service.get_org_app_settings()
+            return [mp.model_dump() for mp in settings.registered_marketplaces]
+    except ImportError:
+        pass
+
+    # OSS fallback: Query default org directly
+    try:
+        from openhands.storage.database import a_session_maker
+        from sqlalchemy import select
+
+        from enterprise.storage.org import Org
+
+        async with a_session_maker() as session:
+            stmt = select(Org).where(Org.is_default == True).limit(1)
+            result = await session.execute(stmt)
+            org = result.scalar_one_or_none()
+
+            if org and org.extension_settings:
+                return org.extension_settings.get('registered_marketplaces', [])
+    except ImportError:
+        pass
+
     return []
 
 

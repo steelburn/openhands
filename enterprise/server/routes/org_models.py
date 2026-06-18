@@ -559,15 +559,32 @@ class OrgAppSettingsResponse(BaseModel):
 
         Returns:
             OrgAppSettingsResponse with app settings
+
+        Raises:
+            ValueError: If registered_marketplaces contains invalid data
         """
         # Extract registered_marketplaces from extension_settings
         extension = org.extension_settings or {}
         marketplaces_raw = extension.get('registered_marketplaces', [])
-        # Convert dicts to MarketplaceRegistration objects
-        marketplaces = [
-            MarketplaceRegistration(**mp) if isinstance(mp, dict) else mp
-            for mp in marketplaces_raw
-        ]
+
+        # Convert dicts to MarketplaceRegistration objects with validation
+        marketplaces = []
+        for i, mp in enumerate(marketplaces_raw):
+            try:
+                if isinstance(mp, dict):
+                    marketplaces.append(MarketplaceRegistration.model_validate(mp))
+                elif isinstance(mp, MarketplaceRegistration):
+                    marketplaces.append(mp)
+                else:
+                    raise ValueError(
+                        f"registered_marketplaces[{i}]: expected dict or "
+                        f"MarketplaceRegistration, got {type(mp).__name__}"
+                    )
+            except Exception as e:
+                raise ValueError(
+                    f"Invalid marketplace at index {i} in org '{org.name}' "
+                    f"extension_settings: {e}"
+                ) from e
 
         return cls(
             enable_proactive_conversation_starters=org.enable_proactive_conversation_starters
