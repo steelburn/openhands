@@ -32,9 +32,13 @@ def _get_instance_default_marketplaces() -> list[dict]:
                 parsed = json.loads(definition)
                 if isinstance(parsed, list):
                     for mp in parsed:
-                        marketplaces.append({**mp, 'auto_load': mp.get('auto_load', 'all')})
+                        marketplaces.append(
+                            {**mp, 'auto_load': mp.get('auto_load', 'all')}
+                        )
                 elif isinstance(parsed, dict):
-                    marketplaces.append({**parsed, 'auto_load': parsed.get('auto_load', 'all')})
+                    marketplaces.append(
+                        {**parsed, 'auto_load': parsed.get('auto_load', 'all')}
+                    )
                 continue
             except json.JSONDecodeError:
                 pass
@@ -118,7 +122,12 @@ def _merge_marketplaces(
             # Update inherited to show user override
             for i, imp in enumerate(inherited):
                 if imp.get('source') == source:
-                    inherited[i] = {**imp, **mp, 'scope': 'personal', 'overridden': True}
+                    inherited[i] = {
+                        **imp,
+                        **mp,
+                        'scope': 'personal',
+                        'overridden': True,
+                    }
                     break
 
     return inherited, personal
@@ -243,9 +252,7 @@ class TestMergeMarketplaces:
         instance = [
             {'source': 'github:OpenHands/skills', 'ref': 'main', 'auto_load': 'all'}
         ]
-        org = [
-            {'source': 'github:OpenHands/skills', 'ref': 'v2', 'auto_load': None}
-        ]
+        org = [{'source': 'github:OpenHands/skills', 'ref': 'v2', 'auto_load': None}]
         inherited, personal = _merge_marketplaces(instance, org, [])
         assert len(inherited) == 1
         # Org should override instance values
@@ -270,9 +277,7 @@ class TestMergeMarketplaces:
         instance = [
             {'source': 'github:OpenHands/skills', 'ref': 'main', 'auto_load': 'all'}
         ]
-        user = [
-            {'source': 'github:OpenHands/skills', 'ref': 'v2', 'auto_load': None}
-        ]
+        user = [{'source': 'github:OpenHands/skills', 'ref': 'v2', 'auto_load': None}]
         inherited, personal = _merge_marketplaces(instance, [], user)
         # Instance marketplace should be marked as overridden
         assert len(inherited) == 1
@@ -286,12 +291,8 @@ class TestMergeMarketplaces:
 
     def test_user_overrides_org(self):
         """Test that user can override an org marketplace."""
-        org = [
-            {'source': 'github:myorg/plugins', 'ref': 'main', 'auto_load': 'all'}
-        ]
-        user = [
-            {'source': 'github:myorg/plugins', 'ref': 'v2', 'auto_load': None}
-        ]
+        org = [{'source': 'github:myorg/plugins', 'ref': 'main', 'auto_load': 'all'}]
+        user = [{'source': 'github:myorg/plugins', 'ref': 'v2', 'auto_load': None}]
         inherited, personal = _merge_marketplaces([], org, user)
         assert len(inherited) == 1
         assert inherited[0]['source'] == 'github:myorg/plugins'
@@ -348,12 +349,8 @@ class TestMergeMarketplaces:
         instance = [
             {'source': 'github:OpenHands/skills', 'ref': 'main', 'auto_load': 'all'}
         ]
-        org = [
-            {'source': 'github:OpenHands/skills', 'ref': 'org-branch'}
-        ]
-        user = [
-            {'source': 'github:OpenHands/skills', 'ref': 'user-branch'}
-        ]
+        org = [{'source': 'github:OpenHands/skills', 'ref': 'org-branch'}]
+        user = [{'source': 'github:OpenHands/skills', 'ref': 'user-branch'}]
 
         inherited, personal = _merge_marketplaces(instance, org, user)
 
