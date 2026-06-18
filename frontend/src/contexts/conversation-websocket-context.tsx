@@ -83,6 +83,11 @@ const ConversationWebSocketContext = createContext<
 // seconds, so this lets normal churn self-heal silently.
 export const CONNECTION_ERROR_GRACE_MS = 5000;
 
+// The connection banner is owned by the main socket: only its onError sets it
+// and only its onOpen clears it. Other producers (planning socket, non-error
+// events) must not erase it while the main connection is still down.
+export const CONNECTION_ERROR_MESSAGE = "Failed to connect to server";
+
 export function ConversationWebSocketProvider({
   children,
   conversationId,
@@ -161,6 +166,12 @@ export function ConversationWebSocketProvider({
       // Budget errors persist until agent proves LLM is working
       if (isBudgetError && !isAgentEvent) {
         return; // Keep budget error visible
+      }
+
+      // The connection banner is cleared only by the main socket reconnect, so
+      // a (possibly planning-socket) event must not erase it while down.
+      if (currentError === CONNECTION_ERROR_MESSAGE) {
+        return;
       }
 
       removeErrorMessage();
@@ -809,7 +820,7 @@ export function ConversationWebSocketProvider({
               V1ExecutionStatus.RUNNING;
             // Don't clobber a more specific error (e.g. budget/credit).
             if (isRunning && !useErrorMessageStore.getState().errorMessage) {
-              setErrorMessage("Failed to connect to server");
+              setErrorMessage(CONNECTION_ERROR_MESSAGE);
             }
           }, CONNECTION_ERROR_GRACE_MS);
         }
@@ -843,7 +854,13 @@ export function ConversationWebSocketProvider({
       reconnect: { enabled: true },
       onOpen: async () => {
         setPlanningConnectionState("OPEN");
-        removeErrorMessage(); // Clear any previous error messages on successful connection
+        // Clear prior errors, but never the main socket's connection banner.
+        if (
+          useErrorMessageStore.getState().errorMessage !==
+          CONNECTION_ERROR_MESSAGE
+        ) {
+          removeErrorMessage();
+        }
 
         // Fetch expected event count for history loading detection
         if (

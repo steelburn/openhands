@@ -40,6 +40,7 @@ import {
   ConversationWebSocketProvider,
   useConversationWebSocket,
   CONNECTION_ERROR_GRACE_MS,
+  CONNECTION_ERROR_MESSAGE,
 } from "#/contexts/conversation-websocket-context";
 import { conversationWebSocketTestSetup } from "./helpers/msw-websocket-setup";
 import { useEventStore } from "#/stores/use-event-store";
@@ -98,6 +99,10 @@ function renderWithWebSocketContext(
   conversationId = "test-conversation-default",
   conversationUrl = "http://localhost:3000/api/conversations/test-conversation-default",
   sessionApiKey: string | null = null,
+  extraProps: {
+    subConversations?: { id: string; conversation_url: string }[];
+    subConversationIds?: string[];
+  } = {},
 ) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -117,6 +122,9 @@ function renderWithWebSocketContext(
                 conversationId={conversationId}
                 conversationUrl={conversationUrl}
                 sessionApiKey={sessionApiKey}
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                subConversations={extraProps.subConversations as any}
+                subConversationIds={extraProps.subConversationIds}
               >
                 {children}
               </ConversationWebSocketProvider>
@@ -715,18 +723,96 @@ describe("Conversation WebSocket Handler", () => {
       await waitFor(
         () => {
           expect(useErrorMessageStore.getState().errorMessage).toBe(
-            "Failed to connect to server",
+            CONNECTION_ERROR_MESSAGE,
           );
         },
         { timeout: CONNECTION_ERROR_GRACE_MS + 3000 },
       );
     }, 15000);
 
+    it("should keep the connection banner when the planning socket is active while main stays down", async () => {
+      // Invariant: the banner is owned by the main socket. A planning-socket
+      // message/reconnect must NOT clear a main-connection outage banner
+      // while the main socket is still down during an active run.
+      useV1ConversationStateStore.setState({
+        execution_status: V1ExecutionStatus.RUNNING,
+      });
+
+      const mainId = "main-conv-banner";
+      const subId = "planning-conv-banner";
+      let mainAttempts = 0;
+
+      mswServer.use(
+        http.get(
+          `http://localhost:3000/api/conversations/${mainId}/events/count`,
+          () => HttpResponse.json(0),
+        ),
+        http.get(
+          `http://localhost:3000/api/conversations/${subId}/events/count`,
+          () => HttpResponse.json(0),
+        ),
+        wsLink.addEventListener("connection", (conn) => {
+          const isMain = String(conn.client.url).includes(mainId);
+          if (isMain) {
+            mainAttempts += 1;
+            if (mainAttempts === 1) {
+              // Open once, then drop and never reopen.
+              setTimeout(() => conn.client.close(1006, "Outage"), 50);
+            } else {
+              conn.client.close(1006, "Outage");
+            }
+          } else {
+            // Planning socket stays up and emits a non-error event after the
+            // banner would have appeared — this used to clear it.
+            setTimeout(() => {
+              conn.client.send(
+                JSON.stringify(
+                  createMockMessageEvent({ id: "planning-msg-1" }),
+                ),
+              );
+            }, CONNECTION_ERROR_GRACE_MS + 800);
+          }
+        }),
+      );
+
+      renderWithWebSocketContext(
+        <ErrorMessageStoreComponent />,
+        mainId,
+        `http://localhost:3000/api/conversations/${mainId}`,
+        null,
+        {
+          subConversations: [
+            {
+              id: subId,
+              conversation_url: `http://localhost:3000/api/conversations/${subId}`,
+            },
+          ],
+          subConversationIds: [subId],
+        },
+      );
+
+      // Banner appears after the grace window (main down + agent running).
+      await waitFor(
+        () =>
+          expect(useErrorMessageStore.getState().errorMessage).toBe(
+            CONNECTION_ERROR_MESSAGE,
+          ),
+        { timeout: CONNECTION_ERROR_GRACE_MS + 3000 },
+      );
+
+      // The planning socket's event fires (~grace + 800ms); the main-socket
+      // banner must still be present afterwards.
+      await new Promise((resolve) => {
+        setTimeout(resolve, 1500);
+      });
+      expect(useErrorMessageStore.getState().errorMessage).toBe(
+        CONNECTION_ERROR_MESSAGE,
+      );
+    }, 15000);
+
     it("should clear the connection banner when the socket reconnects", async () => {
       // A surfaced connection banner is cleared once the socket reconnects.
-      useErrorMessageStore
-        .getState()
-        .setErrorMessage("Failed to connect to server");
+      useErrorMessageStore.getState().setErrorMessage(CONNECTION_ERROR_MESSAGE);
 
       mswServer.use(
         wsLink.addEventListener("connection", () => {
