@@ -83,9 +83,13 @@ def _get_instance_default_marketplaces() -> list[dict]:
                 parsed = json.loads(definition)
                 if isinstance(parsed, list):
                     for mp in parsed:
-                        marketplaces.append({**mp, 'auto_load': mp.get('auto_load', 'all')})
+                        marketplaces.append(
+                            {**mp, 'auto_load': mp.get('auto_load', 'all')}
+                        )
                 elif isinstance(parsed, dict):
-                    marketplaces.append({**parsed, 'auto_load': parsed.get('auto_load', 'all')})
+                    marketplaces.append(
+                        {**parsed, 'auto_load': parsed.get('auto_load', 'all')}
+                    )
                 continue
             except json.JSONDecodeError:
                 pass
@@ -192,6 +196,7 @@ def _merge_marketplaces(
                     break
 
     return inherited, personal
+
 
 # Create router with /api/v1/settings prefix
 router = APIRouter(
@@ -300,7 +305,9 @@ async def load_settings(
         user_id = getattr(settings, 'user_id', None)
         instance_defaults = _get_instance_default_marketplaces()
         org_marketplaces = await _get_org_marketplaces(user_id)
-        user_marketplaces = settings.registered_marketplaces or []
+        user_marketplaces = [
+            mp.model_dump() for mp in (settings.registered_marketplaces or [])
+        ]
 
         # Merge marketplaces with proper precedence
         inherited, personal = _merge_marketplaces(

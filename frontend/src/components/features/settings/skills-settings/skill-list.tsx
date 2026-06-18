@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { SkillCard } from "./skill-card";
 import { SkillCardSkeleton } from "./skill-card-skeleton";
 import { SkillInfo } from "#/types/settings";
+import { I18nKey } from "#/i18n/declaration";
 
 interface SkillListProps {
   skills: SkillInfo[];
@@ -23,17 +24,19 @@ export function SkillList({
 }: SkillListProps) {
   const { t } = useTranslation();
 
-  const filteredSkills = React.useMemo(() => {
-    return skills.filter((skill) => {
-      const sourceMatch =
-        filterSource === "all" ||
-        skill.source.toLowerCase() === filterSource.toLowerCase();
-      const typeMatch =
-        filterType === "all" ||
-        skill.type.toLowerCase() === filterType.toLowerCase();
-      return sourceMatch && typeMatch;
-    });
-  }, [skills, filterSource, filterType]);
+  const filteredSkills = React.useMemo(
+    () =>
+      skills.filter((skill) => {
+        const sourceMatch =
+          filterSource === "all" ||
+          skill.source.toLowerCase() === filterSource.toLowerCase();
+        const typeMatch =
+          filterType === "all" ||
+          skill.type.toLowerCase() === filterType.toLowerCase();
+        return sourceMatch && typeMatch;
+      }),
+    [skills, filterSource, filterType],
+  );
 
   if (isLoading) {
     return (
@@ -104,8 +107,6 @@ export function SkillCategorySection({
   isLoading = false,
   count,
 }: SkillCategorySectionProps) {
-  const { t } = useTranslation();
-
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center gap-2">

@@ -10932,7 +10932,6 @@
   },
   "SETTINGS$NAME": {
     "en": "Name",
-    "uk": "Назва",
     "ja": "名前",
     "zh-CN": "名称",
     "zh-TW": "名稱",
@@ -10944,8 +10943,9 @@
     "it": "Nome",
     "pt": "Nome",
     "es": "Nombre",
-    "tr": "İsim",
-    "ca": "Nom"
+    "ca": "Nom",
+    "tr": "Ad",
+    "uk": "Ім'я"
   },
   "SECRETS$DESCRIPTION": {
     "en": "Description",
@@ -11017,20 +11017,20 @@
   },
   "SETTINGS$ACTIONS": {
     "en": "Actions",
-    "uk": "Дії",
     "ja": "アクション",
     "zh-CN": "操作",
     "zh-TW": "操作",
     "ko-KR": "작업",
     "no": "Handlinger",
-    "ar": "إجراءات",
+    "ar": "الإجراءات",
     "de": "Aktionen",
     "fr": "Actions",
     "it": "Azioni",
     "pt": "Ações",
     "es": "Acciones",
-    "tr": "İşlemler",
-    "ca": "Accions"
+    "ca": "Accions",
+    "tr": "Eylemler",
+    "uk": "Дії"
   },
   "SETTINGS$API_KEY_CREATED": {
     "en": "API Key Created",
@@ -26859,130 +26859,395 @@
     "zh-CN": "邀请链接已复制",
     "zh-TW": "邀請連結已複製"
   },
-  "SETTINGS$MARKETPLACE_TITLE": {
-    "en": "Plugin Marketplaces"
+  "SETTINGS$REPOSITORY": {
+    "en": "Repository",
+    "ja": "リポジトリ",
+    "zh-CN": "仓库",
+    "zh-TW": "儲存庫",
+    "ko-KR": "저장소",
+    "no": "Repository",
+    "ar": "المستودع",
+    "de": "Repository",
+    "fr": "Dépôt",
+    "it": "Repository",
+    "pt": "Repositório",
+    "es": "Repositorio",
+    "ca": "Repositori",
+    "tr": "Depo",
+    "uk": "Репозиторій"
   },
-  "SETTINGS$MARKETPLACE_DESCRIPTION": {
-    "en": "Configure which plugin marketplaces are available. Instance and organization marketplaces are inherited and cannot be modified."
+  "SETTINGS$TYPE": {
+    "en": "TYPE",
+    "ja": "タイプ",
+    "zh-CN": "类型",
+    "zh-TW": "類型",
+    "ko-KR": "유형",
+    "no": "TYPE",
+    "ar": "النوع",
+    "de": "TYP",
+    "fr": "TYPE",
+    "it": "TIPO",
+    "pt": "TIPO",
+    "es": "TIPO",
+    "ca": "TIPUS",
+    "tr": "TÜR",
+    "uk": "ТИП"
   },
-  "SETTINGS$MARKETPLACE_INHERITED_TITLE": {
-    "en": "Inherited Marketplaces"
+  "SETTINGS$SOURCE": {
+    "en": "SOURCE",
+    "ja": "ソース",
+    "zh-CN": "来源",
+    "zh-TW": "來源",
+    "ko-KR": "소스",
+    "no": "SOURCE",
+    "ar": "المصدر",
+    "de": "QUELLE",
+    "fr": "SOURCE",
+    "it": "ORIGINE",
+    "pt": "FONTE",
+    "es": "FUENTE",
+    "ca": "FONT",
+    "tr": "KAYNAK",
+    "uk": "ДЖЕРЕЛО"
   },
-  "SETTINGS$MARKETPLACE_PERSONAL_TITLE": {
-    "en": "Personal Marketplaces"
+  "SETTINGS$ENABLED": {
+    "en": "Enabled",
+    "ja": "有効",
+    "zh-CN": "已启用",
+    "zh-TW": "已啟用",
+    "ko-KR": "활성화됨",
+    "no": "Aktivert",
+    "ar": "مُمكَّن",
+    "de": "Aktiviert",
+    "fr": "Activé",
+    "it": "Abilitato",
+    "pt": "Ativado",
+    "es": "Habilitado",
+    "ca": "Habilitat",
+    "tr": "Etkin",
+    "uk": "Увімкнено"
+  },
+  "SETTINGS$AUTO_LOAD": {
+    "en": "Auto-Load",
+    "ja": "自動読み込み",
+    "zh-CN": "自动加载",
+    "zh-TW": "自動載入",
+    "ko-KR": "자동 로드",
+    "no": "Automatisk lasting",
+    "ar": "التحميل التلقائي",
+    "de": "Automatisch laden",
+    "fr": "Chargement auto",
+    "it": "Caricamento auto",
+    "pt": "Carregamento automático",
+    "es": "Carga automática",
+    "ca": "Càrrega automàtica",
+    "tr": "Otomatik yükleme",
+    "uk": "Автозавантаження"
   },
   "SETTINGS$MARKETPLACE_ADD": {
-    "en": "Add Marketplace"
-  },
-  "SETTINGS$MARKETPLACE_ADD_TITLE": {
-    "en": "Add Marketplace"
-  },
-  "SETTINGS$MARKETPLACE_EDIT_TITLE": {
-    "en": "Edit Marketplace"
-  },
-  "SETTINGS$MARKETPLACE_DELETE_TITLE": {
-    "en": "Delete Marketplace"
-  },
-  "SETTINGS$MARKETPLACE_SOURCE": {
-    "en": "Source"
-  },
-  "SETTINGS$MARKETPLACE_SOURCE_PLACEHOLDER": {
-    "en": "github:owner/repo"
-  },
-  "SETTINGS$MARKETPLACE_SOURCE_HELP": {
-    "en": "Format: github:owner/repo, git URL, or local path"
-  },
-  "SETTINGS$MARKETPLACE_NAME": {
-    "en": "Name"
-  },
-  "SETTINGS$MARKETPLACE_NAME_PLACEHOLDER": {
-    "en": "my-marketplace"
-  },
-  "SETTINGS$MARKETPLACE_NAME_HELP": {
-    "en": "Optional. Auto-generated from source if empty."
-  },
-  "SETTINGS$MARKETPLACE_REF": {
-    "en": "Ref"
-  },
-  "SETTINGS$MARKETPLACE_REF_PLACEHOLDER": {
-    "en": "branch, tag, or commit"
-  },
-  "SETTINGS$MARKETPLACE_REF_HELP": {
-    "en": "Optional. Branch, tag, or commit SHA."
-  },
-  "SETTINGS$MARKETPLACE_REPO_PATH": {
-    "en": "Repo Path"
-  },
-  "SETTINGS$MARKETPLACE_REPO_PATH_PLACEHOLDER": {
-    "en": "marketplaces/plugins"
-  },
-  "SETTINGS$MARKETPLACE_REPO_PATH_HELP": {
-    "en": "Optional. Subdirectory for marketplace within repository."
-  },
-  "SETTINGS$MARKETPLACE_AUTO_LOAD": {
-    "en": "Auto-load"
-  },
-  "SETTINGS$MARKETPLACE_AUTO_LOAD_HELP": {
-    "en": "Load plugins at conversation start"
-  },
-  "SETTINGS$MARKETPLACE_ENABLED": {
-    "en": "Enabled"
-  },
-  "SETTINGS$MARKETPLACE_DISABLED": {
-    "en": "Disabled"
-  },
-  "SETTINGS$MARKETPLACE_SCOPE_INSTANCE": {
-    "en": "Instance"
-  },
-  "SETTINGS$MARKETPLACE_SCOPE_ORG": {
-    "en": "Organization"
-  },
-  "SETTINGS$MARKETPLACE_SCOPE_PERSONAL": {
-    "en": "Personal"
-  },
-  "SETTINGS$MARKETPLACE_NO_PERSONAL": {
-    "en": "No personal marketplaces configured"
+    "en": "+ Add Repository",
+    "ja": "+ リポジトリを追加",
+    "zh-CN": "+ 添加仓库",
+    "zh-TW": "+ 新增儲存庫",
+    "ko-KR": "+ 저장소 추가",
+    "no": "+ Legg til repository",
+    "ar": "+ إضافة مستودع",
+    "de": "+ Repository hinzufügen",
+    "fr": "+ Ajouter un dépôt",
+    "it": "+ Aggiungi repository",
+    "pt": "+ Adicionar repositório",
+    "es": "+ Añadir repositorio",
+    "ca": "+ Afegir repositori",
+    "tr": "+ Depo ekle",
+    "uk": "+ Додати репозиторій"
   },
   "SETTINGS$MARKETPLACE_ADD_FIRST": {
-    "en": "Add Your First Marketplace"
-  },
-  "SETTINGS$MARKETPLACE_DELETE_CONFIRM": {
-    "en": "Delete this marketplace?"
-  },
-  "SETTINGS$MARKETPLACE_DELETE_MESSAGE": {
-    "en": "This will remove \"{{name}}\" from your personal marketplaces. This action cannot be undone."
-  },
-  "SETTINGS$MARKETPLACE_SAVE": {
-    "en": "Save"
-  },
-  "SETTINGS$MARKETPLACE_CANCEL": {
-    "en": "Cancel"
-  },
-  "SETTINGS$MARKETPLACE_DELETE": {
-    "en": "Delete"
-  },
-  "SETTINGS$SKILLS_TRIGGERS_LABEL": {
-    "en": "Triggers"
+    "en": "No repositories connected",
+    "ja": "接続されたリポジトリはありません",
+    "zh-CN": "没有连接的仓库",
+    "zh-TW": "沒有連接的儲存庫",
+    "ko-KR": "연결된 저장소 없음",
+    "no": "Ingen repositories tilkoblet",
+    "ar": "لا توجد مستودعات متصلة",
+    "de": "Keine Repositories verbunden",
+    "fr": "Aucun dépôt connecté",
+    "it": "Nessun repository connesso",
+    "pt": "Nenhum repositório conectado",
+    "es": "No hay repositorios conectados",
+    "ca": "No hi ha repositoris connectats",
+    "tr": "Bağlı depo yok",
+    "uk": "Немає підключених репозиторіїв"
   },
   "SETTINGS$SKILLS_EMPTY_HINT": {
-    "en": "Skills will appear here once configured"
+    "en": "Skills will appear here once configured",
+    "ja": "スキルは構成されるとここに表示されます",
+    "zh-CN": "技能配置后将显示在这里",
+    "zh-TW": "技能設定後將顯示在這裡",
+    "ko-KR": "스킬이 구성되면 여기에 표시됩니다",
+    "no": "Ferdommer vil vises her når de er konfigurert",
+    "ar": "ستظهر المهارات هنا بمجرد تكوينها",
+    "de": "Skills werden hier angezeigt, sobald sie konfiguriert sind",
+    "fr": "Les compétences apparaîtront ici une fois configurées",
+    "it": "Le competenze appariranno qui una volta configurate",
+    "pt": "As habilidades aparecerão aqui quando configuradas",
+    "es": "Las habilidades aparecerán aquí una vez configuradas",
+    "ca": "Les habilitats apareixeran aquí un cop configurades",
+    "tr": "Beceriler yapılandırıldığında burada görünecektir",
+    "uk": "Навички з'являться тут після налаштування"
   },
-  "SETTINGS$SKILLS_PUBLIC_SECTION": {
-    "en": "Public Skills"
+  "SETTINGS$SKILLS_PERMISSIONS": {
+    "en": "Skills Permissions",
+    "ja": "スキル権限",
+    "zh-CN": "技能权限",
+    "zh-TW": "技能權限",
+    "ko-KR": "스킬 권한",
+    "no": "Ferdighetstillatelser",
+    "ar": "أذونات المهارات",
+    "de": "Skills-Berechtigungen",
+    "fr": "Permissions des compétences",
+    "it": "Permessi delle competenze",
+    "pt": "Permissões de habilidades",
+    "es": "Permisos de habilidades",
+    "ca": "Permisos d'habilitats",
+    "tr": "Beceri İzinleri",
+    "uk": "Дозволи навичок"
   },
-  "SETTINGS$SKILLS_USER_SECTION": {
-    "en": "Your Skills"
+  "SETTINGS$SKILLS_PERMISSIONS_DESCRIPTION": {
+    "en": "Configure which skills are enabled and auto-loaded",
+    "ja": "有効化および自動読み込みされるスキルを設定します",
+    "zh-CN": "配置哪些技能已启用并自动加载",
+    "zh-TW": "設定哪些技能已啟用並自動載入",
+    "ko-KR": "활성화되고 자동 로드되는 스킬을 구성합니다",
+    "no": "Konfigurer hvilke ferdigheter som er aktivert og automatisk lastet",
+    "ar": "تكوين المهارات المُفعَّلة والمحملة تلقائيًا",
+    "de": "Konfigurieren Sie, welche Skills aktiviert und automatisch geladen werden",
+    "fr": "Configurer quelles compétences sont activées et chargées automatiquement",
+    "it": "Configura quali competenze sono abilitate e caricate automaticamente",
+    "pt": "Configure quais habilidades estão ativadas e carregadas automaticamente",
+    "es": "Configurar qué habilidades están habilitadas y se cargan automáticamente",
+    "ca": "Configura quines habilitats estan habilitades i es carreguen automàticament",
+    "tr": "Hangi becerilerin etkinleştirildiğini ve otomatik yüklendiğini yapılandırın",
+    "uk": "Налаштуйте, які навички увімкнено та автоматично завантажуються"
   },
-  "SETTINGS$SKILLS_ORG_SECTION": {
-    "en": "Organization Skills"
+  "SETTINGS$MARKETPLACE_SOURCE": {
+    "en": "Repository",
+    "ja": "リポジトリ",
+    "zh-CN": "仓库",
+    "zh-TW": "儲存庫",
+    "ko-KR": "저장소",
+    "no": "Repository",
+    "ar": "المستودع",
+    "de": "Repository",
+    "fr": "Dépôt",
+    "it": "Repository",
+    "pt": "Repositório",
+    "es": "Repositorio",
+    "ca": "Repositori",
+    "tr": "Depo",
+    "uk": "Репозиторій"
   },
-  "SETTINGS$SKILLS_ALL_SECTION": {
-    "en": "All Skills"
+  "SETTINGS$MARKETPLACE_ENABLED": {
+    "en": "Actions",
+    "ja": "アクション",
+    "zh-CN": "操作",
+    "zh-TW": "操作",
+    "ko-KR": "작업",
+    "no": "Handlinger",
+    "ar": "الإجراءات",
+    "de": "Aktionen",
+    "fr": "Actions",
+    "it": "Azioni",
+    "pt": "Ações",
+    "es": "Acciones",
+    "ca": "Accions",
+    "tr": "Eylemler",
+    "uk": "Дії"
   },
-  "SETTINGS$SKILLS_ENABLED": {
-    "en": "Enabled"
+  "SETTINGS$CONNECT_REPOSITORIES": {
+    "en": "Connect Skills Repositories",
+    "ja": "スキルリポジトリを接続",
+    "zh-CN": "连接技能仓库",
+    "zh-TW": "連接技能儲存庫",
+    "ko-KR": "스킬 저장소 연결",
+    "no": "Koble til ferdighetsrepositoryer",
+    "ar": "توصيل مستودعات المهارات",
+    "de": "Skills-Repositories verbinden",
+    "fr": "Connecter les dépôts de compétences",
+    "it": "Connetti repository di competenze",
+    "pt": "Conectar repositórios de habilidades",
+    "es": "Conectar repositorios de habilidades",
+    "ca": "Connectar repositoris d'habilitats",
+    "tr": "Beceri Depolarını Bağla",
+    "uk": "Підключити репозиторії навичок"
   },
-  "SETTINGS$SKILLS_DISABLED": {
-    "en": "Disabled"
+  "SETTINGS$CONNECT_REPOSITORIES_DESCRIPTION": {
+    "en": "Add repository URLs to load skills from external sources",
+    "ja": "外部ソースからスキルをロードするためのリポジトリURLを追加します",
+    "zh-CN": "添加仓库URL以从外部源加载技能",
+    "zh-TW": "新增儲存庫URL以從外部來源載入技能",
+    "ko-KR": "외부 소스에서 스킬을 로드하기 위해 저장소 URL을 추가합니다",
+    "no": "Legg til repository-URLer for å laste ferdigheter fra eksterne kilder",
+    "ar": "إضافة عناوين URL للمستودعات لتحميل المهارات من مصادر خارجية",
+    "de": "Repository-URLs hinzufügen, um Skills aus externen Quellen zu laden",
+    "fr": "Ajouter des URL de dépôt pour charger des compétences à partir de sources externes",
+    "it": "Aggiungi URL di repository per caricare competenze da fonti esterne",
+    "pt": "Adicionar URLs de repositório para carregar habilidades de fontes externas",
+    "es": "Añadir URLs de repositorio para cargar habilidades de fuentes externas",
+    "ca": "Afegir URLs de repositori per carregar habilitats de fonts externes",
+    "tr": "Harici kaynaklardan beceri yüklemek için depo URL'leri ekleyin",
+    "uk": "Додайте URL-адреси репозиторіїв для завантаження навичок із зовнішніх джерел"
+  },
+  "SETTINGS$MARKETPLACE_SOURCE_PLACEHOLDER": {
+    "en": "https://github.com/username/skills-repo",
+    "ja": "https://github.com/username/skills-repo",
+    "zh-CN": "https://github.com/用户名/skills-repo",
+    "zh-TW": "https://github.com/使用者名稱/skills-repo",
+    "ko-KR": "https://github.com/사용자명/skills-repo",
+    "no": "https://github.com/brukernavn/skills-repo",
+    "ar": "https://github.com/اسم المستخدم/skills-repo",
+    "de": "https://github.com/Benutzername/skills-repo",
+    "fr": "https://github.com/nomutilisateur/skills-repo",
+    "it": "https://github.com/nomeutente/skills-repo",
+    "pt": "https://github.com/nomedeusuario/skills-repo",
+    "es": "https://github.com/nombredeusuario/skills-repo",
+    "ca": "https://github.com/nomdusuari/skills-repo",
+    "tr": "https://github.com/kullaniciadi/skills-repo",
+    "uk": "https://github.com/username/skills-repo"
+  },
+  "SETTINGS$SEARCH_PLACEHOLDER": {
+    "en": "Search skills...",
+    "ja": "スキルを検索...",
+    "zh-CN": "搜索技能...",
+    "zh-TW": "搜尋技能...",
+    "ko-KR": "스킬 검색...",
+    "no": "Søk i ferdigheter...",
+    "ar": "البحث عن المهارات...",
+    "de": "Skills suchen...",
+    "fr": "Rechercher des compétences...",
+    "it": "Cerca competenze...",
+    "pt": "Buscar habilidades...",
+    "es": "Buscar habilidades...",
+    "ca": "Cercar habilitats...",
+    "tr": "Becerileri ara...",
+    "uk": "Пошук навичок..."
+  },
+  "SETTINGS$ALL_TYPES": {
+    "en": "All Types",
+    "ja": "すべてのタイプ",
+    "zh-CN": "所有类型",
+    "zh-TW": "所有類型",
+    "ko-KR": "すべての 유형",
+    "no": "Alle typer",
+    "ar": "جميع الأنواع",
+    "de": "Alle Typen",
+    "fr": "Tous les types",
+    "it": "Tutti i tipi",
+    "pt": "Todos os tipos",
+    "es": "Todos los tipos",
+    "ca": "Tots els tipus",
+    "tr": "Tüm Türler",
+    "uk": "Всі типи"
+  },
+  "SETTINGS$ALL_REPOSITORIES": {
+    "en": "All Repositories",
+    "ja": "すべてのリポジトリ",
+    "zh-CN": "所有仓库",
+    "zh-TW": "所有儲存庫",
+    "ko-KR": "すべての저장소",
+    "no": "Alle repositories",
+    "ar": "جميع المستودعات",
+    "de": "Alle Repositories",
+    "fr": "Tous les dépôts",
+    "it": "Tutti i repository",
+    "pt": "Todos os repositórios",
+    "es": "Todos los repositorios",
+    "ca": "Tots els repositoris",
+    "tr": "Tüm Depolar",
+    "uk": "Всі репозиторії"
+  },
+  "SETTINGS$NO_SKILLS_MATCH_FILTERS": {
+    "en": "No skills match your filters",
+    "ja": "フィルターに一致するスキルがありません",
+    "zh-CN": "没有技能符合您的过滤器",
+    "zh-TW": "沒有技能符合您的篩選條件",
+    "ko-KR": "필터와 일치하는 스킬이 없습니다",
+    "no": "Ingen ferdigheter samsvarer med filtrene dine",
+    "ar": "لا توجد مهارات تطابق عوامل التصفية الخاصة بك",
+    "de": "Keine Skills entsprechen Ihren Filtern",
+    "fr": "Aucune compétence ne correspond à vos filtres",
+    "it": "Nessuna competenza corrisponde ai tuoi filtri",
+    "pt": "Nenhuma habilidade corresponde aos seus filtros",
+    "es": "Ninguna habilidad coincide con tus filtros",
+    "ca": "Cap habilitat coincideix amb els teus filtres",
+    "tr": "Filtrelerinizle eşleşen beceri yok",
+    "uk": "Жодна навичка не відповідає вашим фільтрам"
+  },
+  "SETTINGS$ORG_SKILLS_TITLE": {
+    "en": "Organization Skills",
+    "ja": "オーガニゼーションスキル",
+    "zh-CN": "组织技能",
+    "zh-TW": "組織技能",
+    "ko-KR": "조직 스킬",
+    "no": "Organisasjonsferdigheter",
+    "ar": "مهارات المؤسسة",
+    "de": "Organisations-Skills",
+    "fr": "Compétences de l'organisation",
+    "it": "Competenze dell'organizzazione",
+    "pt": "Habilidades da organização",
+    "es": "Habilidades de la organización",
+    "ca": "Habilitats de l'organització",
+    "tr": "Kuruluş Becerileri",
+    "uk": "Навички організації"
+  },
+  "SETTINGS$ORG_SKILLS_DESCRIPTION": {
+    "en": "Manage skills available to your organization",
+    "ja": "オーガニゼーションで利用できるスキルを管理します",
+    "zh-CN": "管理您的组织可用的技能",
+    "zh-TW": "管理您的組織可用的技能",
+    "ko-KR": "조직에서 사용할 수 있는 스킬을 관리합니다",
+    "no": "Administrer ferdigheter tilgjengelig for din organisasjon",
+    "ar": "إدارة المهارات المتاحة لمؤسستك",
+    "de": "Verwalten Sie für Ihre Organisation verfügbare Skills",
+    "fr": "Gérer les compétences disponibles pour votre organisation",
+    "it": "Gestisci le competenze disponibili per la tua organizzazione",
+    "pt": "Gerenciar habilidades disponíveis para sua organização",
+    "es": "Gestionar las habilidades disponibles para su organización",
+    "ca": "Gestionar les habilitats disponibles per a la teva organització",
+    "tr": "Kuruluşunuz için kullanılabilir becerileri yönetin",
+    "uk": "Керування навичками, доступними для вашої організації"
+  },
+  "SETTINGS$MARKETPLACE_SCOPE_INSTANCE": {
+    "en": "Instance",
+    "ja": "インスタンス",
+    "zh-CN": "实例",
+    "zh-TW": "執行個體",
+    "ko-KR": "인스턴스",
+    "no": "Instans",
+    "ar": "الن Instance",
+    "de": "Instanz",
+    "fr": "Instance",
+    "it": "Istanza",
+    "pt": "Instância",
+    "es": "Instancia",
+    "ca": "Instància",
+    "tr": "Örnek",
+    "uk": "Екземпляр"
+  },
+  "SETTINGS$MARKETPLACE_SCOPE_PERSONAL": {
+    "en": "Personal",
+    "ja": "パーソナル",
+    "zh-CN": "个人",
+    "zh-TW": "個人",
+    "ko-KR": "개인",
+    "no": "Personlig",
+    "ar": "شخصي",
+    "de": "Persönlich",
+    "fr": "Personnel",
+    "it": "Personale",
+    "pt": "Pessoal",
+    "es": "Personal",
+    "ca": "Personal",
+    "tr": "Kişisel",
+    "uk": "Особистий"
   }
 }
