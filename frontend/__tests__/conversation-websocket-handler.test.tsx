@@ -17,6 +17,8 @@ import { useOptimisticUserMessageStore } from "#/stores/optimistic-user-message-
 import { useBrowserStore } from "#/stores/browser-store";
 import { useCommandStore } from "#/stores/command-store";
 import { useErrorMessageStore } from "#/stores/error-message-store";
+import { useV1ConversationStateStore } from "#/stores/v1-conversation-state-store";
+import { V1ExecutionStatus } from "#/types/v1/core/base/common";
 import {
   createMockMessageEvent,
   createMockUserMessageEvent,
@@ -37,6 +39,7 @@ import {
 import {
   ConversationWebSocketProvider,
   useConversationWebSocket,
+  CONNECTION_ERROR_GRACE_MS,
 } from "#/contexts/conversation-websocket-context";
 import { conversationWebSocketTestSetup } from "./helpers/msw-websocket-setup";
 import { useEventStore } from "#/stores/use-event-store";
@@ -76,6 +79,7 @@ afterEach(() => {
   // Reset stores to prevent state leakage between tests
   useErrorMessageStore.getState().removeErrorMessage();
   useEventStore.getState().clearEvents();
+  useV1ConversationStateStore.getState().reset();
 });
 
 afterAll(async () => {
@@ -591,9 +595,10 @@ describe("Conversation WebSocket Handler", () => {
       expect(currentError).not.toBe("STATUS$ERROR_LLM_OUT_OF_CREDITS");
     });
 
-    it("should set error message store on WebSocket connection errors", async () => {
-      // Simulate a connect-then-fail sequence (the MSW server auto-connects by default).
-      // This should surface an error message because the app has previously connected.
+    it("should not flash a connection banner on an idle transient disconnect", async () => {
+      // Idle (no running agent): a dropped socket self-heals on reconnect, so
+      // it must NOT flash the red banner. Regression test for the over-eager
+      // "Failed to connect to server" message.
       mswServer.use(
         wsLink.addEventListener("connection", ({ client }) => {
           setTimeout(() => {
@@ -602,7 +607,6 @@ describe("Conversation WebSocket Handler", () => {
         }),
       );
 
-      // Render components that use both WebSocket and error message store
       renderWithWebSocketContext(
         <>
           <ErrorMessageStoreComponent />
@@ -610,37 +614,39 @@ describe("Conversation WebSocket Handler", () => {
         </>,
       );
 
-      // Initially should show "none"
       expect(screen.getByTestId("error-message")).toHaveTextContent("none");
 
-      // Wait for disconnect
       await waitFor(() => {
         expect(screen.getByTestId("connection-state")).toHaveTextContent(
           "CLOSED",
         );
       });
 
-      await waitFor(() => {
-        expect(screen.getByTestId("error-message")).not.toHaveTextContent(
-          "none",
-        );
-      });
+      // No agent running -> the banner never appears (it's gated on a running
+      // agent), and crucially it is NOT set synchronously on the drop.
+      expect(screen.getByTestId("error-message")).toHaveTextContent("none");
+      expect(useErrorMessageStore.getState().errorMessage).toBeNull();
     });
 
-    it("should set error message store on WebSocket disconnect with error", async () => {
-      // Set up MSW to connect first, then disconnect with error
-      mswServer.use(
-        wsLink.addEventListener("connection", ({ client, server }) => {
-          server.connect();
+    it("should not flash a connection banner when a transient drop reconnects during an active run", async () => {
+      // Agent running, but the drop recovers within the grace window: the
+      // pending banner is cancelled by the reconnect, so it never appears.
+      useV1ConversationStateStore.setState({
+        execution_status: V1ExecutionStatus.RUNNING,
+      });
 
-          // Simulate disconnect with error after a short delay
-          setTimeout(() => {
-            client.close(1006, "Unexpected disconnect");
-          }, 100);
+      let connectionAttempt = 0;
+      mswServer.use(
+        wsLink.addEventListener("connection", ({ client }) => {
+          connectionAttempt += 1;
+          if (connectionAttempt === 1) {
+            setTimeout(() => {
+              client.close(1006, "Transient drop");
+            }, 50);
+          }
         }),
       );
 
-      // Render components that use both WebSocket and error message store
       renderWithWebSocketContext(
         <>
           <ErrorMessageStoreComponent />
@@ -648,81 +654,103 @@ describe("Conversation WebSocket Handler", () => {
         </>,
       );
 
-      // Initially should show "none"
-      expect(screen.getByTestId("error-message")).toHaveTextContent("none");
+      // First drop
+      await waitFor(() => {
+        expect(screen.getByTestId("connection-state")).toHaveTextContent(
+          "CLOSED",
+        );
+      });
 
-      // Wait for connection to be established first
+      // Reconnect (within the grace window) cancels the pending banner, so it
+      // never appears.
+      await waitFor(
+        () => {
+          expect(screen.getByTestId("connection-state")).toHaveTextContent(
+            "OPEN",
+          );
+        },
+        { timeout: 5000 },
+      );
+      expect(useErrorMessageStore.getState().errorMessage).toBeNull();
+    }, 10000);
+
+    it("should show a connection banner when the agent is running and the socket stays down", async () => {
+      // Agent running and the socket fails to recover: after the grace window
+      // we surface the banner because live updates are genuinely stalled.
+      useV1ConversationStateStore.setState({
+        execution_status: V1ExecutionStatus.RUNNING,
+      });
+
+      let connectionAttempt = 0;
+      mswServer.use(
+        wsLink.addEventListener("connection", ({ client }) => {
+          connectionAttempt += 1;
+          if (connectionAttempt === 1) {
+            // Open once, then drop after the app has marked us connected.
+            setTimeout(() => {
+              client.close(1006, "Outage");
+            }, 50);
+          } else {
+            // Reconnect attempts fail to open (close before the open registers).
+            client.close(1006, "Outage");
+          }
+        }),
+      );
+
+      renderWithWebSocketContext(
+        <>
+          <ErrorMessageStoreComponent />
+          <ConnectionStatusComponent />
+        </>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId("connection-state")).toHaveTextContent(
+          "CLOSED",
+        );
+      });
+
+      // Banner appears only after the grace window elapses.
+      expect(useErrorMessageStore.getState().errorMessage).toBeNull();
+      await waitFor(
+        () => {
+          expect(useErrorMessageStore.getState().errorMessage).toBe(
+            "Failed to connect to server",
+          );
+        },
+        { timeout: CONNECTION_ERROR_GRACE_MS + 3000 },
+      );
+    }, 15000);
+
+    it("should clear the connection banner when the socket reconnects", async () => {
+      // A surfaced connection banner is cleared once the socket reconnects.
+      useErrorMessageStore
+        .getState()
+        .setErrorMessage("Failed to connect to server");
+
+      mswServer.use(
+        wsLink.addEventListener("connection", () => {
+          // Stay connected.
+        }),
+      );
+
+      renderWithWebSocketContext(
+        <>
+          <ErrorMessageStoreComponent />
+          <ConnectionStatusComponent />
+        </>,
+      );
+
       await waitFor(() => {
         expect(screen.getByTestId("connection-state")).toHaveTextContent(
           "OPEN",
         );
       });
 
-      // Wait for disconnect and error message to be set
+      // onOpen clears the banner on a successful connection.
       await waitFor(() => {
-        expect(screen.getByTestId("connection-state")).toHaveTextContent(
-          "CLOSED",
-        );
+        expect(useErrorMessageStore.getState().errorMessage).toBeNull();
       });
-
-      // Should set error message on unexpected disconnect
-      await waitFor(() => {
-        expect(screen.getByTestId("error-message")).not.toHaveTextContent(
-          "none",
-        );
-      });
-    });
-
-    it("should clear error message store when connection is restored", async () => {
-      let connectionAttempt = 0;
-
-      // Fail once (after connect), then allow reconnection to stay open.
-      mswServer.use(
-        wsLink.addEventListener("connection", ({ client }) => {
-          connectionAttempt += 1;
-
-          if (connectionAttempt === 1) {
-            setTimeout(() => {
-              client.close(1006, "Initial connection failed");
-            }, 50);
-          }
-        }),
-      );
-
-      // Render components that use both WebSocket and error message store
-      renderWithWebSocketContext(
-        <>
-          <ErrorMessageStoreComponent />
-          <ConnectionStatusComponent />
-        </>,
-      );
-
-      // Initially should show "none"
-      expect(screen.getByTestId("error-message")).toHaveTextContent("none");
-
-      // Wait for first failure
-      await waitFor(() => {
-        expect(screen.getByTestId("connection-state")).toHaveTextContent(
-          "CLOSED",
-        );
-      });
-
-      await waitFor(() => {
-        expect(screen.getByTestId("error-message")).not.toHaveTextContent(
-          "none",
-        );
-      });
-
-      // Wait for reconnect to happen and verify error clears on successful connection
-      await waitFor(
-        () => {
-          expect(screen.getByTestId("connection-state")).toHaveTextContent(
-            "OPEN",
-          );
-          expect(screen.getByTestId("error-message")).toHaveTextContent("none");
-        },
-        { timeout: 5000 },
-      );
     });
 
     it("should clear error message when a successful event is received after a ConversationErrorEvent", async () => {
