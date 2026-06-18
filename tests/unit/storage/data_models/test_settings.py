@@ -860,7 +860,7 @@ class TestMarketplaceRegistrationValidationEdgeCases:
 
     def test_source_validation_rejects_leading_dot(self):
         """Test that sources starting with dot are rejected (hidden files)."""
-        with pytest.raises(ValidationError, match='must be relative'):
+        with pytest.raises(ValidationError, match='source must be'):
             MarketplaceRegistration(name='test', source='.hidden/repo')
 
     def test_source_validation_rejects_double_dot_in_middle(self):
