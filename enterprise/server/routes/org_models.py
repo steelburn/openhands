@@ -547,7 +547,6 @@ class OrgAppSettingsResponse(BaseModel):
 
     enable_proactive_conversation_starters: bool = True
     max_budget_per_task: float | None = None
-    max_concurrent_sandboxes: int = DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES
     registered_marketplaces: list[dict] = []
 
     @classmethod
@@ -569,9 +568,6 @@ class OrgAppSettingsResponse(BaseModel):
             if org.enable_proactive_conversation_starters is not None
             else True,
             max_budget_per_task=org.max_budget_per_task,
-            max_concurrent_sandboxes=org.max_concurrent_sandboxes
-            if org.max_concurrent_sandboxes is not None
-            else DEFAULT_PERSONAL_ORG_CONCURRENT_SANDBOXES,
             registered_marketplaces=marketplaces,
         )
 
@@ -581,7 +577,6 @@ class OrgAppSettingsUpdate(BaseModel):
 
     enable_proactive_conversation_starters: bool | None = None
     max_budget_per_task: float | None = None
-    max_concurrent_sandboxes: int | None = Field(default=None, gt=0, le=100)
     registered_marketplaces: list[dict] | None = None
 
     @field_validator('max_budget_per_task')

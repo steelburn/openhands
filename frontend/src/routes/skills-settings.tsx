@@ -1,5 +1,4 @@
 import React from "react";
-import { FaTrash } from "react-icons/fa6";
 import { useTranslation } from "react-i18next";
 import { BrandButton } from "#/components/features/settings/brand-button";
 import { Typography } from "#/ui/typography";
@@ -222,11 +221,6 @@ function SkillsSettingsScreen() {
     setHasChanges(true);
   };
 
-  const handleDeleteRepository = (repoKey: string) => {
-    setRepositories((prev) => prev.filter((repo) => repo.source !== repoKey));
-    setHasChanges(true);
-  };
-
   const isLoading = settingsLoading || skillsLoading || !settings;
 
   const getSourceLabel = (source: string) => {
@@ -299,12 +293,9 @@ function SkillsSettingsScreen() {
         <div className="border border-tertiary rounded-md overflow-hidden">
           <table className="w-full">
             <thead className="[background-color:#1f1f1f99]">
-              <tr className="grid grid-cols-2 gap-4 items-start">
+              <tr className="grid grid-cols-1 gap-4 items-start">
                 <th className="text-left p-3 text-sm font-medium uppercase text-[rgb(140,140,140)]">
                   {t(I18nKey.SETTINGS$MARKETPLACE_SOURCE)}
-                </th>
-                <th className="text-right p-3 text-sm font-medium uppercase text-[rgb(140,140,140)]">
-                  {t(I18nKey.SETTINGS$MARKETPLACE_ENABLED)}
                 </th>
               </tr>
             </thead>
@@ -312,27 +303,17 @@ function SkillsSettingsScreen() {
               {repositories.map((repo) => (
                 <tr
                   key={repo.source}
-                  className="grid grid-cols-2 gap-4 items-start border-t border-tertiary"
+                  className="grid grid-cols-1 gap-4 items-start border-t border-tertiary"
                 >
                   <td className="p-3 text-sm text-content-2 truncate min-w-0 text-[rgb(140,140,140)]">
                     {repo.source}
-                  </td>
-                  <td className="p-3 flex items-start justify-end gap-4 whitespace-nowrap">
-                    <button
-                      type="button"
-                      aria-label={`Delete ${repo.source}`}
-                      onClick={() => handleDeleteRepository(repo.source)}
-                      className="cursor-pointer hover:text-content-1 transition-colors"
-                    >
-                      <FaTrash size={16} />
-                    </button>
                   </td>
                 </tr>
               ))}
               {repositories.length === 0 && (
                 <tr className="border-t border-tertiary">
                   <td
-                    colSpan={2}
+                    colSpan={1}
                     className="p-3 text-sm text-center text-[rgb(140,140,140)]"
                   >
                     {t(I18nKey.SETTINGS$MARKETPLACE_ADD_FIRST)}
@@ -399,7 +380,7 @@ function SkillsSettingsScreen() {
         <div className="border border-tertiary rounded-md overflow-hidden">
           <table className="w-full">
             <thead className="[background-color:#1f1f1f99]">
-              <tr className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-4 items-start">
+              <tr className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr] gap-4 items-start">
                 <th className="text-left p-3 text-sm font-medium uppercase text-[rgb(140,140,140)]">
                   {t(I18nKey.SETTINGS$NAME)}
                 </th>
@@ -418,16 +399,13 @@ function SkillsSettingsScreen() {
                 <th className="text-left p-3 text-sm font-medium uppercase text-[rgb(140,140,140)]">
                   {t(I18nKey.SETTINGS$AUTO_LOAD)}
                 </th>
-                <th className="text-right p-3 text-sm font-medium uppercase text-[rgb(140,140,140)]">
-                  {t(I18nKey.SETTINGS$ACTIONS)}
-                </th>
               </tr>
             </thead>
             <tbody>
               {filteredSkills.map((skill) => (
                 <tr
                   key={skill.id}
-                  className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr_1fr] gap-4 items-center border-t border-tertiary"
+                  className="grid grid-cols-[1fr_1fr_1fr_1fr_1fr_1fr] gap-4 items-center border-t border-tertiary"
                 >
                   <td className="p-3 text-sm text-content-2 truncate min-w-0">
                     {skill.name}
@@ -469,13 +447,12 @@ function SkillsSettingsScreen() {
                       aria-label={`Toggle auto-load for ${skill.name}`}
                     />
                   </td>
-                  <td className="p-3" aria-hidden="true" />
                 </tr>
               ))}
               {filteredSkills.length === 0 && (
                 <tr className="border-t border-tertiary">
                   <td
-                    colSpan={7}
+                    colSpan={6}
                     className="p-3 text-sm text-center text-[rgb(140,140,140)]"
                   >
                     {t(I18nKey.SETTINGS$NO_SKILLS_MATCH_FILTERS)}
