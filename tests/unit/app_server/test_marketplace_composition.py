@@ -442,7 +442,9 @@ class TestGetInstanceDefaultMarketplacesJSONFormat:
 
     def test_single_marketplace_github_format(self, monkeypatch):
         """Test parsing github: shorthand format."""
-        monkeypatch.setenv('INSTANCE_DEFAULT_MARKETPLACES', 'github:my/repo')
+        monkeypatch.setenv(
+            'INSTANCE_DEFAULT_MARKETPLACES', 'github:my/repo'
+        )
         result = _get_instance_default_marketplaces()
         assert len(result) == 1
         assert result[0]['source'] == 'github:my/repo'
@@ -460,7 +462,9 @@ class TestGetInstanceDefaultMarketplacesJSONFormat:
 
     def test_single_marketplace_ssh_url(self, monkeypatch):
         """Test parsing SSH git URL format."""
-        monkeypatch.setenv('INSTANCE_DEFAULT_MARKETPLACES', 'git@github.com:my/repo')
+        monkeypatch.setenv(
+            'INSTANCE_DEFAULT_MARKETPLACES', 'git@github.com:my/repo'
+        )
         result = _get_instance_default_marketplaces()
         assert len(result) == 1
         assert result[0]['source'] == 'git@github.com:my/repo'
@@ -468,7 +472,9 @@ class TestGetInstanceDefaultMarketplacesJSONFormat:
 
     def test_single_marketplace_local_path(self, monkeypatch):
         """Test parsing local path format."""
-        monkeypatch.setenv('INSTANCE_DEFAULT_MARKETPLACES', 'local/plugins')
+        monkeypatch.setenv(
+            'INSTANCE_DEFAULT_MARKETPLACES', 'local/plugins'
+        )
         result = _get_instance_default_marketplaces()
         assert len(result) == 1
         assert result[0]['source'] == 'local/plugins'
@@ -488,7 +494,9 @@ class TestGetInstanceDefaultMarketplacesJSONFormat:
 
     def test_marketplace_with_hash_name_separator(self, monkeypatch):
         """Test parsing with # as field separator."""
-        monkeypatch.setenv('INSTANCE_DEFAULT_MARKETPLACES', 'github:my/repo#my-market')
+        monkeypatch.setenv(
+            'INSTANCE_DEFAULT_MARKETPLACES', 'github:my/repo#my-market'
+        )
         result = _get_instance_default_marketplaces()
         assert len(result) == 1
         assert result[0]['source'] == 'github:my/repo'
@@ -549,12 +557,8 @@ class TestMarketplaceCompositionIntegration:
 
         # default-plugins should be org scope with disabled auto_load
         assert inherited_by_source['github:openhands/default-plugins']['scope'] == 'org'
-        assert (
-            inherited_by_source['github:openhands/default-plugins']['auto_load'] is None
-        )
-        assert (
-            'overridden' not in inherited_by_source['github:openhands/default-plugins']
-        )
+        assert inherited_by_source['github:openhands/default-plugins']['auto_load'] is None
+        assert 'overridden' not in inherited_by_source['github:openhands/default-plugins']
 
         # acme-plugins should be org scope
         assert inherited_by_source['github:acme/company-plugins']['scope'] == 'org'
