@@ -13,8 +13,11 @@ from server.routes.api_keys import (
     CurrentApiKeyResponse,
     LlmApiKeyResponse,
     ManagedLlmApiKeyRefreshResponse,
+    ManagedLlmKeyConfig,
+    _managed_llm_key_config_from_model,
     check_byor_permitted,
     delete_byor_key_from_litellm,
+    generate_managed_llm_key,
     get_current_api_key,
     get_llm_api_key_for_byor,
     refresh_managed_llm_api_key,
@@ -407,19 +410,27 @@ class TestRefreshManagedLlmApiKey:
     @patch('storage.lite_llm_manager.LiteLlmManager.delete_key')
     @patch('server.routes.api_keys.store_managed_llm_key_in_db')
     @patch('server.routes.api_keys.generate_managed_llm_key')
+    @patch('server.routes.api_keys.get_effective_managed_llm_key_config')
     @patch('storage.user_store.UserStore.get_user_by_id')
     async def test_refresh_generates_persists_then_deletes_previous_key(
-        self, mock_get_user, mock_generate_key, mock_store_key, mock_delete_key
+        self,
+        mock_get_user,
+        mock_get_managed_config,
+        mock_generate_key,
+        mock_store_key,
+        mock_delete_key,
     ):
         user_id = 'user-123'
         org_id = uuid.uuid4()
         user, _member = self._user_with_member(org_id, key='sk-old-managed-key')
         mock_get_user.return_value = user
+        mock_get_managed_config.return_value = ManagedLlmKeyConfig(openhands_type=True)
         mock_generate_key.return_value = 'sk-new-managed-key'
         order = []
 
         async def store_key(*_args):
             order.append('store')
+            return True
 
         async def delete_key(*_args):
             order.append('delete')
@@ -432,7 +443,8 @@ class TestRefreshManagedLlmApiKey:
         )
 
         assert result == ManagedLlmApiKeyRefreshResponse(refreshed=True)
-        mock_generate_key.assert_called_once_with(user_id, org_id)
+        mock_get_managed_config.assert_called_once_with(user_id, org_id)
+        mock_generate_key.assert_called_once_with(user_id, org_id, openhands_type=True)
         mock_store_key.assert_called_once_with(user_id, org_id, 'sk-new-managed-key')
         mock_delete_key.assert_called_once_with('sk-old-managed-key')
         assert order == ['store', 'delete']
@@ -475,14 +487,16 @@ class TestRefreshManagedLlmApiKey:
 
     @pytest.mark.asyncio
     @patch('server.routes.api_keys.generate_managed_llm_key')
+    @patch('server.routes.api_keys.get_effective_managed_llm_key_config')
     @patch('storage.user_store.UserStore.get_user_by_id')
     async def test_refresh_generation_failure_returns_500(
-        self, mock_get_user, mock_generate_key
+        self, mock_get_user, mock_get_managed_config, mock_generate_key
     ):
         user_id = 'user-123'
         org_id = uuid.uuid4()
         user, _member = self._user_with_member(org_id)
         mock_get_user.return_value = user
+        mock_get_managed_config.return_value = ManagedLlmKeyConfig(openhands_type=False)
         mock_generate_key.return_value = None
 
         with pytest.raises(HTTPException) as exc_info:
@@ -495,16 +509,23 @@ class TestRefreshManagedLlmApiKey:
     @patch('storage.lite_llm_manager.LiteLlmManager.delete_key')
     @patch('server.routes.api_keys.store_managed_llm_key_in_db')
     @patch('server.routes.api_keys.generate_managed_llm_key')
+    @patch('server.routes.api_keys.get_effective_managed_llm_key_config')
     @patch('storage.user_store.UserStore.get_user_by_id')
     async def test_refresh_continues_when_old_key_delete_fails(
-        self, mock_get_user, mock_generate_key, mock_store_key, mock_delete_key
+        self,
+        mock_get_user,
+        mock_get_managed_config,
+        mock_generate_key,
+        mock_store_key,
+        mock_delete_key,
     ):
         user_id = 'user-123'
         org_id = uuid.uuid4()
         user, _member = self._user_with_member(org_id, key='sk-old-managed-key')
         mock_get_user.return_value = user
+        mock_get_managed_config.return_value = ManagedLlmKeyConfig(openhands_type=False)
         mock_generate_key.return_value = 'sk-new-managed-key'
-        mock_store_key.return_value = None
+        mock_store_key.return_value = True
         mock_delete_key.side_effect = Exception('delete failed')
 
         result = await refresh_managed_llm_api_key(
@@ -514,6 +535,101 @@ class TestRefreshManagedLlmApiKey:
         assert result == ManagedLlmApiKeyRefreshResponse(refreshed=True)
         mock_store_key.assert_called_once_with(user_id, org_id, 'sk-new-managed-key')
         mock_delete_key.assert_called_once_with('sk-old-managed-key')
+
+    @pytest.mark.asyncio
+    @patch('server.routes.api_keys.store_managed_llm_key_in_db')
+    @patch('server.routes.api_keys.generate_managed_llm_key')
+    @patch('server.routes.api_keys.get_effective_managed_llm_key_config')
+    @patch('storage.user_store.UserStore.get_user_by_id')
+    async def test_refresh_rejects_non_managed_effective_config(
+        self,
+        mock_get_user,
+        mock_get_managed_config,
+        mock_generate_key,
+        mock_store_key,
+    ):
+        user_id = 'user-123'
+        org_id = uuid.uuid4()
+        user, _member = self._user_with_member(org_id)
+        mock_get_user.return_value = user
+        mock_get_managed_config.return_value = None
+
+        with pytest.raises(HTTPException) as exc_info:
+            await refresh_managed_llm_api_key(user_id=user_id, effective_org_id=org_id)
+
+        assert exc_info.value.status_code == 400
+        assert 'non-managed LLM API key' in exc_info.value.detail
+        mock_generate_key.assert_not_called()
+        mock_store_key.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch('storage.lite_llm_manager.LiteLlmManager.delete_key')
+    @patch('server.routes.api_keys.store_managed_llm_key_in_db')
+    @patch('server.routes.api_keys.generate_managed_llm_key')
+    @patch('server.routes.api_keys.get_effective_managed_llm_key_config')
+    @patch('storage.user_store.UserStore.get_user_by_id')
+    async def test_refresh_store_failure_returns_500_without_deleting_old_key(
+        self,
+        mock_get_user,
+        mock_get_managed_config,
+        mock_generate_key,
+        mock_store_key,
+        mock_delete_key,
+    ):
+        user_id = 'user-123'
+        org_id = uuid.uuid4()
+        user, _member = self._user_with_member(org_id, key='sk-old-managed-key')
+        mock_get_user.return_value = user
+        mock_get_managed_config.return_value = ManagedLlmKeyConfig(openhands_type=False)
+        mock_generate_key.return_value = 'sk-new-managed-key'
+        mock_store_key.return_value = False
+
+        with pytest.raises(HTTPException) as exc_info:
+            await refresh_managed_llm_api_key(user_id=user_id, effective_org_id=org_id)
+
+        assert exc_info.value.status_code == 500
+        assert 'Failed to store new managed LLM API key' in exc_info.value.detail
+        mock_delete_key.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch('storage.lite_llm_manager.LiteLlmManager.generate_key')
+    async def test_generate_managed_llm_key_preserves_openhands_metadata(
+        self, mock_generate_key
+    ):
+        user_id = 'user-123'
+        org_id = uuid.uuid4()
+        mock_generate_key.return_value = 'sk-new-managed-key'
+
+        result = await generate_managed_llm_key(user_id, org_id, openhands_type=True)
+
+        assert result == 'sk-new-managed-key'
+        mock_generate_key.assert_called_once_with(
+            user_id,
+            str(org_id),
+            f'OpenHands Cloud - user {user_id} - org {org_id}',
+            {'type': 'openhands'},
+        )
+
+    @patch('server.routes.api_keys.LITE_LLM_API_URL', 'https://litellm.example.com/')
+    def test_managed_config_detects_managed_base_url(self):
+        assert _managed_llm_key_config_from_model(
+            'anthropic/claude-sonnet-4', 'https://litellm.example.com'
+        ) == ManagedLlmKeyConfig(openhands_type=False)
+
+    @patch('server.routes.api_keys.LITE_LLM_API_URL', 'https://litellm.example.com')
+    def test_managed_config_detects_openhands_model_without_base_url(self):
+        assert _managed_llm_key_config_from_model(
+            'openhands/claude-sonnet-4', None
+        ) == ManagedLlmKeyConfig(openhands_type=True)
+
+    @patch('server.routes.api_keys.LITE_LLM_API_URL', 'https://litellm.example.com')
+    def test_managed_config_rejects_non_managed_provider_base_url(self):
+        assert (
+            _managed_llm_key_config_from_model(
+                'anthropic/claude-sonnet-4', 'https://api.anthropic.com'
+            )
+            is None
+        )
 
 
 class TestDeleteByorKeyFromLitellm:
