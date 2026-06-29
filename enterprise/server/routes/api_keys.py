@@ -8,7 +8,7 @@ from server.auth.org_context import EFFECTIVE_ORG_ID
 from server.auth.saas_user_auth import SaasUserAuth
 from storage.api_key import ApiKey
 from storage.api_key_store import ApiKeyStore
-from storage.lite_llm_manager import LiteLlmManager
+from storage.lite_llm_manager import LiteLlmManager, get_openhands_cloud_key_alias
 from storage.org_member import OrgMember
 from storage.org_member_store import OrgMemberStore
 from storage.org_service import OrgService
@@ -17,6 +17,74 @@ from storage.user_store import UserStore
 from openhands.app_server.user_auth import get_user_auth, get_user_id
 from openhands.app_server.user_auth.user_auth import AuthType
 from openhands.app_server.utils.logger import openhands_logger as logger
+
+
+def _find_org_member(user, org_id: UUID) -> OrgMember | None:
+    """Find the user's membership for an org."""
+    for member in user.org_members:
+        if member.org_id == org_id:
+            return member
+    return None
+
+
+async def get_managed_llm_key_from_db(user_id: str, org_id: UUID) -> str | None:
+    """Get the managed OpenHands LiteLLM key for a user/org.
+
+    Returns None for missing users/members, missing keys, and BYOK members.
+    Callers that need to distinguish these states should load the OrgMember directly.
+    """
+    user = await UserStore.get_user_by_id(user_id)
+    if not user:
+        return None
+
+    org_member = _find_org_member(user, org_id)
+    if not org_member or org_member.has_custom_llm_api_key:
+        return None
+    if org_member.llm_api_key:
+        return org_member.llm_api_key.get_secret_value()
+    return None
+
+
+async def store_managed_llm_key_in_db(user_id: str, org_id: UUID, key: str) -> None:
+    """Store the managed OpenHands LiteLLM key for a user/org."""
+    user = await UserStore.get_user_by_id(user_id)
+    if not user:
+        return
+
+    org_member = _find_org_member(user, org_id)
+    if not org_member:
+        return
+    org_member.llm_api_key = SecretStr(key)
+    org_member.has_custom_llm_api_key = False
+    await OrgMemberStore.update_org_member(org_member)
+
+
+async def generate_managed_llm_key(user_id: str, org_id: UUID) -> str | None:
+    """Generate a managed OpenHands LiteLLM key for a user/org."""
+    try:
+        org_id_str = str(org_id)
+        key = await LiteLlmManager.generate_key(
+            user_id,
+            org_id_str,
+            get_openhands_cloud_key_alias(user_id, org_id_str),
+            None,
+        )
+        logger.info(
+            'Successfully generated new managed LLM key',
+            extra={
+                'user_id': user_id,
+                'org_id': org_id_str,
+                'key_length': len(key),
+                'key_prefix': key[:10] + '...' if len(key) > 10 else key,
+            },
+        )
+        return key
+    except Exception as e:
+        logger.exception(
+            'Error generating managed LLM key',
+            extra={'user_id': user_id, 'org_id': str(org_id), 'error': str(e)},
+        )
+        return None
 
 
 # Helper functions for BYOR API key management
@@ -137,6 +205,10 @@ class ApiKeyCreateResponse(ApiKeyResponse):
 
 class LlmApiKeyResponse(BaseModel):
     key: str | None
+
+
+class ManagedLlmApiKeyRefreshResponse(BaseModel):
+    refreshed: bool
 
 
 class ByorPermittedResponse(BaseModel):
@@ -324,6 +396,99 @@ async def get_current_api_key(
         user_id=user_id,
         auth_type=saas_user_auth.auth_type.value,
     )
+
+
+@api_router.post(
+    '/llm/managed/refresh',
+    tags=['Keys'],
+    response_model=ManagedLlmApiKeyRefreshResponse,
+)
+async def refresh_managed_llm_api_key(
+    user_id: str = Depends(get_user_id),
+    effective_org_id: UUID = EFFECTIVE_ORG_ID,
+) -> ManagedLlmApiKeyRefreshResponse:
+    """Refresh the managed OpenHands LiteLLM key for the current user/org.
+
+    This endpoint intentionally refuses to operate on BYOK/custom keys. It
+    generates and persists the replacement before best-effort deletion of the
+    previous key to avoid leaving the member with a stored key that no longer
+    exists in LiteLLM.
+    """
+    logger.info(
+        'Starting managed LLM API key refresh',
+        extra={'user_id': user_id, 'org_id': str(effective_org_id)},
+    )
+
+    try:
+        user = await UserStore.get_user_by_id(user_id)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f'User {user_id} not found',
+            )
+
+        org_member = _find_org_member(user, effective_org_id)
+        if not org_member:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f'User {user_id} is not a member of org {effective_org_id}',
+            )
+
+        if org_member.has_custom_llm_api_key:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail='Cannot refresh a custom BYOK LLM API key as a managed key.',
+            )
+
+        existing_key = (
+            org_member.llm_api_key.get_secret_value()
+            if org_member.llm_api_key
+            else None
+        )
+
+        key = await generate_managed_llm_key(user_id, effective_org_id)
+        if not key:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail='Failed to generate new managed LLM API key',
+            )
+
+        await store_managed_llm_key_in_db(user_id, effective_org_id, key)
+
+        if existing_key and existing_key != key:
+            try:
+                await LiteLlmManager.delete_key(existing_key)
+            except Exception as exc:
+                logger.warning(
+                    'Failed to delete previous managed LLM key after refresh',
+                    extra={
+                        'user_id': user_id,
+                        'org_id': str(effective_org_id),
+                        'error': str(exc),
+                    },
+                )
+
+        logger.info(
+            'Managed LLM API key refresh completed successfully',
+            extra={'user_id': user_id, 'org_id': str(effective_org_id)},
+        )
+        return ManagedLlmApiKeyRefreshResponse(refreshed=True)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(
+            'Unexpected error refreshing managed LLM API key',
+            extra={
+                'user_id': user_id,
+                'org_id': str(effective_org_id),
+                'error': str(e),
+                'exception_type': type(e).__name__,
+            },
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail='Failed to refresh managed LLM API key',
+        )
 
 
 @api_router.get('/llm/byor', tags=['Keys'])

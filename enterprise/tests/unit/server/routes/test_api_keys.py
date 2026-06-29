@@ -12,10 +12,12 @@ from server.routes.api_keys import (
     ByorPermittedResponse,
     CurrentApiKeyResponse,
     LlmApiKeyResponse,
+    ManagedLlmApiKeyRefreshResponse,
     check_byor_permitted,
     delete_byor_key_from_litellm,
     get_current_api_key,
     get_llm_api_key_for_byor,
+    refresh_managed_llm_api_key,
 )
 from storage.lite_llm_manager import LiteLlmManager
 
@@ -386,6 +388,132 @@ class TestGetLlmApiKeyForByor:
 
         assert exc_info.value.status_code == 402
         assert 'BYOR key export is not enabled' in exc_info.value.detail
+
+
+class TestRefreshManagedLlmApiKey:
+    """Test the managed LLM API key refresh endpoint."""
+
+    @staticmethod
+    def _user_with_member(org_id, *, custom=False, key='sk-old-managed-key'):
+        member = MagicMock()
+        member.org_id = org_id
+        member.has_custom_llm_api_key = custom
+        member.llm_api_key = SecretStr(key) if key is not None else None
+        user = MagicMock()
+        user.org_members = [member]
+        return user, member
+
+    @pytest.mark.asyncio
+    @patch('storage.lite_llm_manager.LiteLlmManager.delete_key')
+    @patch('server.routes.api_keys.store_managed_llm_key_in_db')
+    @patch('server.routes.api_keys.generate_managed_llm_key')
+    @patch('storage.user_store.UserStore.get_user_by_id')
+    async def test_refresh_generates_persists_then_deletes_previous_key(
+        self, mock_get_user, mock_generate_key, mock_store_key, mock_delete_key
+    ):
+        user_id = 'user-123'
+        org_id = uuid.uuid4()
+        user, _member = self._user_with_member(org_id, key='sk-old-managed-key')
+        mock_get_user.return_value = user
+        mock_generate_key.return_value = 'sk-new-managed-key'
+        order = []
+
+        async def store_key(*_args):
+            order.append('store')
+
+        async def delete_key(*_args):
+            order.append('delete')
+
+        mock_store_key.side_effect = store_key
+        mock_delete_key.side_effect = delete_key
+
+        result = await refresh_managed_llm_api_key(
+            user_id=user_id, effective_org_id=org_id
+        )
+
+        assert result == ManagedLlmApiKeyRefreshResponse(refreshed=True)
+        mock_generate_key.assert_called_once_with(user_id, org_id)
+        mock_store_key.assert_called_once_with(user_id, org_id, 'sk-new-managed-key')
+        mock_delete_key.assert_called_once_with('sk-old-managed-key')
+        assert order == ['store', 'delete']
+
+    @pytest.mark.asyncio
+    @patch('server.routes.api_keys.generate_managed_llm_key')
+    @patch('storage.user_store.UserStore.get_user_by_id')
+    async def test_refresh_rejects_custom_byok_member(
+        self, mock_get_user, mock_generate_key
+    ):
+        user_id = 'user-123'
+        org_id = uuid.uuid4()
+        user, _member = self._user_with_member(org_id, custom=True)
+        mock_get_user.return_value = user
+
+        with pytest.raises(HTTPException) as exc_info:
+            await refresh_managed_llm_api_key(user_id=user_id, effective_org_id=org_id)
+
+        assert exc_info.value.status_code == 400
+        assert 'custom BYOK' in exc_info.value.detail
+        mock_generate_key.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch('server.routes.api_keys.generate_managed_llm_key')
+    @patch('storage.user_store.UserStore.get_user_by_id')
+    async def test_refresh_missing_member_returns_404(
+        self, mock_get_user, mock_generate_key
+    ):
+        user_id = 'user-123'
+        org_id = uuid.uuid4()
+        user = MagicMock()
+        user.org_members = []
+        mock_get_user.return_value = user
+
+        with pytest.raises(HTTPException) as exc_info:
+            await refresh_managed_llm_api_key(user_id=user_id, effective_org_id=org_id)
+
+        assert exc_info.value.status_code == 404
+        mock_generate_key.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch('server.routes.api_keys.generate_managed_llm_key')
+    @patch('storage.user_store.UserStore.get_user_by_id')
+    async def test_refresh_generation_failure_returns_500(
+        self, mock_get_user, mock_generate_key
+    ):
+        user_id = 'user-123'
+        org_id = uuid.uuid4()
+        user, _member = self._user_with_member(org_id)
+        mock_get_user.return_value = user
+        mock_generate_key.return_value = None
+
+        with pytest.raises(HTTPException) as exc_info:
+            await refresh_managed_llm_api_key(user_id=user_id, effective_org_id=org_id)
+
+        assert exc_info.value.status_code == 500
+        assert 'Failed to generate new managed LLM API key' in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    @patch('storage.lite_llm_manager.LiteLlmManager.delete_key')
+    @patch('server.routes.api_keys.store_managed_llm_key_in_db')
+    @patch('server.routes.api_keys.generate_managed_llm_key')
+    @patch('storage.user_store.UserStore.get_user_by_id')
+    async def test_refresh_continues_when_old_key_delete_fails(
+        self, mock_get_user, mock_generate_key, mock_store_key, mock_delete_key
+    ):
+        user_id = 'user-123'
+        org_id = uuid.uuid4()
+        user, _member = self._user_with_member(org_id, key='sk-old-managed-key')
+        mock_get_user.return_value = user
+        mock_generate_key.return_value = 'sk-new-managed-key'
+        mock_store_key.return_value = None
+        mock_delete_key.side_effect = Exception('delete failed')
+
+        result = await refresh_managed_llm_api_key(
+            user_id=user_id, effective_org_id=org_id
+        )
+
+        assert result == ManagedLlmApiKeyRefreshResponse(refreshed=True)
+        mock_store_key.assert_called_once_with(user_id, org_id, 'sk-new-managed-key')
+        mock_delete_key.assert_called_once_with('sk-old-managed-key')
 
 
 class TestDeleteByorKeyFromLitellm:
