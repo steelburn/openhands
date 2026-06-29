@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import re
 from typing import Dict, Optional, Tuple
 from urllib.parse import urlparse
 
@@ -66,6 +67,12 @@ JIRA_DC_WEBHOOK_EVENTS = [
     'comment_deleted',
 ]
 
+# A Jira [~id] / [~accountid:id] mention token; captures the inner identifier.
+# {1,256} bounds the run so a long '[~[~...' body can't cause O(n^2) backtracking.
+_JIRA_MENTION_RE = re.compile(
+    r'\[~\s*(?:accountid:)?\s*([^\]\s]{1,256})\s*\]', re.IGNORECASE
+)
+
 
 def _extract_workspace_url(payload: Dict) -> str:
     """Return a Jira URL whose host identifies the configured workspace."""
@@ -106,19 +113,22 @@ def _extract_workspace_hosts(payload: Dict) -> set[str]:
     }
 
 
-def _comment_addresses_openhands(comment: str, bot_mentions: set[str] | None) -> bool:
-    # Literal @openhands always triggers (works even when the bot username can't
+def _comment_addresses_openhands(comment: str, bot_ids: set[str] | None) -> bool:
+    # Literal @openhands always triggers (works even when the bot identity can't
     # be resolved). Jira's mention picker serializes a real mention as wiki
-    # markup [~name]/[~key], so match those too once resolved.
+    # markup [~name]/[~key]/[~accountid:key]; match any token whose inner id is
+    # the bot, so we don't depend on which exact form the instance emits.
     if not comment:
         return False
     # Boundary-aware + case-insensitive: matches @OpenHands but not an email like
     # someone@openhands.dev (incl. the service account's own address).
     if has_exact_mention(comment, '@openhands'):
         return True
-    if bot_mentions:
-        lowered = comment.lower()
-        return any(token in lowered for token in bot_mentions)
+    if bot_ids:
+        return any(
+            m.group(1).strip().lower() in bot_ids
+            for m in _JIRA_MENTION_RE.finditer(comment)
+        )
     return False
 
 
@@ -129,8 +139,8 @@ class JiraDcManager(Manager[JiraDcViewInterface]):
         self.jinja_env = Environment(
             loader=FileSystemLoader(OPENHANDS_RESOLVER_TEMPLATES_DIR + 'jira_dc')
         )
-        # Bot mention tokens ([~name]/[~key]/...) per workspace.id, resolved
-        # lazily from /myself for matching picker mentions.
+        # Bot identifiers (username + Jira key) per workspace.id, resolved lazily
+        # from /myself for matching picker mentions.
         self._svc_mentions_cache: dict[int, set[str]] = {}
 
     async def authenticate_user(
@@ -216,7 +226,9 @@ class JiraDcManager(Manager[JiraDcViewInterface]):
                     repo_name, is_optional=True
                 )
             except Exception as e:
-                logger.debug(f'[Jira DC] Repo verification failed for {repo_name}: {e}')
+                # INFO (not DEBUG) so the reason is visible in support bundles;
+                # e carries the provider error incl. the attempted URL + status.
+                logger.info(f'[Jira DC] Repo verification failed for {repo_name}: {e}')
                 continue
             verified.setdefault(repo.full_name.lower(), repo)
         return list(verified.values())
@@ -378,7 +390,21 @@ class JiraDcManager(Manager[JiraDcViewInterface]):
         job_context = self.parse_webhook(payload, bot_mentions)
 
         if not job_context:
-            logger.info('[Jira DC] Webhook does not match trigger conditions')
+            # When a [~...] picker mention was present but didn't resolve to the
+            # bot, log a truncated body + the mention tokens to diagnose a
+            # format/identity mismatch. Gated + truncated because the webhook is
+            # instance-wide and comment bodies can hold sensitive content.
+            comment = (payload.get('comment') or {}).get('body', '') or ''
+            if payload.get('webhookEvent') == 'comment_created' and '[~' in comment:
+                logger.info(
+                    '[Jira DC] picker mention did not resolve to the bot '
+                    '(bot_ids_resolved=%s mention_tokens=%s) body=%r',
+                    bool(bot_mentions),
+                    _JIRA_MENTION_RE.findall(comment),
+                    comment[:500],
+                )
+            else:
+                logger.info('[Jira DC] Webhook does not match trigger conditions')
             return
 
         workspace = await self.integration_store.get_workspace_by_name(
@@ -507,6 +533,15 @@ class JiraDcManager(Manager[JiraDcViewInterface]):
                 else []
             )
 
+            # One INFO line that separates a parse miss (inferred=[]) from a
+            # lookup miss (inferred set, verified=[]) in support bundles.
+            logger.info(
+                '[Jira DC] repo resolution issue=%s inferred=%s verified=%s',
+                jira_dc_view.job_context.issue_key,
+                mentioned_repos,
+                [r.full_name for r in verified_repos],
+            )
+
             if len(verified_repos) == 1:
                 jira_dc_view.selected_repo = verified_repos[0].full_name
                 logger.info(
@@ -583,12 +618,13 @@ class JiraDcManager(Manager[JiraDcViewInterface]):
             logger.error(f'[Jira] Failed to send response message: {str(e)}')
 
     async def _resolve_service_account_mentions(self, payload: Dict) -> set[str] | None:
-        """Best-effort bot mention tokens ([~name]/[~key]) for a picker mention.
+        """Best-effort bot identifiers (username + Jira key) for a picker mention.
 
-        Gated so only wiki-markup mentions pay a lookup; literal @openhands and
-        non-comment payloads short-circuit. Cached per workspace; failures are not
-        cached, so a later comment re-attempts resolution (this event is dropped,
-        not retried).
+        Returns the ids a [~...] token can carry; _comment_addresses_openhands
+        matches a token's inner id against these. Gated so only wiki-markup
+        mentions pay a lookup; literal @openhands and non-comment payloads
+        short-circuit. Cached per workspace; failures are not cached, so a later
+        comment re-attempts resolution (this event is dropped, not retried).
         """
         comment = (payload.get('comment') or {}).get('body', '') or ''
         if has_exact_mention(comment, '@openhands') or '[~' not in comment:
@@ -613,18 +649,12 @@ class JiraDcManager(Manager[JiraDcViewInterface]):
             name, key = await self._fetch_service_account_identity(
                 base_api_url, service_account.api_key
             )
-            mentions = {
-                token.lower()
-                for token in (
-                    f'[~{name}]' if name else None,
-                    f'[~{key}]' if key else None,
-                    f'[~accountid:{key}]' if key else None,
-                )
-                if token
-            }
-            if mentions:
-                self._svc_mentions_cache[workspace.id] = mentions
-            return mentions or None
+            # Identifiers a [~...] token may carry (username or Jira key), so we
+            # match regardless of which form this instance/version emits.
+            ids = {v.lower() for v in (name, key) if v}
+            if ids:
+                self._svc_mentions_cache[workspace.id] = ids
+            return ids or None
         except Exception as e:
             logger.warning(f'[Jira DC] Could not resolve bot mentions: {str(e)}')
             return None

@@ -192,10 +192,12 @@ def infer_repo_from_message(user_msg: str) -> list[str]:
         r'https?://[a-zA-Z0-9.-]+(?::\d+)?/(?:projects|users)/'
         r'([a-zA-Z0-9_~.-]+)/repos/([a-zA-Z0-9_.-]+)'
     )
-    # Bitbucket Data Center clone URLs: /scm/<KEY>/<slug>(.git).
+    # Bitbucket Data Center clone URLs: /scm/<KEY>/<slug>(.git). Boundary is any
+    # non-slug char (not just /?#space) so a URL wrapped in Jira/markdown link
+    # markup -- [url] or [text|url] -- still terminates cleanly on ] or |.
     bitbucket_dc_scm_pattern = (
         r'https?://[a-zA-Z0-9.-]+(?::\d+)?/scm/'
-        r'([a-zA-Z0-9_~.-]+)/([a-zA-Z0-9_.-]+?)(?:\.git)?(?=[/?#\s]|$)'
+        r'([a-zA-Z0-9_~.-]+)/([a-zA-Z0-9_.-]+?)(?:\.git)?(?=[^a-zA-Z0-9_.~-]|$)'
     )
 
     # Generic Git host (cloud or self-hosted): github.com, a GitHub Enterprise
@@ -208,30 +210,37 @@ def infer_repo_from_message(user_msg: str) -> list[str]:
         r'(?:[/?#].*?)?(?=\s|$|[^\w.-])'
     )
 
-    # UPDATED: allow {{ owner/repo }} in addition to existing boundaries
+    # Direct 'owner/repo' mention. Right boundary also accepts ? ! ; and the
+    # Jira link pipe |, so a trailing question mark or a wiki-link wrapper does
+    # not drop an otherwise-valid mention. ({{ owner/repo }} stays supported.)
     direct_pattern = (
         r'(?:^|\s|{{|[\[\(\'":`])'  # left boundary
         r'([a-zA-Z0-9_.-]+)/([a-zA-Z0-9_.-]+)'
-        r'(?=\s|$|}}|[\]\)\'",.:`])'  # right boundary
+        r'(?=\s|$|}}|[\]\)\'",.:;!?`|])'  # right boundary
     )
+
+    def _clean(repo: str) -> str:
+        # Greedy captures keep trailing punctuation / .git; strip both.
+        return re.sub(r'\.git$', '', repo.rstrip('.,;:!?'))
 
     # Use dict to preserve ordering
     matches: dict[str, bool] = {}
 
     # Bitbucket Data Center URLs first (most specific layout)
     for owner, repo in re.findall(bitbucket_dc_web_pattern, normalized_msg):
-        matches[f'{owner}/{repo}'] = True
+        matches[f'{owner}/{_clean(repo)}'] = True
     for owner, repo in re.findall(bitbucket_dc_scm_pattern, normalized_msg):
-        repo = re.sub(r'\.git$', '', repo)
-        matches[f'{owner}/{repo}'] = True
+        matches[f'{owner}/{_clean(repo)}'] = True
 
     # Generic Git URLs next (highest priority among the standard layout)
     for owner, repo in re.findall(git_url_pattern, normalized_msg):
-        repo = re.sub(r'\.git$', '', repo)
-        matches[f'{owner}/{repo}'] = True
+        matches[f'{owner}/{_clean(repo)}'] = True
 
     # Direct mentions
     for owner, repo in re.findall(direct_pattern, normalized_msg):
+        repo = _clean(repo)
+        if not repo:
+            continue
         full_match = f'{owner}/{repo}'
 
         if (
