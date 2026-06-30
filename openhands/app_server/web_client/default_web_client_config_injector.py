@@ -130,7 +130,7 @@ def _get_email_enabled() -> bool:
         smtp_enabled = SMTPEmailService.is_configured()
 
     try:
-        from enterprise.server.services.email_service import EmailService
+        from server.services.email_service import EmailService
     except Exception:
         resend_enabled = bool(os.getenv('RESEND_API_KEY', '').strip())
     else:

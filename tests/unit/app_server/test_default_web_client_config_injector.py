@@ -762,7 +762,7 @@ class TestGetEmailEnabled:
                 return_value=True,
             ),
             patch(
-                'enterprise.server.services.email_service.EmailService.is_configured',
+                'server.services.email_service.EmailService.is_configured',
                 return_value=False,
             ),
         ):
@@ -780,7 +780,7 @@ class TestGetEmailEnabled:
                 return_value=False,
             ),
             patch(
-                'enterprise.server.services.email_service.EmailService.is_configured',
+                'server.services.email_service.EmailService.is_configured',
                 return_value=True,
             ),
         ):
@@ -798,7 +798,7 @@ class TestGetEmailEnabled:
                 return_value=False,
             ),
             patch(
-                'enterprise.server.services.email_service.EmailService.is_configured',
+                'server.services.email_service.EmailService.is_configured',
                 return_value=False,
             ),
         ):
