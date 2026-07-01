@@ -15,6 +15,20 @@ from typing import Any, AsyncIterator
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
+from pydantic import BaseModel, Field, ValidationError
+from server.constants import LITE_LLM_API_URL
+from server.routes.org_models import OrgNotFoundError
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from storage.agent_profile_resolution import (
+    OrgLLMProfileMutator,
+    load_agent_profiles,
+)
+from storage.database import a_session_maker
+from storage.org import Org
+from storage.org_member import OrgMember
+from storage.org_service import OrgService
+
 from openhands.app_server.settings.llm_profiles import (
     LLMProfiles,
     ProfileAlreadyExistsError,
@@ -34,20 +48,6 @@ from openhands.sdk.profiles import (
     rename_llm_profile,
 )
 from openhands.sdk.profiles.agent_profile_store import PROFILE_NAME_PATTERN
-from pydantic import BaseModel, Field, ValidationError
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from server.constants import LITE_LLM_API_URL
-from server.routes.org_models import OrgNotFoundError
-from storage.agent_profile_resolution import (
-    OrgLLMProfileMutator,
-    load_agent_profiles,
-)
-from storage.database import a_session_maker
-from storage.org import Org
-from storage.org_member import OrgMember
-from storage.org_service import OrgService
 
 from ..auth.authorization import Permission, require_permission
 
@@ -118,7 +118,9 @@ class RenameProfileRequest(BaseModel):
     helper, so it has no such requirement.
     """
 
-    new_name: str = Field(..., min_length=1, max_length=64, pattern=PROFILE_NAME_PATTERN)
+    new_name: str = Field(
+        ..., min_length=1, max_length=64, pattern=PROFILE_NAME_PATTERN
+    )
 
 
 # ── Helper Functions ────────────────────────────────────────────────────────

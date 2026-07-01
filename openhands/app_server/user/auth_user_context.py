@@ -47,9 +47,7 @@ class AuthUserContext(UserContext):
     ) -> UserInfo:
         if override_agent_profile_id is not None:
             user_id = await self.get_user_id()
-            settings = await self.user_auth.get_user_settings(
-                override_agent_profile_id
-            )
+            settings = await self.user_auth.get_user_settings(override_agent_profile_id)
             assert settings is not None
             return UserInfo(
                 id=user_id,

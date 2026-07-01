@@ -30,6 +30,24 @@ from typing import Annotated, Any, AsyncIterator
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
+from pydantic import BaseModel, Field, ValidationError
+from server.auth.authorization import Permission, require_permission
+from server.auth.org_context import EFFECTIVE_ORG_ID
+from server.routes.org_models import OrgNotFoundError
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+from storage.agent_profile_resolution import (
+    OrgLLMProfileLoader,
+    load_agent_profiles,
+    load_llm_profiles,
+    member_mcp_config,
+)
+from storage.database import a_session_maker
+from storage.org import Org
+from storage.org_member import OrgMember
+from storage.org_service import OrgService
+from storage.saas_settings_store import SaasSettingsStore
+
 from openhands.app_server.settings.agent_profiles import (
     MAX_AGENT_PROFILES,
     AgentProfiles,
@@ -47,24 +65,6 @@ from openhands.sdk.profiles import (
     validate_agent_profile,
 )
 from openhands.sdk.profiles.agent_profile_store import PROFILE_NAME_PATTERN
-from pydantic import BaseModel, Field, ValidationError
-from sqlalchemy import select, update
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from server.auth.authorization import Permission, require_permission
-from server.auth.org_context import EFFECTIVE_ORG_ID
-from server.routes.org_models import OrgNotFoundError
-from storage.agent_profile_resolution import (
-    OrgLLMProfileLoader,
-    load_agent_profiles,
-    load_llm_profiles,
-    member_mcp_config,
-)
-from storage.database import a_session_maker
-from storage.org import Org
-from storage.org_member import OrgMember
-from storage.org_service import OrgService
-from storage.saas_settings_store import SaasSettingsStore
 
 # ``Skill.mcp_tools`` env/headers are masked by ``sanitize_dict``
 # (openhands.sdk.utils.redact), which replaces every value under an
@@ -198,9 +198,7 @@ async def _agent_profiles_transaction(
         await session.commit()
 
 
-def _restore_masked_mcp_server(
-    new_server: Any, old_server: Any
-) -> tuple[Any, bool]:
+def _restore_masked_mcp_server(new_server: Any, old_server: Any) -> tuple[Any, bool]:
     """Restore an individual MCP server's masked ``env``/``headers`` from ``old``.
 
     Returns ``(server, changed)``. Only the masked mapping is replaced, so a

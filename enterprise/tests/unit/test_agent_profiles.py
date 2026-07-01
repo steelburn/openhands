@@ -12,6 +12,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
+from sqlalchemy import select
+from storage.org import Org
+from storage.org_member import OrgMember
+from storage.role import Role
+from storage.user import User
+
 from openhands.app_server.settings.agent_profiles import (
     MAX_AGENT_PROFILES,
     AgentProfiles,
@@ -24,12 +30,6 @@ from openhands.sdk.profiles import (
     OpenHandsAgentProfile,
     save_profile_preserving_identity,
 )
-from sqlalchemy import select
-
-from storage.org import Org
-from storage.org_member import OrgMember
-from storage.role import Role
-from storage.user import User
 
 # Mock the database module before importing the routers so module-level imports
 # don't touch a real engine (matches test_org_profiles.py).
@@ -342,9 +342,7 @@ class TestDeleteClearsAllMemberPointers:
         assert other_member.active_agent_profile_id == profile_id
 
         # The acting member deletes the profile.
-        await delete_agent_profile(
-            name='shared', effective_org_id=org_id, user_id=uid
-        )
+        await delete_agent_profile(name='shared', effective_org_id=org_id, user_id=uid)
 
         acting_member = await _read_member(async_session_maker, org_id, USER_ID)
         assert acting_member.active_agent_profile_id is None
