@@ -426,6 +426,68 @@ class TestMaskedMcpSecretRestore:
         assert 'server-b' in stored_servers, 'newly-added server must not be dropped'
         assert stored_servers['server-b']['env']['OTHER_KEY'] == 'brand-new-secret'
 
+    @pytest.mark.asyncio
+    async def test_duplicate_under_new_name_drops_unrestorable_mask(
+        self, async_session_maker, patch_agent_routes
+    ):
+        # Duplicate flow: canvas GETs a profile (masking mcp_tools) and re-saves
+        # it under a NEW name. There's no namesake to restore from, so the mask
+        # must be DROPPED rather than persisted as the literal '<redacted>'
+        # secret — mirroring the LLM '**********' sentinel the LLM model nulls.
+        org_id = patch_agent_routes
+        uid = str(USER_ID)
+        source_skill = {
+            'name': 'skill-a',
+            'content': 'do the thing',
+            'mcp_tools': {
+                'mcpServers': {
+                    'server-a': {
+                        'command': 'server-a-bin',
+                        'env': {'API_KEY': 'super-secret'},
+                    }
+                }
+            },
+        }
+        await save_agent_profile(
+            name='source',
+            body={'llm_profile_ref': 'Default', 'skills': [source_skill]},
+            effective_org_id=org_id,
+            user_id=uid,
+        )
+        # GET masks the secret; the client re-saves that payload under a new name.
+        detail = await get_agent_profile(
+            name='source', effective_org_id=org_id, user_id=uid
+        )
+        masked_skill = detail.profile.model_dump(mode='json')['skills'][0]
+        assert (
+            masked_skill['mcp_tools']['mcpServers']['server-a']['env']['API_KEY']
+            == '<redacted>'
+        )
+        await save_agent_profile(
+            name='source-copy',
+            body={'llm_profile_ref': 'Default', 'skills': [masked_skill]},
+            effective_org_id=org_id,
+            user_id=uid,
+        )
+
+        async with async_session_maker() as session:
+            org = (
+                (await session.execute(select(Org).where(Org.id == org_id)))
+                .scalars()
+                .first()
+            )
+        server = (
+            load_agent_profiles(org)
+            .load('source-copy')
+            .skills[0]
+            .mcp_tools['mcpServers']['server-a']
+        )
+        # The unrestorable masked entry is dropped; the now-empty env may be
+        # elided entirely by MCPConfig serialization — either way, no secret.
+        env = server.get('env', {})
+        assert '<redacted>' not in env.values(), 'mask must not persist as a secret'
+        assert 'API_KEY' not in env, 'unrestorable masked entry must be dropped'
+
 
 class TestAgentProfileRouterErrors:
     @pytest.mark.asyncio

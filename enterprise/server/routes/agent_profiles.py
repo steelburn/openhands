@@ -203,21 +203,33 @@ async def _agent_profiles_transaction(
 
 
 def _restore_masked_mcp_server(new_server: Any, old_server: Any) -> tuple[Any, bool]:
-    """Restore an individual MCP server's masked ``env``/``headers`` from ``old``.
+    """Reconcile one MCP server's masked ``env``/``headers`` before persisting.
 
-    Returns ``(server, changed)``. Only the masked mapping is replaced, so a
-    server that carries the GET-time mask is repaired without touching any
-    sibling server (including ones newly added in the same save).
+    Returns ``(server, changed)``. Per masked entry: restore it from the stored
+    namesake server when one exists (the Edit round-trip), else drop it — a
+    ``<redacted>`` mask with nothing to restore from (e.g. a Duplicate saved
+    under a new name) must never persist as a literal secret. Real values the
+    client sent alongside the mask are kept. This mirrors the LLM ``**********``
+    sentinel, which the LLM model nullifies to ``None``.
     """
-    if not isinstance(new_server, dict) or not isinstance(old_server, dict):
+    if not isinstance(new_server, dict):
         return new_server, False
+    old = old_server if isinstance(old_server, dict) else {}
     updates: dict[str, Any] = {}
     for key in ('env', 'headers'):
         mapping = new_server.get(key)
-        if isinstance(mapping, dict) and MCP_REDACTED_VALUE in mapping.values():
-            old_mapping = old_server.get(key)
-            if isinstance(old_mapping, dict):
-                updates[key] = old_mapping
+        if not isinstance(mapping, dict) or MCP_REDACTED_VALUE not in mapping.values():
+            continue
+        old_mapping = old.get(key)
+        old_mapping = old_mapping if isinstance(old_mapping, dict) else {}
+        rebuilt: dict[str, Any] = {}
+        for k, v in mapping.items():
+            if v != MCP_REDACTED_VALUE:
+                rebuilt[k] = v  # real value the client sent — keep
+            elif k in old_mapping:
+                rebuilt[k] = old_mapping[k]  # restore from the stored namesake
+            # else: masked with nothing to restore — drop it
+        updates[key] = rebuilt
     if not updates:
         return new_server, False
     return {**new_server, **updates}, True
@@ -227,32 +239,38 @@ def _restore_masked_skill_secrets(
     new_profile: OpenHandsAgentProfile | ACPAgentProfile,
     existing: OpenHandsAgentProfile | ACPAgentProfile | None,
 ) -> OpenHandsAgentProfile | ACPAgentProfile:
-    """Keep stored ``skills[].mcp_tools`` secrets when a save posts back the mask.
+    """Reconcile masked ``skills[].mcp_tools`` secrets before a save persists them.
 
     GET masks ``mcp_tools`` env/headers (the API never returns raw secrets); a
-    client that edits a fetched profile and POSTs it back would otherwise persist
-    the ``**********`` sentinel and destroy the secret. For each MCP server that
-    still carries the mask, restore just that server's ``env``/``headers`` from
-    the stored namesake — sibling servers (including ones newly added in this
-    same save) are left untouched — the agent-profile analogue of
-    ``org_profiles``' ``preserve_existing_api_key``.
+    client that round-trips a fetched profile would otherwise persist the
+    ``<redacted>`` sentinel as a literal secret. Per masked value: restore it
+    from the stored namesake skill+server when one exists (Edit — the
+    agent-profile analogue of ``org_profiles``' ``preserve_existing_api_key``),
+    else drop it (a Duplicate/create under a *new* name has no namesake, so the
+    mask degrades to an empty secret instead of corrupting one — mirroring the
+    LLM ``**********`` sentinel the LLM model nullifies to ``None``). Sibling
+    servers, and real values the client sent, are left untouched.
     """
-    if not isinstance(new_profile, OpenHandsAgentProfile) or not isinstance(
-        existing, OpenHandsAgentProfile
-    ):
+    if not isinstance(new_profile, OpenHandsAgentProfile):
         return new_profile
-    existing_by_name = {s.name: s for s in existing.skills}
+    existing_by_name = (
+        {s.name: s for s in existing.skills}
+        if isinstance(existing, OpenHandsAgentProfile)
+        else {}
+    )
     profile_changed = False
     new_skills = []
     for skill in new_profile.skills:
-        old = existing_by_name.get(skill.name)
         new_servers = (skill.mcp_tools or {}).get('mcpServers')
+        if not isinstance(new_servers, dict):
+            new_skills.append(skill)
+            continue
+        old = existing_by_name.get(skill.name)
         old_servers = (old.mcp_tools if old is not None and old.mcp_tools else {}).get(
             'mcpServers'
         )
-        if not isinstance(new_servers, dict) or not isinstance(old_servers, dict):
-            new_skills.append(skill)
-            continue
+        if not isinstance(old_servers, dict):
+            old_servers = {}
         skill_changed = False
         restored_servers = {}
         for server_name, server in new_servers.items():
@@ -264,7 +282,7 @@ def _restore_masked_skill_secrets(
         if not skill_changed:
             new_skills.append(skill)
             continue
-        new_mcp_tools = {**skill.mcp_tools, 'mcpServers': restored_servers}
+        new_mcp_tools = {**(skill.mcp_tools or {}), 'mcpServers': restored_servers}
         new_skills.append(skill.model_copy(update={'mcp_tools': new_mcp_tools}))
         profile_changed = True
     if not profile_changed:
