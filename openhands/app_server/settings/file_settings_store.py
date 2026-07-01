@@ -14,7 +14,9 @@ class FileSettingsStore(SettingsStore):
     file_store: FileStore
     path: str = 'settings.json'
 
-    async def load(self) -> Settings | None:
+    async def load(self, override_agent_profile_id: str | None = None) -> Settings | None:
+        # No Agent Profile concept in the local file store; nothing to override.
+        del override_agent_profile_id
         try:
             json_str = await call_sync_from_async(self.file_store.read, self.path)
             kwargs = json.loads(json_str)

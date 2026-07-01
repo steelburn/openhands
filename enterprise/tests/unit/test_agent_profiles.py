@@ -12,12 +12,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi import HTTPException
-from sqlalchemy import select
-from storage.org import Org
-from storage.org_member import OrgMember
-from storage.role import Role
-from storage.user import User
-
 from openhands.app_server.settings.agent_profiles import (
     MAX_AGENT_PROFILES,
     AgentProfiles,
@@ -30,6 +24,12 @@ from openhands.sdk.profiles import (
     OpenHandsAgentProfile,
     save_profile_preserving_identity,
 )
+from sqlalchemy import select
+
+from storage.org import Org
+from storage.org_member import OrgMember
+from storage.role import Role
+from storage.user import User
 
 # Mock the database module before importing the routers so module-level imports
 # don't touch a real engine (matches test_org_profiles.py).
@@ -288,6 +288,144 @@ class TestAgentProfileRouterLifecycle:
         assert load_agent_profiles(org).list_summaries() == []
 
 
+class TestDeleteClearsAllMemberPointers:
+    """Deleting a profile must clear every org member's pointer to it, not
+    just the acting member's (activation is per-member)."""
+
+    @pytest.mark.asyncio
+    async def test_delete_clears_other_members_active_pointer(
+        self, async_session_maker, patch_agent_routes
+    ):
+        org_id = patch_agent_routes
+        uid = str(USER_ID)
+        other_user_id = uuid.UUID('6694c7b6-f959-4b81-92e9-b09c206f5099')
+
+        async with async_session_maker() as session:
+            session.add(
+                User(
+                    id=other_user_id,
+                    current_org_id=org_id,
+                    user_consents_to_analytics=True,
+                )
+            )
+            session.add(
+                OrgMember(
+                    org_id=org_id,
+                    user_id=other_user_id,
+                    role_id=20,
+                    llm_api_key='other-initial-key',
+                    agent_settings_diff={},
+                    conversation_settings_diff={},
+                    status='active',
+                )
+            )
+            await session.commit()
+
+        await save_agent_profile(
+            name='shared',
+            body={'llm_profile_ref': 'Default'},
+            effective_org_id=org_id,
+            user_id=uid,
+        )
+        listing = await list_agent_profiles(effective_org_id=org_id, user_id=uid)
+        profile_id = listing.profiles[0].id
+        assert profile_id is not None
+
+        # Both members activate the same profile independently.
+        await activate_agent_profile(
+            profile_id=profile_id, effective_org_id=org_id, user_id=uid
+        )
+        await activate_agent_profile(
+            profile_id=profile_id, effective_org_id=org_id, user_id=str(other_user_id)
+        )
+        other_member = await _read_member(async_session_maker, org_id, other_user_id)
+        assert other_member.active_agent_profile_id == profile_id
+
+        # The acting member deletes the profile.
+        await delete_agent_profile(
+            name='shared', effective_org_id=org_id, user_id=uid
+        )
+
+        acting_member = await _read_member(async_session_maker, org_id, USER_ID)
+        assert acting_member.active_agent_profile_id is None
+        other_member = await _read_member(async_session_maker, org_id, other_user_id)
+        assert other_member.active_agent_profile_id is None, (
+            "other member's pointer must be cleared too"
+        )
+
+
+class TestMaskedMcpSecretRestore:
+    """A save that posts back a masked mcp_tools secret must not drop a
+    sibling MCP server added in that same request (finding: wholesale skill
+    mcp_tools revert instead of a per-server restore)."""
+
+    @pytest.mark.asyncio
+    async def test_new_server_survives_save_alongside_masked_server(
+        self, async_session_maker, patch_agent_routes
+    ):
+        org_id = patch_agent_routes
+        uid = str(USER_ID)
+        skill_body = {
+            'name': 'skill-a',
+            'content': 'do the thing',
+            'mcp_tools': {
+                'mcpServers': {
+                    'server-a': {
+                        'command': 'server-a-bin',
+                        'env': {'API_KEY': 'super-secret'},
+                    }
+                }
+            },
+        }
+        await save_agent_profile(
+            name='with-mcp',
+            body={'llm_profile_ref': 'Default', 'skills': [skill_body]},
+            effective_org_id=org_id,
+            user_id=uid,
+        )
+
+        # GET masks server-a's secret with the mcp_tools-specific sentinel
+        # ("<redacted>" — NOT the SecretStr "**********" sentinel).
+        detail = await get_agent_profile(
+            name='with-mcp', effective_org_id=org_id, user_id=uid
+        )
+        fetched_skill = detail.profile['skills'][0]
+        assert (
+            fetched_skill['mcp_tools']['mcpServers']['server-a']['env']['API_KEY']
+            == '<redacted>'
+        )
+
+        # Client adds a brand-new, unmasked server alongside the masked one.
+        fetched_skill['mcp_tools']['mcpServers']['server-b'] = {
+            'command': 'server-b-bin',
+            'env': {'OTHER_KEY': 'brand-new-secret'},
+        }
+        await save_agent_profile(
+            name='with-mcp',
+            body={
+                'llm_profile_ref': 'Default',
+                'skills': [fetched_skill],
+            },
+            effective_org_id=org_id,
+            user_id=uid,
+        )
+
+        # Inspect the stored domain object directly (real values, not the
+        # GET-time mask) to confirm both the restored original secret and
+        # the newly-added server's secret actually persisted.
+        async with async_session_maker() as session:
+            org = (
+                (await session.execute(select(Org).where(Org.id == org_id)))
+                .scalars()
+                .first()
+            )
+        stored = load_agent_profiles(org).load('with-mcp')
+        stored_servers = stored.skills[0].mcp_tools['mcpServers']
+        assert stored_servers['server-a']['env']['API_KEY'] == 'super-secret'
+        assert 'server-b' in stored_servers, 'newly-added server must not be dropped'
+        assert stored_servers['server-b']['env']['OTHER_KEY'] == 'brand-new-secret'
+
+
 class TestAgentProfileRouterErrors:
     @pytest.mark.asyncio
     async def test_get_missing_404(self, patch_agent_routes):
@@ -389,6 +527,39 @@ class TestLazySeedMigration:
         assert listing.active_agent_profile_id == listing.profiles[0].id
         member = await _read_member(async_session_maker, org_id, USER_ID)
         assert member.active_agent_profile_id == listing.profiles[0].id
+
+    @pytest.mark.asyncio
+    async def test_list_reflects_concurrently_seeded_profile_on_race_loss(
+        self, async_session_maker, patch_agent_routes
+    ):
+        """If this request loses the double-checked seed race,
+        list_agent_profiles must still return the profile a concurrent
+        request just seeded, not a stale pre-seed empty snapshot."""
+        org_id = patch_agent_routes
+        uid = str(USER_ID)
+
+        store = AgentProfiles()
+        winner_profile = save_profile_preserving_identity(
+            store, OpenHandsAgentProfile(name='default', llm_profile_ref='Default')
+        )
+
+        # The initial read (top of list_agent_profiles) sees an empty store,
+        # so it enters the seed branch. Only once _seed_default_agent_profile
+        # is actually invoked does a "concurrent" request's seed land on the
+        # org row — simulating the double-check losing the race — and this
+        # fake returns None just like the real losing branch does.
+        async def _lost_the_race(org_id, user_id):  # noqa: ARG001
+            await _set_agent_profiles(async_session_maker, org_id, store)
+            return None
+
+        with patch(
+            'server.routes.agent_profiles._seed_default_agent_profile',
+            new=AsyncMock(side_effect=_lost_the_race),
+        ):
+            listing = await list_agent_profiles(effective_org_id=org_id, user_id=uid)
+
+        assert [p.name for p in listing.profiles] == ['default']
+        assert listing.profiles[0].id == str(winner_profile.id)
 
 
 # ── FK guard wired into the LLM-profile router ─────────────────────────────
@@ -528,3 +699,81 @@ class TestResolveActiveAgentProfile:
         assert dump['agent_kind'] == 'openhands'
         # The resolved LLM came from the referenced org LLM profile.
         assert dump['llm']['model'] == 'gpt-4o'
+
+    def test_override_id_wins_over_member_pointer(self):
+        store = self._store()
+        org, pid = self._org_with(
+            OpenHandsAgentProfile(name='reviewer', llm_profile_ref='Default')
+        )
+        member = MagicMock(spec=OrgMember)
+        member.active_agent_profile_id = None  # no ambient pointer at all
+
+        result = store._resolve_active_agent_profile(
+            org, member, {}, None, override_agent_profile_id=pid
+        )
+        assert result is not None
+        _dump, resolved_id, _revision = result
+        assert resolved_id == pid
+
+    def test_override_id_does_not_mutate_member_pointer(self):
+        store = self._store()
+        org, pid = self._org_with(
+            OpenHandsAgentProfile(name='reviewer', llm_profile_ref='Default')
+        )
+        member = MagicMock(spec=OrgMember)
+        member.active_agent_profile_id = None
+
+        store._resolve_active_agent_profile(
+            org, member, {}, None, override_agent_profile_id=pid
+        )
+        # The override must never be written back to the member's own pointer.
+        assert member.active_agent_profile_id is None
+
+    @pytest.mark.asyncio
+    async def test_load_override_resolves_without_persisting_pointer(
+        self, async_session_maker, patch_agent_routes
+    ):
+        """Loading with an explicit override_agent_profile_id resolves that
+        profile's settings and stamps its id as provenance, but leaves
+        org_member.active_agent_profile_id untouched in the database — the
+        one-off launch override must never persist as the new default."""
+        org_id = patch_agent_routes
+        uid = str(USER_ID)
+
+        await save_agent_profile(
+            name='reviewer',
+            body={'llm_profile_ref': 'Default'},
+            effective_org_id=org_id,
+            user_id=uid,
+        )
+        listing = await list_agent_profiles(effective_org_id=org_id, user_id=uid)
+        override_id = listing.profiles[0].id
+        assert override_id is not None
+        # The member has NO active pointer at all — the ambient default path
+        # would return composed settings, not this profile.
+        member_before = await _read_member(async_session_maker, org_id, USER_ID)
+        assert member_before.active_agent_profile_id is None
+
+        # Settings.enable_sound_notifications is non-nullable but the User
+        # column defaults to NULL; seeded_org doesn't set it since no other
+        # test in this file exercises a full load().
+        async with async_session_maker() as session:
+            user = await session.get(User, USER_ID)
+            user.enable_sound_notifications = True
+            await session.commit()
+
+        from storage.saas_settings_store import SaasSettingsStore
+
+        with (
+            patch('storage.saas_settings_store.a_session_maker', async_session_maker),
+            patch('storage.user_store.a_session_maker', async_session_maker),
+            patch('storage.org_store.a_session_maker', async_session_maker),
+        ):
+            store = SaasSettingsStore(uid, effective_org_id=org_id)
+            settings = await store.load(override_agent_profile_id=override_id)
+
+        assert settings is not None
+        assert settings.active_agent_profile_id == override_id
+
+        member_after = await _read_member(async_session_maker, org_id, USER_ID)
+        assert member_after.active_agent_profile_id is None

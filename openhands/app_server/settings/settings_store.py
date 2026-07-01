@@ -20,8 +20,13 @@ class SettingsStore(ABC):
     """
 
     @abstractmethod
-    async def load(self) -> Settings | None:
-        """Load session init data."""
+    async def load(self, override_agent_profile_id: str | None = None) -> Settings | None:
+        """Load session init data.
+
+        ``override_agent_profile_id`` is an optional one-off launch override
+        for the active Agent Profile (cloud-only concept); implementations
+        without that concept ignore it.
+        """
 
     @abstractmethod
     async def store(self, settings: Settings) -> None:

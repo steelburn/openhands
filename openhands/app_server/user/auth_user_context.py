@@ -42,7 +42,19 @@ class AuthUserContext(UserContext):
     async def get_user_email(self) -> str | None:
         return await self.user_auth.get_user_email()
 
-    async def get_user_info(self) -> UserInfo:
+    async def get_user_info(
+        self, override_agent_profile_id: str | None = None
+    ) -> UserInfo:
+        if override_agent_profile_id is not None:
+            user_id = await self.get_user_id()
+            settings = await self.user_auth.get_user_settings(
+                override_agent_profile_id
+            )
+            assert settings is not None
+            return UserInfo(
+                id=user_id,
+                **settings.model_dump(context={'expose_secrets': True}),
+            )
         user_info = self._user_info
         if user_info is None:
             user_id = await self.get_user_id()

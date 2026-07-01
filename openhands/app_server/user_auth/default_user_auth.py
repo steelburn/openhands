@@ -52,7 +52,12 @@ class DefaultUserAuth(UserAuth):
         self._settings_store = settings_store
         return settings_store
 
-    async def get_user_settings(self) -> Settings | None:
+    async def get_user_settings(
+        self, override_agent_profile_id: str | None = None
+    ) -> Settings | None:
+        if override_agent_profile_id is not None:
+            settings_store = await self.get_user_settings_store()
+            return await settings_store.load(override_agent_profile_id)
         settings = self._settings
         if settings:
             return settings

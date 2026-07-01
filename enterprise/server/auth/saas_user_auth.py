@@ -415,7 +415,16 @@ class SaasUserAuth(UserAuth):
     def get_auth_type(self) -> AuthType | None:
         return self.auth_type
 
-    async def get_user_settings(self) -> Settings | None:
+    async def get_user_settings(
+        self, override_agent_profile_id: str | None = None
+    ) -> Settings | None:
+        if override_agent_profile_id is not None:
+            settings_store = await self.get_user_settings_store()
+            settings = await settings_store.load(override_agent_profile_id)
+            if settings:
+                settings.email = await self.get_user_email()
+                settings.email_verified = self.email_verified
+            return settings
         settings = self._settings
         if settings:
             return settings

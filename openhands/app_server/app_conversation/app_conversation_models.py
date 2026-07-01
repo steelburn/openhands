@@ -1,10 +1,9 @@
-import re
 from datetime import datetime
 from enum import Enum
 from typing import Any, Literal
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field, SecretStr, computed_field, field_serializer
+from pydantic import BaseModel, Field, SecretStr, computed_field
 
 from openhands.agent_server.models import (
     ImageContent,
@@ -62,16 +61,6 @@ class ConversationTrigger(Enum):
     AUTOMATION = 'automation'
 
 
-def _redact_url_credentials(url: str) -> str:
-    """Redact embedded credentials from a URL (https://user:token@host → https://****@host).
-
-    # TODO: replace with `from openhands.sdk.utils.redact import redact_url_credentials`
-    # once the SDK pin is bumped to include OpenHands/software-agent-sdk#2154.
-    """
-    m = re.match(r'^(https?://)([^@/]+)@(.+)$', url)
-    return f'{m.group(1)}****@{m.group(3)}' if m else url
-
-
 class AgentType(Enum):
     """Agent type for conversation."""
 
@@ -90,11 +79,6 @@ class PluginSpec(PluginSource):
         default=None,
         description='User-provided values for plugin input parameters',
     )
-
-    @field_serializer('source')
-    @classmethod
-    def _serialize_source(cls, source: str) -> str:
-        return _redact_url_credentials(source)
 
     @property
     def display_name(self) -> str:
@@ -248,10 +232,9 @@ class AppConversationStartRequest(OpenHandsModel):
     system_message_suffix: str | None = None
     processors: list[EventCallbackProcessor] | None = Field(default=None)
     llm_model: str | None = None
-    # Launch this conversation from a specific Agent Profile (by stable id),
-    # overriding the member's active pointer for this one conversation. Mutually
-    # exclusive with explicit agent_settings. Canvas defaults this to the active
-    # profile id; the provenance is stamped as ``launched_agent_profile``.
+    # One-off launch override: run THIS conversation from a specific Agent
+    # Profile (by id) without changing the member's active pointer. When unset,
+    # the member's active_agent_profile_id is used.
     agent_profile_id: str | None = None
 
     # Git parameters

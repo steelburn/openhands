@@ -66,8 +66,20 @@ class UserAuth(ABC):
     async def get_user_settings_store(self) -> SettingsStore:
         """Get the settings store for the current user."""
 
-    async def get_user_settings(self) -> Settings | None:
-        """Get the user settings for the current user"""
+    async def get_user_settings(
+        self, override_agent_profile_id: str | None = None
+    ) -> Settings | None:
+        """Get the user settings for the current user.
+
+        ``override_agent_profile_id`` is a one-off launch override (e.g. a
+        per-conversation-start request) and bypasses the ``_settings`` cache
+        in both directions: it never reads a previously-cached plain load,
+        and its own result is never cached, so a later uncached call still
+        gets the member's ordinary ambient settings.
+        """
+        if override_agent_profile_id is not None:
+            settings_store = await self.get_user_settings_store()
+            return await settings_store.load(override_agent_profile_id)
         settings = self._settings
         if settings:
             return settings

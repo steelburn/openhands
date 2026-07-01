@@ -38,8 +38,15 @@ class UserContext(ABC):
         """
 
     @abstractmethod
-    async def get_user_info(self) -> UserInfo:
-        """Get the user info."""
+    async def get_user_info(
+        self, override_agent_profile_id: str | None = None
+    ) -> UserInfo:
+        """Get the user info.
+
+        ``override_agent_profile_id`` is a one-off launch override for the
+        active Agent Profile (cloud-only concept); implementations without
+        that concept ignore it.
+        """
 
     @abstractmethod
     async def get_authenticated_git_url(

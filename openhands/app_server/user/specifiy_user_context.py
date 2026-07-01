@@ -22,7 +22,9 @@ class SpecifyUserContext(UserContext):
     async def get_user_email(self) -> str | None:
         return None
 
-    async def get_user_info(self) -> UserInfo:
+    async def get_user_info(
+        self, override_agent_profile_id: str | None = None
+    ) -> UserInfo:
         raise NotImplementedError()
 
     async def get_authenticated_git_url(

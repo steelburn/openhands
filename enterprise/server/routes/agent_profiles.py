@@ -30,24 +30,6 @@ from typing import Annotated, Any, AsyncIterator
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
-from pydantic import BaseModel, Field, ValidationError
-from server.auth.authorization import Permission, require_permission
-from server.auth.org_context import EFFECTIVE_ORG_ID
-from server.routes.org_models import OrgNotFoundError
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from storage.agent_profile_resolution import (
-    OrgLLMProfileLoader,
-    load_agent_profiles,
-    load_llm_profiles,
-    member_mcp_config,
-)
-from storage.database import a_session_maker
-from storage.org import Org
-from storage.org_member import OrgMember
-from storage.org_service import OrgService
-from storage.saas_settings_store import SaasSettingsStore
-
 from openhands.app_server.settings.agent_profiles import (
     MAX_AGENT_PROFILES,
     AgentProfiles,
@@ -65,7 +47,33 @@ from openhands.sdk.profiles import (
     validate_agent_profile,
 )
 from openhands.sdk.profiles.agent_profile_store import PROFILE_NAME_PATTERN
-from openhands.sdk.utils.pydantic_secrets import REDACTED_SECRET_VALUE
+from pydantic import BaseModel, Field, ValidationError
+from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from server.auth.authorization import Permission, require_permission
+from server.auth.org_context import EFFECTIVE_ORG_ID
+from server.routes.org_models import OrgNotFoundError
+from storage.agent_profile_resolution import (
+    OrgLLMProfileLoader,
+    load_agent_profiles,
+    load_llm_profiles,
+    member_mcp_config,
+)
+from storage.database import a_session_maker
+from storage.org import Org
+from storage.org_member import OrgMember
+from storage.org_service import OrgService
+from storage.saas_settings_store import SaasSettingsStore
+
+# ``Skill.mcp_tools`` env/headers are masked by ``sanitize_dict``
+# (openhands.sdk.utils.redact), which replaces every value under an
+# ``env``/``headers`` key with the literal ``"<redacted>"`` — NOT the
+# ``REDACTED_SECRET_VALUE`` ("**********") sentinel used for SecretStr-typed
+# fields like the LLM api_key. There is no public constant for this
+# mcp_tools-specific sentinel to import, so it is duplicated here; keep in
+# sync with ``_redact_all_values`` in the SDK.
+MCP_REDACTED_VALUE = '<redacted>'
 
 router = APIRouter(prefix='/api/agent-profiles', tags=['Agent Profiles'])
 
@@ -140,6 +148,21 @@ async def _get_member(
     return result.scalars().first()
 
 
+async def _get_org_and_member(
+    org_id: UUID, user_id: str
+) -> tuple[Org, OrgMember | None]:
+    """Fetch the org (raising 404 if missing) and the acting member's row.
+
+    The member is read in its own short-lived session — matches the org read,
+    which resolves through ``OrgService.get_org_by_id`` rather than this
+    module's session directly.
+    """
+    org = await _get_org(org_id, user_id)
+    async with a_session_maker() as session:
+        member = await _get_member(session, org_id, user_id)
+    return org, member
+
+
 @contextlib.asynccontextmanager
 async def _agent_profiles_transaction(
     org_id: UUID, user_id: str
@@ -175,18 +198,27 @@ async def _agent_profiles_transaction(
         await session.commit()
 
 
-def _has_redacted_mcp_secret(mcp_tools: dict[str, Any]) -> bool:
-    servers = mcp_tools.get('mcpServers')
-    if not isinstance(servers, dict):
-        return False
-    for server in servers.values():
-        if not isinstance(server, dict):
-            continue
-        for key in ('env', 'headers'):
-            mapping = server.get(key)
-            if isinstance(mapping, dict) and REDACTED_SECRET_VALUE in mapping.values():
-                return True
-    return False
+def _restore_masked_mcp_server(
+    new_server: Any, old_server: Any
+) -> tuple[Any, bool]:
+    """Restore an individual MCP server's masked ``env``/``headers`` from ``old``.
+
+    Returns ``(server, changed)``. Only the masked mapping is replaced, so a
+    server that carries the GET-time mask is repaired without touching any
+    sibling server (including ones newly added in the same save).
+    """
+    if not isinstance(new_server, dict) or not isinstance(old_server, dict):
+        return new_server, False
+    updates: dict[str, Any] = {}
+    for key in ('env', 'headers'):
+        mapping = new_server.get(key)
+        if isinstance(mapping, dict) and MCP_REDACTED_VALUE in mapping.values():
+            old_mapping = old_server.get(key)
+            if isinstance(old_mapping, dict):
+                updates[key] = old_mapping
+    if not updates:
+        return new_server, False
+    return {**new_server, **updates}, True
 
 
 def _restore_masked_skill_secrets(
@@ -197,9 +229,10 @@ def _restore_masked_skill_secrets(
 
     GET masks ``mcp_tools`` env/headers (the API never returns raw secrets); a
     client that edits a fetched profile and POSTs it back would otherwise persist
-    the ``**********`` sentinel and destroy the secret. When any value in a
-    skill's ``mcp_tools`` is the mask, restore that skill's ``mcp_tools`` wholesale
-    from the stored namesake — the agent-profile analogue of
+    the ``**********`` sentinel and destroy the secret. For each MCP server that
+    still carries the mask, restore just that server's ``env``/``headers`` from
+    the stored namesake — sibling servers (including ones newly added in this
+    same save) are left untouched — the agent-profile analogue of
     ``org_profiles``' ``preserve_existing_api_key``.
     """
     if not isinstance(new_profile, OpenHandsAgentProfile) or not isinstance(
@@ -207,21 +240,32 @@ def _restore_masked_skill_secrets(
     ):
         return new_profile
     existing_by_name = {s.name: s for s in existing.skills}
-    changed = False
+    profile_changed = False
     new_skills = []
     for skill in new_profile.skills:
         old = existing_by_name.get(skill.name)
-        if (
-            skill.mcp_tools
-            and _has_redacted_mcp_secret(skill.mcp_tools)
-            and old is not None
-            and old.mcp_tools
-        ):
-            new_skills.append(skill.model_copy(update={'mcp_tools': old.mcp_tools}))
-            changed = True
-        else:
+        new_servers = (skill.mcp_tools or {}).get('mcpServers')
+        old_servers = (old.mcp_tools if old is not None and old.mcp_tools else {}).get(
+            'mcpServers'
+        )
+        if not isinstance(new_servers, dict) or not isinstance(old_servers, dict):
             new_skills.append(skill)
-    if not changed:
+            continue
+        skill_changed = False
+        restored_servers = {}
+        for server_name, server in new_servers.items():
+            restored, server_changed = _restore_masked_mcp_server(
+                server, old_servers.get(server_name)
+            )
+            restored_servers[server_name] = restored
+            skill_changed = skill_changed or server_changed
+        if not skill_changed:
+            new_skills.append(skill)
+            continue
+        new_mcp_tools = {**skill.mcp_tools, 'mcpServers': restored_servers}
+        new_skills.append(skill.model_copy(update={'mcp_tools': new_mcp_tools}))
+        profile_changed = True
+    if not profile_changed:
         return new_profile
     return new_profile.model_copy(update={'skills': new_skills})
 
@@ -272,18 +316,20 @@ async def list_agent_profiles(
     seeds one default profile from the org's current ``agent_settings`` and
     points the member at it (the one-time migration; #15044 §8).
     """
-    org = await _get_org(effective_org_id, user_id)
+    org, member = await _get_org_and_member(effective_org_id, user_id)
     profiles = load_agent_profiles(org)
-    async with a_session_maker() as session:
-        member = await _get_member(session, effective_org_id, user_id)
     member_active = member.active_agent_profile_id if member is not None else None
     active_id = member_active or profiles.active
 
     if not profiles.list() and active_id is None:
         seeded_id = await _seed_default_agent_profile(effective_org_id, user_id)
+        # Refresh unconditionally: even when this request lost the seed race
+        # (seeded_id is None), a concurrent request may have already seeded
+        # the org-wide list, and this response must reflect it rather than
+        # the pre-seed snapshot taken above.
+        org = await _get_org(effective_org_id, user_id)
+        profiles = load_agent_profiles(org)
         if seeded_id is not None:
-            org = await _get_org(effective_org_id, user_id)
-            profiles = load_agent_profiles(org)
             active_id = seeded_id
 
     return AgentProfileListResponse(
@@ -382,7 +428,7 @@ async def delete_agent_profile(
     effective_org_id: UUID = EFFECTIVE_ORG_ID,
     user_id: str = Depends(require_permission(Permission.EDIT_ORG_SETTINGS)),
 ) -> AgentProfileMutationResponse:
-    """Delete a profile. Clears the acting member's active pointer if it matched."""
+    """Delete a profile. Clears every org member's active pointer if it matched."""
     async with _agent_profiles_transaction(effective_org_id, user_id) as (
         session,
         _org,
@@ -397,9 +443,17 @@ async def delete_agent_profile(
             )
         deleted_id = str(deleted.id)
         profiles.delete(name)
-        member = await _get_member(session, effective_org_id, user_id)
-        if member is not None and member.active_agent_profile_id == deleted_id:
-            member.active_agent_profile_id = None
+        # Clear the pointer for every member who had this profile active, not
+        # just the acting member — activation is per-member, so any other
+        # member could be pointing at the now-deleted id.
+        await session.execute(
+            update(OrgMember)
+            .where(
+                OrgMember.org_id == effective_org_id,
+                OrgMember.active_agent_profile_id == deleted_id,
+            )
+            .values(active_agent_profile_id=None)
+        )
 
     logger.info("Deleted agent profile '%s' for org %s", name, effective_org_id)
     return AgentProfileMutationResponse(
@@ -495,7 +549,7 @@ async def materialize_agent_profile(
     only error status is 404 (unknown profile name). ``resolved_settings`` is
     redacted. Delegates entirely to ``resolve_agent_profile_dry_run``.
     """
-    org = await _get_org(effective_org_id, user_id)
+    org, member = await _get_org_and_member(effective_org_id, user_id)
     profiles = load_agent_profiles(org)
     try:
         profile = profiles.load(name)
@@ -505,8 +559,6 @@ async def materialize_agent_profile(
             detail=f"Agent profile '{name}' not found",
         )
 
-    async with a_session_maker() as session:
-        member = await _get_member(session, effective_org_id, user_id)
     mcp_config = member_mcp_config(member) if member is not None else None
     llm_store = OrgLLMProfileLoader(load_llm_profiles(org))
 

@@ -6,13 +6,31 @@ from typing import Any
 from uuid import UUID
 
 from fastmcp.mcp_config import MCPConfig
+from openhands.app_server.settings.llm_profiles import LLMProfiles, resolve_profile_llm
+from openhands.app_server.settings.settings_models import Settings
+from openhands.app_server.settings.settings_store import SettingsStore
+from openhands.app_server.utils.jsonpatch_compat import (
+    WHOLESALE_REPLACEMENT_KEYS,
+    deep_merge,
+    deep_merge_with_wholesale_keys,
+)
+from openhands.app_server.utils.llm import is_openhands_model
+from openhands.sdk.llm.utils.openhands_provider import (
+    canonicalize_openhands_llm_payload,
+)
+from openhands.sdk.profiles import (
+    DanglingMcpServerRef,
+    ProfileNotFound,
+    resolve_agent_profile,
+)
 from pydantic import SecretStr
+from sqlalchemy import select
+from sqlalchemy.orm import joinedload
+
 from server.auth.token_manager import TokenManager
 from server.constants import LITE_LLM_API_URL
 from server.logger import logger
 from server.routes.org_models import OrgMemberSettingsUpdate
-from sqlalchemy import select
-from sqlalchemy.orm import joinedload
 from storage.agent_profile_resolution import (
     OrgLLMProfileLoader,
     load_agent_profiles,
@@ -27,19 +45,6 @@ from storage.org_store import OrgStore
 from storage.user import User
 from storage.user_settings import UserSettings
 from storage.user_store import UserStore
-
-from openhands.app_server.settings.llm_profiles import LLMProfiles
-from openhands.app_server.settings.settings_models import Settings
-from openhands.app_server.settings.settings_store import SettingsStore
-from openhands.app_server.utils.jsonpatch_compat import (
-    WHOLESALE_REPLACEMENT_KEYS,
-    deep_merge,
-    deep_merge_with_wholesale_keys,
-)
-from openhands.app_server.utils.llm import is_openhands_model
-from openhands.sdk.llm.utils.openhands_provider import (
-    canonicalize_openhands_llm_payload,
-)
 
 # Agent-settings keys private to each org member: never written to
 # org-level defaults nor broadcast across the org. Covers ``mcp_config``
@@ -151,32 +156,28 @@ class SaasSettingsStore(SettingsStore):
         org_member: OrgMember,
         merged_agent_settings: dict[str, Any],
         effective_llm_api_key: SecretStr | None,
+        override_agent_profile_id: str | None = None,
     ) -> tuple[dict[str, Any], str, int] | None:
-        """Resolve the member's active agent profile into an ``agent_settings`` dump.
+        """Resolve an agent profile into an ``agent_settings`` dump.
 
-        Returns ``(agent_settings_dump, profile_id, revision)``, or ``None`` to
-        fall back to the composed ``agent_settings``. Delegates the
-        ``llm_profile_ref`` + ``mcp_server_refs`` join entirely to the SDK
-        ``resolve_agent_profile``; only the cloud-specific glue (the org-backed
-        ``llm_store`` adapter, the member-effective ``mcp_config``, and the
-        managed-key / base-url overlay via ``resolve_profile_llm``) lives here.
+        Resolves ``override_agent_profile_id`` when given (a one-off,
+        non-persisted launch override — never written back to
+        ``org_member.active_agent_profile_id``), else the member's ambient
+        ``active_agent_profile_id``. Returns ``(agent_settings_dump, profile_id,
+        revision)``, or ``None`` to fall back to the composed ``agent_settings``.
+        Delegates the ``llm_profile_ref`` + ``mcp_server_refs`` join entirely to
+        the SDK ``resolve_agent_profile``; only the cloud-specific glue (the
+        org-backed ``llm_store`` adapter, the member-effective ``mcp_config``,
+        and the managed-key / base-url overlay via ``resolve_profile_llm``)
+        lives here.
 
         Fail-safe by design: a stale pointer (profile deleted) or any resolution
         error returns ``None`` and logs, because bricking *every* settings load
         on a dangling pointer is far worse than launching the composed default.
-        An *explicit* per-request ``agent_profile_id`` is the path that surfaces
-        dangling refs as 4xx; this ambient default path degrades gracefully.
         """
-        active_id = org_member.active_agent_profile_id
+        active_id = override_agent_profile_id or org_member.active_agent_profile_id
         if not active_id:
             return None
-
-        from openhands.app_server.settings.llm_profiles import resolve_profile_llm
-        from openhands.sdk.profiles import (
-            DanglingMcpServerRef,
-            ProfileNotFound,
-            resolve_agent_profile,
-        )
 
         agent_profiles = load_agent_profiles(org)
         name = agent_profiles.name_for_id(active_id)
@@ -239,7 +240,17 @@ class SaasSettingsStore(SettingsStore):
         )
         return resolved_dump, str(profile.id), profile.revision
 
-    async def load(self) -> Settings | None:
+    async def load(
+        self, override_agent_profile_id: str | None = None
+    ) -> Settings | None:
+        """Load settings, optionally overriding the active Agent Profile.
+
+        ``override_agent_profile_id`` is a one-off launch override (e.g. a
+        per-conversation-start request): it changes which profile resolves
+        for *this call only* and is never persisted to
+        ``org_member.active_agent_profile_id``. Omit it for the ordinary
+        ambient-pointer behavior.
+        """
         user = await UserStore.get_user_by_id(self.user_id)
         if not user:
             logger.error(f'User not found for ID {self.user_id}')
@@ -369,7 +380,11 @@ class SaasSettingsStore(SettingsStore):
         # settings when no pointer is set (pre-migration) or the pointer is stale
         # / unresolvable, so a broken pointer can never brick the settings load.
         resolved = self._resolve_active_agent_profile(
-            org, org_member, merged_agent_settings, effective_llm_api_key
+            org,
+            org_member,
+            merged_agent_settings,
+            effective_llm_api_key,
+            override_agent_profile_id,
         )
         if resolved is not None:
             resolved_dump, resolved_id, resolved_revision = resolved

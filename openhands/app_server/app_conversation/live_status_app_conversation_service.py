@@ -433,6 +433,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                     selected_repository=request.selected_repository,
                     plugins=request.plugins,
                     api_secrets=request.secrets,
+                    agent_profile_id=request.agent_profile_id,
                 )
             )
 
@@ -496,13 +497,16 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             # archive captures the right directory without re-deriving the path
             # from settings (e.g. grouping) that may change before delete.
             tags[ARCHIVE_WORKSPACE_PATH_TAG_KEY] = working_dir
-            # Stamp Agent Profile provenance. The active profile resolved into the
-            # launched ``agent_settings`` (SaasSettingsStore.load carries its id +
-            # revision onto UserInfo); ride the tags dict so it round-trips and
-            # surfaces as the ``launched_agent_profile`` computed field. Reflects
-            # what actually launched, so it stays truthful even when the request
-            # carried an explicit agent_profile_id.
-            profile_user = await self.user_context.get_user_info()
+            # Stamp Agent Profile provenance. The launched profile resolved into
+            # the launched ``agent_settings`` (SaasSettingsStore.load carries its
+            # id + revision onto UserInfo); ride the tags dict so it round-trips
+            # and surfaces as the ``launched_agent_profile`` computed field.
+            # Re-resolves with the same override the launch itself used, so
+            # provenance reflects what actually ran even when the request
+            # carried a one-off ``agent_profile_id``.
+            profile_user = await self.user_context.get_user_info(
+                override_agent_profile_id=request.agent_profile_id
+            )
             launched_profile_id = getattr(profile_user, 'active_agent_profile_id', None)
             if isinstance(launched_profile_id, str) and launched_profile_id:
                 tags[AGENT_PROFILE_ID_TAG_KEY] = launched_profile_id
@@ -518,7 +522,9 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 # can resolve a brand label ("Claude Code", "Codex", …) via
                 # the SDK registry without keeping a per-conversation column.
                 # Surfaced to the UI as the projected ``acp_server`` field.
-                acp_user = await self.user_context.get_user_info()
+                acp_user = await self.user_context.get_user_info(
+                    override_agent_profile_id=request.agent_profile_id
+                )
                 if isinstance(acp_user.agent_settings, ACPAgentSettings):
                     tags[ACP_SERVER_TAG_KEY] = acp_user.agent_settings.acp_server
             else:
@@ -1552,6 +1558,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         selected_repository: str | None = None,
         plugins: list[PluginSpec] | None = None,
         api_secrets: dict[str, SecretStr] | None = None,
+        agent_profile_id: str | None = None,
     ) -> StartConversationRequest:
         """Build a complete StartConversationRequest for a user.
 
@@ -1580,8 +1587,13 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 These are merged with existing secrets (from database
                 and git providers), with API-provided secrets taking
                 precedence.
+            agent_profile_id: One-off Agent Profile override for this
+                conversation only (cloud-only; does not change the member's
+                active pointer). ``None`` uses the ambient active profile.
         """
-        user = await self.user_context.get_user_info()
+        user = await self.user_context.get_user_info(
+            override_agent_profile_id=agent_profile_id
+        )
 
         # Route ACP agent settings to the ACP-specific builder
         if isinstance(user.agent_settings, ACPAgentSettings):
@@ -1595,6 +1607,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 selected_repository=selected_repository,
                 plugins=plugins,
                 api_secrets=api_secrets,
+                agent_profile_id=agent_profile_id,
             )
             if remote_workspace:
                 acp_request = await self._load_skills_onto_request(
@@ -1840,6 +1853,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         selected_repository: str | None = None,
         plugins: list[PluginSpec] | None = None,
         api_secrets: dict[str, SecretStr] | None = None,
+        agent_profile_id: str | None = None,
     ) -> StartConversationRequest:
         """Build a StartConversationRequest for ACP agent conversations.
 
@@ -1863,8 +1877,13 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             selected_repository: Optional repository name
             plugins: Optional list of plugins to load
             api_secrets: Optional secrets passed directly via the API.
+            agent_profile_id: One-off Agent Profile override for this
+                conversation only (cloud-only; does not change the member's
+                active pointer). ``None`` uses the ambient active profile.
         """
-        user = await self.user_context.get_user_info()
+        user = await self.user_context.get_user_info(
+            override_agent_profile_id=agent_profile_id
+        )
 
         project_dir = get_project_dir(working_dir, selected_repository)
         workspace = LocalWorkspace(working_dir=project_dir)

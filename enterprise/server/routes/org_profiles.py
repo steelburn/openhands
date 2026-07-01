@@ -15,20 +15,6 @@ from typing import Any, AsyncIterator
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException, Path, status
-from pydantic import BaseModel, Field, ValidationError
-from server.constants import LITE_LLM_API_URL
-from server.routes.org_models import OrgNotFoundError
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-from storage.agent_profile_resolution import (
-    OrgLLMProfileMutator,
-    load_agent_profiles,
-)
-from storage.database import a_session_maker
-from storage.org import Org
-from storage.org_member import OrgMember
-from storage.org_service import OrgService
-
 from openhands.app_server.settings.llm_profiles import (
     LLMProfiles,
     ProfileAlreadyExistsError,
@@ -47,6 +33,21 @@ from openhands.sdk.profiles import (
     delete_llm_profile,
     rename_llm_profile,
 )
+from openhands.sdk.profiles.agent_profile_store import PROFILE_NAME_PATTERN
+from pydantic import BaseModel, Field, ValidationError
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from server.constants import LITE_LLM_API_URL
+from server.routes.org_models import OrgNotFoundError
+from storage.agent_profile_resolution import (
+    OrgLLMProfileMutator,
+    load_agent_profiles,
+)
+from storage.database import a_session_maker
+from storage.org import Org
+from storage.org_member import OrgMember
+from storage.org_service import OrgService
 
 from ..auth.authorization import Permission, require_permission
 
@@ -105,9 +106,19 @@ class SaveProfileRequest(BaseModel):
 
 
 class RenameProfileRequest(BaseModel):
-    """Request body for renaming a profile."""
+    """Request body for renaming a profile.
 
-    new_name: str = Field(..., min_length=1, max_length=100)
+    ``new_name`` is constrained to ``PROFILE_NAME_PATTERN`` because
+    ``rename_llm_profile`` (the SDK FK-cascade helper backing this endpoint)
+    validates the new name against that same pattern before renaming and
+    repointing any referencing Agent Profiles — a name outside it always 422s
+    there. Declaring the constraint here makes the schema honest and gives a
+    field-level 422 instead of one raised deep inside the handler. ``save``
+    (create/update) is intentionally left permissive: it never calls the FK
+    helper, so it has no such requirement.
+    """
+
+    new_name: str = Field(..., min_length=1, max_length=64, pattern=PROFILE_NAME_PATTERN)
 
 
 # ── Helper Functions ────────────────────────────────────────────────────────
