@@ -522,11 +522,12 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 # can resolve a brand label ("Claude Code", "Codex", …) via
                 # the SDK registry without keeping a per-conversation column.
                 # Surfaced to the UI as the projected ``acp_server`` field.
-                acp_user = await self.user_context.get_user_info(
-                    override_agent_profile_id=request.agent_profile_id
-                )
-                if isinstance(acp_user.agent_settings, ACPAgentSettings):
-                    tags[ACP_SERVER_TAG_KEY] = acp_user.agent_settings.acp_server
+                # Reuses ``profile_user`` (resolved above with the same
+                # override) rather than re-fetching — a second fetch would
+                # both double the settings-resolution cost and risk a
+                # different profile resolving if it changed in between.
+                if isinstance(profile_user.agent_settings, ACPAgentSettings):
+                    tags[ACP_SERVER_TAG_KEY] = profile_user.agent_settings.acp_server
             else:
                 llm_model = request_agent.llm.model
                 agent_kind = 'openhands'
@@ -1967,12 +1968,12 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         # subprocess (#15044 §7). Only custom servers — the system OpenHands MCP
         # server (Tavily proxy) is runtime-internal and unreachable by an external
         # ACP CLI, so it is intentionally not injected here.
-        from fastmcp.mcp_config import MCPConfig as _MCPConfig
+        from fastmcp.mcp_config import MCPConfig
 
         acp_mcp_servers: dict[str, Any] = {}
         self._merge_custom_mcp_config(acp_mcp_servers, user)
         if acp_mcp_servers:
-            settings_update['mcp_config'] = _MCPConfig(mcpServers=acp_mcp_servers)
+            settings_update['mcp_config'] = MCPConfig(mcpServers=acp_mcp_servers)
         if system_message_suffix:
             settings_update['agent_context'] = AgentContext(
                 system_message_suffix=system_message_suffix

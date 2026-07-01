@@ -297,6 +297,12 @@ async def _seed_default_agent_profile(org_id: UUID, user_id: str) -> str | None:
         member = await _get_member(session, org_id, user_id)
         if member is not None:
             member.active_agent_profile_id = str(saved.id)
+        # Also set the org-wide default pointer so every *other* member —
+        # who never gets their own seed call re-triggered once profiles.list()
+        # is non-empty — still resolves to this profile instead of being
+        # stuck on the legacy composed-settings path forever (see
+        # AgentProfiles.active docstring: "an org-default active pointer").
+        profiles.active = str(saved.id)
         return str(saved.id)
 
 

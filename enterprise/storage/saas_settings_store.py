@@ -163,8 +163,11 @@ class SaasSettingsStore(SettingsStore):
         Resolves ``override_agent_profile_id`` when given (a one-off,
         non-persisted launch override — never written back to
         ``org_member.active_agent_profile_id``), else the member's ambient
-        ``active_agent_profile_id``. Returns ``(agent_settings_dump, profile_id,
-        revision)``, or ``None`` to fall back to the composed ``agent_settings``.
+        ``active_agent_profile_id``, else the org-wide default pointer
+        (``AgentProfiles.active`` — covers members who never got their own
+        pointer set, e.g. a losing side of the one-time-seed race). Returns
+        ``(agent_settings_dump, profile_id, revision)``, or ``None`` to fall
+        back to the composed ``agent_settings``.
         Delegates the ``llm_profile_ref`` + ``mcp_server_refs`` join entirely to
         the SDK ``resolve_agent_profile``; only the cloud-specific glue (the
         org-backed ``llm_store`` adapter, the member-effective ``mcp_config``,
@@ -175,11 +178,15 @@ class SaasSettingsStore(SettingsStore):
         error returns ``None`` and logs, because bricking *every* settings load
         on a dangling pointer is far worse than launching the composed default.
         """
-        active_id = override_agent_profile_id or org_member.active_agent_profile_id
+        agent_profiles = load_agent_profiles(org)
+        active_id = (
+            override_agent_profile_id
+            or org_member.active_agent_profile_id
+            or agent_profiles.active
+        )
         if not active_id:
             return None
 
-        agent_profiles = load_agent_profiles(org)
         name = agent_profiles.name_for_id(active_id)
         if name is None:
             logger.warning(
@@ -522,6 +529,17 @@ class SaasSettingsStore(SettingsStore):
             shared_agent_settings_diff, private_agent_settings_diff = (
                 _split_member_private_keys(effective_agent_settings_diff)
             )
+
+            if item.active_agent_profile_id is not None:
+                # ``item.agent_settings`` is the profile-resolved dump that
+                # ``load()`` computed (see ``_resolve_active_agent_profile``),
+                # not composed settings the member edited directly. Agent
+                # Profiles are managed through their own CRUD
+                # (server/routes/agent_profiles.py) — a routine settings PATCH
+                # (e.g. toggling an unrelated field) must never write the
+                # resolved profile's LLM/api_key back into org-level defaults
+                # nor broadcast it to every other org member.
+                shared_agent_settings_diff = {}
 
             # Strip any pre-existing private keys from the org dump before
             # merging, so legacy values written by older code paths are

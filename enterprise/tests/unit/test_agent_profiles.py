@@ -559,6 +559,73 @@ class TestLazySeedMigration:
         assert [p.name for p in listing.profiles] == ['default']
         assert listing.profiles[0].id == str(winner_profile.id)
 
+    @pytest.mark.asyncio
+    async def test_second_member_resolves_org_default_after_seed(
+        self, async_session_maker, patch_agent_routes
+    ):
+        """A member who never triggers (or wins) the one-time seed keeps
+        getting a null active pointer from ``member.active_agent_profile_id``
+        forever, since the seed gate only re-fires while ``profiles.list()``
+        is empty. They must still resolve to the org-wide default the first
+        member's seed set (``AgentProfiles.active``), both in the list
+        response and in ``SaasSettingsStore`` resolution."""
+        org_id = patch_agent_routes
+        first_user_id = USER_ID
+        second_user_id = uuid.UUID('6694c7b6-f959-4b81-92e9-b09c206f5099')
+
+        async with async_session_maker() as session:
+            session.add(
+                User(
+                    id=second_user_id,
+                    current_org_id=org_id,
+                    user_consents_to_analytics=True,
+                )
+            )
+            session.add(
+                OrgMember(
+                    org_id=org_id,
+                    user_id=second_user_id,
+                    role_id=20,
+                    llm_api_key='second-initial-key',
+                    agent_settings_diff={},
+                )
+            )
+            await session.commit()
+
+        from openhands.sdk.settings import validate_agent_settings
+
+        fake_settings = MagicMock()
+        fake_settings.agent_settings = validate_agent_settings(
+            {'agent_kind': 'openhands'}
+        )
+        fake_settings.llm_profiles = LLMProfiles(
+            profiles={'Default': LLM(usage_id='u', model='gpt-4o')}, active='Default'
+        )
+        fake_store = MagicMock()
+        fake_store.load = AsyncMock(return_value=fake_settings)
+
+        with patch(
+            'server.routes.agent_profiles.SaasSettingsStore',
+            return_value=fake_store,
+        ):
+            winner_listing = await list_agent_profiles(
+                effective_org_id=org_id, user_id=str(first_user_id)
+            )
+            loser_listing = await list_agent_profiles(
+                effective_org_id=org_id, user_id=str(second_user_id)
+            )
+
+        assert winner_listing.active_agent_profile_id == winner_listing.profiles[0].id
+
+        second_member = await _read_member(async_session_maker, org_id, second_user_id)
+        # The loser never gets their own per-member pointer set...
+        assert second_member.active_agent_profile_id is None
+        # ...but the list response still resolves them to the org default.
+        assert (
+            loser_listing.active_agent_profile_id
+            == winner_listing.active_agent_profile_id
+        )
+
 
 # ── FK guard wired into the LLM-profile router ─────────────────────────────
 
@@ -670,6 +737,29 @@ class TestResolveActiveAgentProfile:
         member = MagicMock(spec=OrgMember)
         member.active_agent_profile_id = None
         assert store._resolve_active_agent_profile(org, member, {}, None) is None
+
+    def test_falls_back_to_org_wide_active_pointer_when_member_pointer_unset(self):
+        """A member whose own ``active_agent_profile_id`` was never set
+        (e.g. the losing side of the one-time-seed race) must still resolve
+        to the org-wide default (``AgentProfiles.active``) rather than
+        silently falling back to the legacy composed settings forever."""
+        store = self._store()
+        org, pid = self._org_with(
+            OpenHandsAgentProfile(name='reviewer', llm_profile_ref='Default')
+        )
+        ap = AgentProfiles.model_validate(org.agent_profiles)
+        ap.active = pid
+        org.agent_profiles = ap.model_dump(
+            mode='json', context={'expose_secrets': True}
+        )
+
+        member = MagicMock(spec=OrgMember)
+        member.active_agent_profile_id = None  # never won the seed race
+
+        result = store._resolve_active_agent_profile(org, member, {}, None)
+        assert result is not None
+        _dump, resolved_id, _revision = result
+        assert resolved_id == pid
 
     def test_stale_pointer_falls_back_to_none(self):
         store = self._store()

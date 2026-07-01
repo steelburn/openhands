@@ -629,6 +629,67 @@ async def test_store_updates_org_defaults_and_all_members_for_shared_keys(
 
 
 @pytest.mark.asyncio
+async def test_store_does_not_broadcast_resolved_profile_settings(
+    session_maker, async_session_maker, org_with_multiple_members_fixture
+):
+    """A routine settings PATCH made while the acting member has an active
+    Agent Profile must not bake that profile's *resolved* LLM/api key into
+    org-level defaults nor broadcast it to every other member.
+
+    ``item.agent_settings`` here stands in for what ``load()`` returns when
+    an active profile resolves (see ``_resolve_active_agent_profile``): the
+    resolved dump, not composed settings the member edited directly.
+    """
+    from sqlalchemy import select
+    from storage.org import Org
+    from storage.org_member import OrgMember
+
+    fixture = org_with_multiple_members_fixture
+    org_id = fixture['org_id']
+    admin_user_id = str(fixture['admin_user_id'])
+
+    store = SaasSettingsStore(admin_user_id)
+    resolved_settings = _make_settings(
+        model='anthropic/claude-sonnet-4',
+        base_url='https://api.anthropic.com/v1',
+        api_key='profile-resolved-secret-key',
+    )
+    # Marks agent_settings as profile-resolved, exactly as load() would when
+    # the acting member has an active Agent Profile.
+    resolved_settings.active_agent_profile_id = 'profile-1'
+    resolved_settings.active_agent_profile_revision = 3
+    # Caller only meant to change an unrelated field (e.g. toggling a
+    # notification), mirroring settings_router.store_settings's
+    # load() -> update() -> store() round trip.
+    resolved_settings.enable_sound_notifications = True
+
+    with patch('storage.saas_settings_store.a_session_maker', async_session_maker):
+        await store.store(resolved_settings)
+
+    with session_maker() as session:
+        org = session.execute(select(Org).where(Org.id == org_id)).scalars().first()
+        assert org is not None
+        assert org.agent_settings.get('llm', {}).get('model') != (
+            'anthropic/claude-sonnet-4'
+        )
+
+        members = {
+            str(member.user_id): member
+            for member in session.execute(
+                select(OrgMember).where(OrgMember.org_id == org_id)
+            )
+            .scalars()
+            .all()
+        }
+        member1 = members[str(fixture['member1_user_id'])]
+        member2 = members[str(fixture['member2_user_id'])]
+        # Other members must keep their own pre-existing LLM, not inherit
+        # the resolved profile's.
+        assert member1.agent_settings_diff['llm']['model'] == 'old-model-v2'
+        assert member2.agent_settings_diff['llm']['model'] == 'old-model-v3'
+
+
+@pytest.mark.asyncio
 async def test_store_keeps_openhands_managed_keys_member_specific(
     session_maker, async_session_maker, org_with_multiple_members_fixture
 ):
