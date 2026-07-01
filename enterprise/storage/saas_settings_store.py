@@ -589,6 +589,48 @@ class SaasSettingsStore(SettingsStore):
                 extra={'user_id': self.user_id},
             )
 
+    async def get_current_managed_llm_key(self) -> str | None:
+        """Return the acting member's current managed key, if effective config uses it.
+
+        This is intentionally stricter than ``load()``'s effective-key resolution:
+        org-level keys and member BYOK/custom keys are treated as non-managed for
+        this helper because rotating the member managed key would not affect the
+        effective key used at runtime.
+        """
+        settings = await self.load()
+        if settings is None:
+            return None
+
+        llm = settings.agent_settings.llm
+        if managed_llm_key_config_from_model(llm.model, llm.base_url) is None:
+            return None
+
+        async with a_session_maker() as session:
+            result = await session.execute(
+                select(User)
+                .options(joinedload(User.org_members))
+                .filter(User.id == uuid.UUID(self.user_id))
+            )
+            user = result.scalars().first()
+            if user is None:
+                return None
+
+            org_id = self._resolve_org_id(user)
+            org = await session.get(Org, org_id)
+            if org is None or org._llm_api_key:
+                return None
+
+            org_member = next(
+                (om for om in user.org_members if om.org_id == org_id), None
+            )
+            if (
+                org_member is None
+                or org_member.has_custom_llm_api_key
+                or not org_member._llm_api_key
+            ):
+                return None
+            return org_member.llm_api_key.get_secret_value()
+
     async def rotate_managed_llm_key(self) -> ManagedLlmKeyRotation:
         """Force-rotate the managed LiteLLM/OpenHands key for this user/org.
 
@@ -631,18 +673,22 @@ class SaasSettingsStore(SettingsStore):
                 return ManagedLlmKeyRotation(status=ManagedLlmKeyStatus.MISSING_MEMBER)
 
             org_id = self._resolve_org_id(user)
-            org_member: OrgMember | None = None
-            for om in user.org_members:
-                if om.org_id == org_id:
-                    org_member = om
-                    break
+            org = await session.get(Org, org_id)
+            if org is None:
+                return ManagedLlmKeyRotation(status=ManagedLlmKeyStatus.MISSING_MEMBER)
+            if org._llm_api_key:
+                return ManagedLlmKeyRotation(status=ManagedLlmKeyStatus.BYOK)
+
+            org_member = next(
+                (om for om in user.org_members if om.org_id == org_id), None
+            )
             if org_member is None:
                 return ManagedLlmKeyRotation(status=ManagedLlmKeyStatus.MISSING_MEMBER)
 
             if org_member.has_custom_llm_api_key:
                 return ManagedLlmKeyRotation(status=ManagedLlmKeyStatus.BYOK)
 
-            existing_key = org_member.llm_api_key
+            existing_key = org_member.llm_api_key if org_member._llm_api_key else None
             old_key = existing_key.get_secret_value() if existing_key else None
 
             org_id_str = str(org_id)

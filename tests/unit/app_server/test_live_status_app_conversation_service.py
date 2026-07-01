@@ -624,26 +624,29 @@ class TestLiveStatusAppConversationService:
         assert isinstance(result['MY_SECRET'], StaticSecret)
         assert result['MY_SECRET'].description == ''
 
-
     @staticmethod
     def _install_managed_key_refresh_modules(
-        monkeypatch, *, get_key, refresh_key, verify_key
+        monkeypatch, *, get_key, rotate_key, verify_key
     ):
-        server_mod = types.ModuleType('server')
-        routes_mod = types.ModuleType('server.routes')
-        api_keys_mod = types.ModuleType('server.routes.api_keys')
-        api_keys_mod.get_managed_llm_key_from_db = get_key
-        api_keys_mod.refresh_managed_llm_api_key = refresh_key
-
         storage_mod = types.ModuleType('storage')
         lite_llm_mod = types.ModuleType('storage.lite_llm_manager')
         lite_llm_mod.LiteLlmManager = SimpleNamespace(verify_key=verify_key)
 
-        monkeypatch.setitem(sys.modules, 'server', server_mod)
-        monkeypatch.setitem(sys.modules, 'server.routes', routes_mod)
-        monkeypatch.setitem(sys.modules, 'server.routes.api_keys', api_keys_mod)
+        store = SimpleNamespace(
+            get_current_managed_llm_key=get_key,
+            rotate_managed_llm_key=rotate_key,
+        )
+        saas_settings_mod = types.ModuleType('storage.saas_settings_store')
+        saas_settings_mod.ManagedLlmKeyStatus = SimpleNamespace(ROTATED='rotated')
+        saas_settings_mod.SaasSettingsStore = SimpleNamespace(
+            get_instance=AsyncMock(return_value=store)
+        )
+
         monkeypatch.setitem(sys.modules, 'storage', storage_mod)
         monkeypatch.setitem(sys.modules, 'storage.lite_llm_manager', lite_llm_mod)
+        monkeypatch.setitem(
+            sys.modules, 'storage.saas_settings_store', saas_settings_mod
+        )
 
     @pytest.mark.asyncio
     async def test_maybe_refresh_managed_llm_key_refreshes_stale_key(self, monkeypatch):
@@ -652,11 +655,13 @@ class TestLiveStatusAppConversationService:
         self.mock_user.id = 'user-123'
         self.mock_user_context.get_effective_org_id = AsyncMock(return_value=org_id)
 
-        get_key = AsyncMock(side_effect=['sk-old-managed-key', 'sk-new-managed-key'])
-        refresh_key = AsyncMock()
+        get_key = AsyncMock(return_value='sk-old-managed-key')
+        rotate_key = AsyncMock(
+            return_value=SimpleNamespace(status='rotated', new_key='sk-new-managed-key')
+        )
         verify_key = AsyncMock(return_value=False)
         self._install_managed_key_refresh_modules(
-            monkeypatch, get_key=get_key, refresh_key=refresh_key, verify_key=verify_key
+            monkeypatch, get_key=get_key, rotate_key=rotate_key, verify_key=verify_key
         )
 
         llm = LLM(
@@ -670,18 +675,18 @@ class TestLiveStatusAppConversationService:
         )
 
         assert refreshed.api_key.get_secret_value() == 'sk-new-managed-key'
-        get_key.assert_any_await('user-123', org_id)
+        get_key.assert_awaited_once_with()
         verify_key.assert_awaited_once_with('sk-old-managed-key', 'user-123')
-        refresh_key.assert_awaited_once_with(user_id='user-123', effective_org_id=org_id)
+        rotate_key.assert_awaited_once_with()
 
     @pytest.mark.asyncio
     async def test_maybe_refresh_managed_llm_key_skips_non_saas(self, monkeypatch):
         self.service.app_mode = 'test'
         get_key = AsyncMock()
-        refresh_key = AsyncMock()
+        rotate_key = AsyncMock()
         verify_key = AsyncMock()
         self._install_managed_key_refresh_modules(
-            monkeypatch, get_key=get_key, refresh_key=refresh_key, verify_key=verify_key
+            monkeypatch, get_key=get_key, rotate_key=rotate_key, verify_key=verify_key
         )
         llm = LLM(
             model='openhands/gpt-5.5',
@@ -694,7 +699,7 @@ class TestLiveStatusAppConversationService:
         assert result is llm
         get_key.assert_not_called()
         verify_key.assert_not_called()
-        refresh_key.assert_not_called()
+        rotate_key.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_maybe_refresh_managed_llm_key_skips_non_managed_base_url(
@@ -703,10 +708,10 @@ class TestLiveStatusAppConversationService:
         self.service.app_mode = 'saas'
         self.mock_user.id = 'user-123'
         get_key = AsyncMock()
-        refresh_key = AsyncMock()
+        rotate_key = AsyncMock()
         verify_key = AsyncMock()
         self._install_managed_key_refresh_modules(
-            monkeypatch, get_key=get_key, refresh_key=refresh_key, verify_key=verify_key
+            monkeypatch, get_key=get_key, rotate_key=rotate_key, verify_key=verify_key
         )
         llm = LLM(
             model='openai/gpt-4',
@@ -719,7 +724,7 @@ class TestLiveStatusAppConversationService:
         assert result is llm
         get_key.assert_not_called()
         verify_key.assert_not_called()
-        refresh_key.assert_not_called()
+        rotate_key.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_maybe_refresh_managed_llm_key_skips_key_mismatch(self, monkeypatch):
@@ -728,10 +733,10 @@ class TestLiveStatusAppConversationService:
         self.mock_user.id = 'user-123'
         self.mock_user_context.get_effective_org_id = AsyncMock(return_value=org_id)
         get_key = AsyncMock(return_value='sk-different-managed-key')
-        refresh_key = AsyncMock()
+        rotate_key = AsyncMock()
         verify_key = AsyncMock()
         self._install_managed_key_refresh_modules(
-            monkeypatch, get_key=get_key, refresh_key=refresh_key, verify_key=verify_key
+            monkeypatch, get_key=get_key, rotate_key=rotate_key, verify_key=verify_key
         )
         llm = LLM(
             model='openhands/gpt-5.5',
@@ -743,7 +748,7 @@ class TestLiveStatusAppConversationService:
 
         assert result is llm
         verify_key.assert_not_called()
-        refresh_key.assert_not_called()
+        rotate_key.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_configure_llm_and_mcp_with_custom_model(self):

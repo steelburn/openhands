@@ -1240,10 +1240,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             }
         )
 
-
-    async def _maybe_refresh_managed_llm_key(
-        self, user: UserInfo, llm: LLM
-    ) -> LLM:
+    async def _maybe_refresh_managed_llm_key(self, user: UserInfo, llm: LLM) -> LLM:
         """Best-effort refresh for stale SaaS managed LiteLLM keys.
 
         This intentionally only runs for SaaS managed LiteLLM keys that are the
@@ -1254,12 +1251,12 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             return llm
 
         try:
-            from server.routes.api_keys import (  # type: ignore[import-not-found]
-                get_managed_llm_key_from_db,
-                refresh_managed_llm_api_key,
-            )
             from storage.lite_llm_manager import (  # type: ignore[import-not-found]
                 LiteLlmManager,
+            )
+            from storage.saas_settings_store import (  # type: ignore[import-not-found]
+                ManagedLlmKeyStatus,
+                SaasSettingsStore,
             )
 
             from openhands.app_server.settings.settings_router import LITE_LLM_API_URL
@@ -1286,17 +1283,19 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             if org_id is None:
                 return llm
 
-            managed_key = await get_managed_llm_key_from_db(user.id, org_id)
+            settings_store = await SaasSettingsStore.get_instance(
+                user.id, effective_org_id=org_id
+            )
+            managed_key = await settings_store.get_current_managed_llm_key()
             if managed_key != key:
                 return llm
 
             if await LiteLlmManager.verify_key(key, user.id):
                 return llm
 
-            await refresh_managed_llm_api_key(user_id=user.id, effective_org_id=org_id)
-            refreshed_key = await get_managed_llm_key_from_db(user.id, org_id)
-            if refreshed_key:
-                return llm.model_copy(update={'api_key': SecretStr(refreshed_key)})
+            rotation = await settings_store.rotate_managed_llm_key()
+            if rotation.status == ManagedLlmKeyStatus.ROTATED and rotation.new_key:
+                return llm.model_copy(update={'api_key': SecretStr(rotation.new_key)})
         except Exception:
             _logger.warning(
                 'Failed to refresh stale managed LLM key before conversation startup',

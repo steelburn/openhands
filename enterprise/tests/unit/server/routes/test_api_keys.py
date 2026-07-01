@@ -436,6 +436,7 @@ class TestRefreshManagedLlmApiKey:
         llm_base_url=None,
         member_custom=False,
         member_key='sk-old-managed-key',
+        org_key=None,
     ):
         """Create a user/org/role/member with the given effective LLM config.
 
@@ -452,14 +453,17 @@ class TestRefreshManagedLlmApiKey:
 
         async with async_session_maker() as session:
             role = Role(name='owner', rank=1)
-            org = Org(
-                id=org_id,
-                name=f'test-org-{org_id}',
-                org_version=ORG_SETTINGS_VERSION,
-                agent_settings={'llm': llm_settings},
-                enable_proactive_conversation_starters=True,
-                sandbox_grouping_strategy='NO_GROUPING',
-            )
+            org_kwargs = {
+                'id': org_id,
+                'name': f'test-org-{org_id}',
+                'org_version': ORG_SETTINGS_VERSION,
+                'agent_settings': {'llm': llm_settings},
+                'enable_proactive_conversation_starters': True,
+                'sandbox_grouping_strategy': 'NO_GROUPING',
+            }
+            if org_key is not None:
+                org_kwargs['llm_api_key'] = org_key
+            org = Org(**org_kwargs)
             user = User(
                 id=user_id,
                 current_org_id=org_id,
@@ -711,6 +715,29 @@ class TestRefreshManagedLlmApiKey:
             rotation = await store.rotate_managed_llm_key()
 
         assert rotation.status == ManagedLlmKeyStatus.BYOK
+        mock_delete_alias.assert_not_called()
+        mock_generate.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_rotate_org_level_byok_key_is_rejected(
+        self, async_session_maker, managed_env
+    ):
+        """An org-level key has precedence over the member managed key, so
+        rotating the member key would not affect the effective runtime key.
+        """
+        user_id, org_id = await self._seed(async_session_maker, org_key='sk-org-byok')
+
+        with self._patched(async_session_maker) as (
+            mock_delete_alias,
+            mock_generate,
+            _mock_delete_token,
+        ):
+            store = SaasSettingsStore(user_id, effective_org_id=org_id)
+            rotation = await store.rotate_managed_llm_key()
+            current_key = await store.get_current_managed_llm_key()
+
+        assert rotation.status == ManagedLlmKeyStatus.BYOK
+        assert current_key is None
         mock_delete_alias.assert_not_called()
         mock_generate.assert_not_called()
 
