@@ -17,6 +17,7 @@ from openhands.app_server.app_conversation.live_status_app_conversation_service 
 from openhands.app_server.errors import SandboxError
 from openhands.app_server.sandbox.sandbox_spec_service import (
     AGENT_SERVER_IMAGE,
+    get_agent_server_image,
     is_custom_agent_server_image,
 )
 
@@ -132,5 +133,30 @@ def test_is_custom_agent_server_image():
         assert is_custom_agent_server_image() is False
     with patch.dict(os.environ, {'AGENT_SERVER_IMAGE_TAG': PINNED_TAG}, clear=False):
         assert is_custom_agent_server_image() is False
+    with patch.dict(
+        os.environ,
+        {
+            'AGENT_SERVER_IMAGE_REPOSITORY': 'ghcr.io/openhands/agent-server',
+            'AGENT_SERVER_IMAGE_TAG': '1.29.0-python',
+        },
+        clear=True,
+    ):
+        assert get_agent_server_image() == AGENT_SERVER_IMAGE
+        assert is_custom_agent_server_image() is False
     with patch.dict(os.environ, {'AGENT_SERVER_IMAGE_TAG': 'custom-9'}, clear=False):
+        assert is_custom_agent_server_image() is True
+    with patch.dict(
+        os.environ,
+        {
+            'AGENT_SERVER_IMAGE_REPOSITORY': 'ghcr.io/openhands/agent-server',
+            'AGENT_SERVER_IMAGE_TAG': 'abc1234-python',
+        },
+        clear=True,
+    ):
+        assert get_agent_server_image() == (
+            'ghcr.io/openhands/agent-server:abc1234-python'
+        )
+        assert is_custom_agent_server_image() is True
+    with patch.dict(os.environ, CUSTOM_ENV, clear=True):
+        assert get_agent_server_image() == 'harbor.example/agent-server:custom-9'
         assert is_custom_agent_server_image() is True
