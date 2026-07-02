@@ -11950,6 +11950,23 @@
     "tr": "Geçerli kuruluşa bağlı",
     "ca": "Vinculada a l'organització actual"
   },
+  "SETTINGS$API_KEY_SCOPE_BOUND_TITLE": {
+    "en": "Bound to a specific organization",
+    "uk": "Прив'язано до конкретної організації",
+    "ja": "特定の組織にバインド",
+    "zh-CN": "绑定到特定组织",
+    "zh-TW": "綁定到特定組織",
+    "ko-KR": "특정 조직에 바인딩",
+    "no": "Bundet til en bestemt organisasjon",
+    "ar": "مربوط بمؤسسة محددة",
+    "de": "An eine bestimmte Organisation gebunden",
+    "fr": "Liée à une organisation spécifique",
+    "it": "Vincolata a un'organizzazione specifica",
+    "pt": "Vinculada a uma organização específica",
+    "es": "Vinculada a una organización específica",
+    "tr": "Belirli bir kuruluşa bağlı",
+    "ca": "Vinculada a una organització específica"
+  },
   "SETTINGS$API_KEY_SCOPE": {
     "en": "Scope",
     "uk": "Область",
