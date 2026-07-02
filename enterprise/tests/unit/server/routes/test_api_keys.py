@@ -714,12 +714,15 @@ class TestCreateApiKeyRoute:
             )
             return 'sk-oh-fake'
 
-        with patch(
-            'server.routes.api_keys.api_key_store.create_api_key',
-            AsyncMock(side_effect=fake_create_api_key),
-        ), patch(
-            'server.routes.api_keys.api_key_store.list_api_keys',
-            AsyncMock(return_value=[matching_key]),
+        with (
+            patch(
+                'server.routes.api_keys.api_key_store.create_api_key',
+                AsyncMock(side_effect=fake_create_api_key),
+            ),
+            patch(
+                'server.routes.api_keys.api_key_store.list_api_keys',
+                AsyncMock(return_value=[matching_key]),
+            ),
         ):
             result = await create_api_key(
                 key_data=ApiKeyCreate(name='AllOrgs', org_id=None),
@@ -763,17 +766,21 @@ class TestCreateApiKeyRoute:
             )
             return 'sk-oh-fake'
 
-        with patch(
-            'server.routes.api_keys.api_key_store.create_api_key',
-            AsyncMock(side_effect=fake_create_api_key),
-        ), patch(
-            'server.routes.api_keys.api_key_store.list_api_keys',
-            AsyncMock(return_value=[bound_key]),
-        ), patch(
-            # Membership check on the effective org -- return a non-None
-            # member so the route passes the check.
-            'server.routes.api_keys.OrgMemberStore.get_org_member',
-            AsyncMock(return_value=MagicMock()),
+        with (
+            patch(
+                'server.routes.api_keys.api_key_store.create_api_key',
+                AsyncMock(side_effect=fake_create_api_key),
+            ),
+            patch(
+                'server.routes.api_keys.api_key_store.list_api_keys',
+                AsyncMock(return_value=[bound_key]),
+            ),
+            patch(
+                # Membership check on the effective org -- return a non-None
+                # member so the route passes the check.
+                'server.routes.api_keys.OrgMemberStore.get_org_member',
+                AsyncMock(return_value=MagicMock()),
+            ),
         ):
             result = await create_api_key(
                 key_data=ApiKeyCreate(name='Bound'),  # no org_id

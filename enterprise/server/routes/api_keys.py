@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, SecretStr, field_validator, model_validator
+from server.auth.authorization import get_user_super_role
 from server.auth.org_context import EFFECTIVE_ORG_ID
 from server.auth.saas_user_auth import SaasUserAuth
 from storage.api_key import ApiKey
@@ -247,9 +248,7 @@ async def create_api_key(
         try:
             user_uuid = UUID(user_id)
         except (TypeError, ValueError):
-            logger.warning(
-                'create_api_key_invalid_user_id', extra={'user_id': user_id}
-            )
+            logger.warning('create_api_key_invalid_user_id', extra={'user_id': user_id})
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail='Invalid user id',
