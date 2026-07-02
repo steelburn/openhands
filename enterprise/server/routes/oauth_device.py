@@ -296,11 +296,26 @@ def _set_api_key_cookie(response: Response, request: Request, api_key: str) -> N
     server-side expiry. ``path='/'`` ensures the cookie is sent to every
     ``/api/...`` route, not just the path the response was served from.
 
+    Cross-site fetch flows (CHIPS / partitioned cookies): the device flow is
+    commonly driven by a ``fetch()`` from a separate frontend origin (e.g.
+    the endpoint lives on ``app.all-hands.dev`` but the embedded CLI page is
+    served from ``localhost:8001``). In that case the response is a
+    third-party cookie, which modern browsers reject unless the cookie is
+    explicitly marked ``Partitioned``; ``SameSite=Strict``/``Lax`` would
+    also cause the browser to drop the ``Set-Cookie`` from a cross-site
+    response. To support both same-site and cross-site flows over HTTPS we
+    switch to ``SameSite=None; Secure; Partitioned`` — the browser stores
+    the cookie in a per-top-level-site jar, so the embedded frontend can
+    send it back on subsequent API calls but a different site cannot read
+    it. Partitioned is gated on ``Secure`` because the CHIPS spec requires
+    it, so on ``localhost`` we fall back to the non-cross-site attributes.
+
     The API key is a short opaque token (well under the 4096-byte single
     cookie cap), so a plain ``set_cookie`` is sufficient and avoids the
     chunked-cookie machinery used for the much larger Keycloak JWS.
     """
     secure = request.url.hostname != 'localhost'
+    partitioned = secure  # CHIPS requires Secure; only partition over HTTPS.
     response.set_cookie(
         key=API_KEY_COOKIE_NAME,
         value=api_key,
@@ -309,8 +324,19 @@ def _set_api_key_cookie(response: Response, request: Request, api_key: str) -> N
         domain=get_cookie_domain(),
         secure=secure,
         httponly=True,
-        samesite=get_cookie_samesite(),
+        samesite='none' if partitioned else get_cookie_samesite(),
     )
+    if partitioned:
+        # The stdlib ``http.cookies`` Morsel (and Starlette's
+        # ``set_cookie`` on top of it) refuse the ``Partitioned``
+        # attribute on Python < 3.14, but this project still supports
+        # 3.12-3.13. Append the attribute to the ``Set-Cookie`` header
+        # that ``set_cookie`` just wrote so the browser actually
+        # accepts the cookie as a third-party partitioned cookie.
+        for idx, (k, v) in enumerate(response.raw_headers):
+            if k.lower() == b'set-cookie':
+                response.raw_headers[idx] = (k, v + b'; Partitioned')
+                break
 
 
 # ---------------------------------------------------------------------------

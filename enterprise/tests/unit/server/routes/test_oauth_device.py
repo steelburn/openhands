@@ -267,16 +267,26 @@ class TestDeviceCookie:
         ]
         assert len(set_cookie_headers) == 1
         cookie_header = set_cookie_headers[0].decode()
+        # Starlette lowercases all cookie attribute names; the spec is
+        # case-insensitive on the consumer side but we test against the
+        # wire format so compare on the lowered string.
+        cookie_header_lc = cookie_header.lower()
         assert f'{API_KEY_COOKIE_NAME}=secret-api-key-value' in cookie_header
-        assert 'HttpOnly' in cookie_header
-        assert 'Secure' in cookie_header
-        assert 'SameSite=strict' in cookie_header
-        assert 'Domain=example.com' in cookie_header
+        assert 'httponly' in cookie_header_lc
+        assert 'secure' in cookie_header_lc
+        # Over HTTPS the cookie must be a CHIPS partitioned cookie so the
+        # ``Set-Cookie`` from a cross-site fetch (e.g. the embedded CLI on
+        # ``localhost:8001`` calling the endpoint on ``app.all-hands.dev``)
+        # is actually accepted by the browser instead of being dropped as a
+        # third-party cookie.
+        assert 'samesite=none' in cookie_header_lc
+        assert 'partitioned' in cookie_header_lc
+        assert 'domain=example.com' in cookie_header_lc
         # Cookie lifetime must match the server-side API-key TTL (7 days =
         # 604_800 seconds) and the path must be / so the cookie is sent
         # to every /api/... route, not just the one that set it.
-        assert 'Max-Age=604800' in cookie_header
-        assert 'Path=/' in cookie_header
+        assert 'max-age=604800' in cookie_header_lc
+        assert 'path=/' in cookie_header_lc
 
         # Pin the device-code lookup so a future regression that re-fetches
         # the entry (the previous implementation did this) is caught here.
@@ -321,8 +331,16 @@ class TestDeviceCookie:
         ]
         assert len(set_cookie_headers) == 1
         cookie_header = set_cookie_headers[0].decode()
-        assert 'Secure' not in cookie_header
-        assert 'HttpOnly' in cookie_header
+        cookie_header_lc = cookie_header.lower()
+        assert 'secure' not in cookie_header_lc
+        assert 'httponly' in cookie_header_lc
+        # CHIPS requires Secure, so over plain HTTP we must not set the
+        # Partitioned attribute (and the same goes for SameSite=None,
+        # which requires Secure too). The dev environment should fall
+        # back to the original SameSite=Lax/Strict behavior.
+        assert 'partitioned' not in cookie_header_lc
+        assert 'samesite=none' not in cookie_header_lc
+        assert 'samesite=lax' in cookie_header_lc
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
