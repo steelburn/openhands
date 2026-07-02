@@ -593,6 +593,28 @@ class TestRefreshManagedLlmApiKey:
                 'openhands/claude-sonnet-4', None
             ) == ManagedLlmKeyConfig(openhands_type=True)
 
+    def test_managed_config_detects_openhands_model_with_all_hands_base_url(self):
+        with patch(
+            'storage.saas_settings_store.LITE_LLM_API_URL',
+            'https://litellm.example.com',
+        ):
+            assert managed_llm_key_config_from_model(
+                'openhands/claude-sonnet-4',
+                'https://llm-proxy.staging.all-hands.dev/v1',
+            ) == ManagedLlmKeyConfig(openhands_type=True)
+
+    def test_managed_config_rejects_openhands_model_custom_base_url(self):
+        with patch(
+            'storage.saas_settings_store.LITE_LLM_API_URL',
+            'https://litellm.example.com',
+        ):
+            assert (
+                managed_llm_key_config_from_model(
+                    'openhands/claude-sonnet-4', 'https://custom-llm.example.com'
+                )
+                is None
+            )
+
     def test_managed_config_rejects_non_managed_provider_base_url(self):
         with patch(
             'storage.saas_settings_store.LITE_LLM_API_URL',

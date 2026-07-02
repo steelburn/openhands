@@ -109,10 +109,14 @@ def managed_llm_key_config_from_model(
     normalized_managed_base_url = (
         LITE_LLM_API_URL.rstrip('/') if LITE_LLM_API_URL else None
     )
+    uses_openhands_provider_proxy = openhands_type and (
+        normalized_llm_base_url is None
+        or 'all-hands.dev' in normalized_llm_base_url.lower()
+    )
     uses_managed_llm_key = (
         normalized_managed_base_url is not None
         and normalized_llm_base_url == normalized_managed_base_url
-    ) or (normalized_llm_base_url is None and openhands_type)
+    ) or uses_openhands_provider_proxy
     if not uses_managed_llm_key:
         return None
     return ManagedLlmKeyConfig(openhands_type=openhands_type)

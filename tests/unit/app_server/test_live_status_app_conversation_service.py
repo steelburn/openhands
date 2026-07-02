@@ -649,7 +649,17 @@ class TestLiveStatusAppConversationService:
         )
 
     @pytest.mark.asyncio
-    async def test_maybe_refresh_managed_llm_key_refreshes_stale_key(self, monkeypatch):
+    @pytest.mark.parametrize(
+        'base_url',
+        [
+            'https://llm-proxy.app.all-hands.dev',
+            'https://llm-proxy.staging.all-hands.dev',
+            None,
+        ],
+    )
+    async def test_maybe_refresh_managed_llm_key_refreshes_stale_key(
+        self, monkeypatch, base_url
+    ):
         org_id = uuid4()
         self.service.app_mode = 'saas'
         self.mock_user.id = 'user-123'
@@ -666,7 +676,7 @@ class TestLiveStatusAppConversationService:
 
         llm = LLM(
             model='openhands/gpt-5.5',
-            base_url='https://llm-proxy.app.all-hands.dev',
+            base_url=base_url,
             api_key=SecretStr('sk-old-managed-key'),
         )
 
@@ -716,6 +726,31 @@ class TestLiveStatusAppConversationService:
         llm = LLM(
             model='openai/gpt-4',
             base_url='https://api.openai.com/v1',
+            api_key=SecretStr('sk-byok-key'),
+        )
+
+        result = await self.service._maybe_refresh_managed_llm_key(self.mock_user, llm)
+
+        assert result is llm
+        get_key.assert_not_called()
+        verify_key.assert_not_called()
+        rotate_key.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_maybe_refresh_managed_llm_key_skips_openhands_custom_base_url(
+        self, monkeypatch
+    ):
+        self.service.app_mode = 'saas'
+        self.mock_user.id = 'user-123'
+        get_key = AsyncMock()
+        rotate_key = AsyncMock()
+        verify_key = AsyncMock()
+        self._install_managed_key_refresh_modules(
+            monkeypatch, get_key=get_key, rotate_key=rotate_key, verify_key=verify_key
+        )
+        llm = LLM(
+            model='openhands/gpt-5.5',
+            base_url='https://custom-llm-proxy.example.com',
             api_key=SecretStr('sk-byok-key'),
         )
 

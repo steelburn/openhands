@@ -1274,7 +1274,16 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         except Exception:
             return llm
 
-        if (llm.base_url or '').rstrip('/') != LITE_LLM_API_URL.rstrip('/'):
+        normalized_base_url = (llm.base_url or '').strip().rstrip('/')
+        managed_base_url = LITE_LLM_API_URL.rstrip('/')
+        is_openhands_provider = bool(llm.model and llm.model.startswith('openhands/'))
+        if normalized_base_url != managed_base_url and not (
+            is_openhands_provider
+            and (
+                not normalized_base_url
+                or 'all-hands.dev' in normalized_base_url.lower()
+            )
+        ):
             return llm
 
         key = (
