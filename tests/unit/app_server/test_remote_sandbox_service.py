@@ -1937,9 +1937,12 @@ class TestTransactionReleasedBeforeNetworkIO:
         # start_sandbox runs pause_old_sandboxes first, which calls
         # _get_user_running_sandboxes: a /list call followed by a DB query. The
         # query returns no running sandboxes for the user, so nothing is paused.
-        state = self._instrument(remote_sandbox_service, [
-            [],  # query result (no running sandboxes for user)
-        ])
+        state = self._instrument(
+            remote_sandbox_service,
+            [
+                [],  # query result (no running sandboxes for user)
+            ],
+        )
 
         result = await remote_sandbox_service.start_sandbox()
 
