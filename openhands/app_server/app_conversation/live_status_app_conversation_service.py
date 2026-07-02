@@ -1258,7 +1258,18 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         current member's stored managed key. BYOK/custom keys and OSS/local
         deployments are left untouched.
         """
-        if self.app_mode != 'saas' or not user.id or not llm.api_key:
+        if self.app_mode != 'saas':
+            return llm
+
+        if not user.id or not llm.api_key:
+            _logger.info(
+                'managed_llm_key_refresh:skip_prerequisite',
+                extra={
+                    'has_user_id': bool(user.id),
+                    'has_api_key': bool(llm.api_key),
+                    'model': llm.model,
+                },
+            )
             return llm
 
         try:
@@ -1272,18 +1283,32 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
 
             from openhands.app_server.settings.settings_router import LITE_LLM_API_URL
         except Exception:
+            _logger.warning(
+                'managed_llm_key_refresh:dependency_import_failed',
+                extra={'user_id': user.id, 'model': llm.model},
+                exc_info=True,
+            )
             return llm
 
         normalized_base_url = (llm.base_url or '').strip().rstrip('/')
         managed_base_url = LITE_LLM_API_URL.rstrip('/')
         is_openhands_provider = bool(llm.model and llm.model.startswith('openhands/'))
-        if normalized_base_url != managed_base_url and not (
-            is_openhands_provider
-            and (
-                not normalized_base_url
-                or 'all-hands.dev' in normalized_base_url.lower()
-            )
+        uses_openhands_provider_proxy = is_openhands_provider and (
+            not normalized_base_url or 'all-hands.dev' in normalized_base_url.lower()
+        )
+        if (
+            normalized_base_url != managed_base_url
+            and not uses_openhands_provider_proxy
         ):
+            _logger.info(
+                'managed_llm_key_refresh:skip_non_managed_base_url',
+                extra={
+                    'user_id': user.id,
+                    'model': llm.model,
+                    'base_url': normalized_base_url or None,
+                    'is_openhands_provider': is_openhands_provider,
+                },
+            )
             return llm
 
         key = (
@@ -1292,33 +1317,112 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             else str(llm.api_key)
         )
         if not key or key == '**********':
+            _logger.info(
+                'managed_llm_key_refresh:skip_empty_or_masked_key',
+                extra={
+                    'user_id': user.id,
+                    'model': llm.model,
+                    'has_key': bool(key),
+                    'is_masked_key': key == '**********',
+                },
+            )
             return llm
 
         get_effective_org_id = getattr(self.user_context, 'get_effective_org_id', None)
         if get_effective_org_id is None:
+            _logger.info(
+                'managed_llm_key_refresh:skip_missing_effective_org_getter',
+                extra={'user_id': user.id, 'model': llm.model},
+            )
             return llm
 
         try:
             org_id = await get_effective_org_id()
             if org_id is None:
+                _logger.info(
+                    'managed_llm_key_refresh:skip_missing_effective_org',
+                    extra={'user_id': user.id, 'model': llm.model},
+                )
                 return llm
 
+            _logger.info(
+                'managed_llm_key_refresh:checking_current_key',
+                extra={
+                    'user_id': user.id,
+                    'org_id': str(org_id),
+                    'model': llm.model,
+                    'base_url': normalized_base_url or None,
+                    'uses_openhands_provider_proxy': uses_openhands_provider_proxy,
+                },
+            )
             settings_store = await SaasSettingsStore.get_instance(
                 user.id, effective_org_id=org_id
             )
             managed_key = await settings_store.get_current_managed_llm_key()
+            if managed_key is None:
+                _logger.info(
+                    'managed_llm_key_refresh:skip_no_current_managed_key',
+                    extra={
+                        'user_id': user.id,
+                        'org_id': str(org_id),
+                        'model': llm.model,
+                    },
+                )
+                return llm
             if managed_key != key:
+                _logger.info(
+                    'managed_llm_key_refresh:skip_key_mismatch',
+                    extra={
+                        'user_id': user.id,
+                        'org_id': str(org_id),
+                        'model': llm.model,
+                    },
+                )
                 return llm
 
-            if await LiteLlmManager.verify_key(key, user.id):
+            key_is_valid = await LiteLlmManager.verify_key(key, user.id)
+            if key_is_valid:
+                _logger.info(
+                    'managed_llm_key_refresh:skip_key_still_valid',
+                    extra={
+                        'user_id': user.id,
+                        'org_id': str(org_id),
+                        'model': llm.model,
+                    },
+                )
                 return llm
 
+            _logger.info(
+                'managed_llm_key_refresh:stale_key_detected',
+                extra={'user_id': user.id, 'org_id': str(org_id), 'model': llm.model},
+            )
             rotation = await settings_store.rotate_managed_llm_key()
             if rotation.status == ManagedLlmKeyStatus.ROTATED and rotation.new_key:
+                _logger.info(
+                    'managed_llm_key_refresh:rotated',
+                    extra={
+                        'user_id': user.id,
+                        'org_id': str(org_id),
+                        'model': llm.model,
+                        'openhands_type': getattr(rotation, 'openhands_type', None),
+                    },
+                )
                 return llm.model_copy(update={'api_key': SecretStr(rotation.new_key)})
+
+            _logger.warning(
+                'managed_llm_key_refresh:rotation_not_applied',
+                extra={
+                    'user_id': user.id,
+                    'org_id': str(org_id),
+                    'model': llm.model,
+                    'status': rotation.status,
+                    'has_new_key': bool(rotation.new_key),
+                },
+            )
         except Exception:
             _logger.warning(
                 'Failed to refresh stale managed LLM key before conversation startup',
+                extra={'user_id': user.id, 'model': llm.model},
                 exc_info=True,
             )
         return llm
