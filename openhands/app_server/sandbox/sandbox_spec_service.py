@@ -15,8 +15,6 @@ from openhands.sdk.utils.models import DiscriminatedUnionMixin
 # The version of the agent server to use for deployments.
 # Typically this will be the same as the values from the pyproject.toml
 AGENT_SERVER_IMAGE = 'ghcr.io/openhands/agent-server:1.30.0-python'
-AGENT_SERVER_IMAGE_REPOSITORY = AGENT_SERVER_IMAGE.rsplit(':', 1)[0]
-AGENT_SERVER_IMAGE_TAG = AGENT_SERVER_IMAGE.rsplit(':', 1)[-1]
 
 
 class SandboxSpecService(ABC):
@@ -100,53 +98,19 @@ async def resolve_sandbox_spec(
     raise ValueError(f'Sandbox Spec {effective_id!r} not found')
 
 
-def _is_official_agent_server_repository(repository: str | None) -> bool:
-    return (
-        repository or AGENT_SERVER_IMAGE_REPOSITORY
-    ) == AGENT_SERVER_IMAGE_REPOSITORY
-
-
-def _is_official_release_tag(tag: str) -> bool:
-    version = tag.removesuffix('-python')
-    parts = version.split('.')
-    return len(parts) == 3 and all(part.isdigit() for part in parts)
-
-
-def _is_stale_official_release_image(repository: str | None, tag: str | None) -> bool:
-    if tag is None:
-        return False
-    return (
-        _is_official_agent_server_repository(repository)
-        and tag != AGENT_SERVER_IMAGE_TAG
-        and _is_official_release_tag(tag)
-    )
-
-
 def get_agent_server_image() -> str:
     agent_server_image_repository = os.getenv('AGENT_SERVER_IMAGE_REPOSITORY')
     agent_server_image_tag = os.getenv('AGENT_SERVER_IMAGE_TAG')
-    if not agent_server_image_repository or not agent_server_image_tag:
-        return AGENT_SERVER_IMAGE
-    if _is_stale_official_release_image(
-        agent_server_image_repository, agent_server_image_tag
-    ):
-        return AGENT_SERVER_IMAGE
-    return f'{agent_server_image_repository}:{agent_server_image_tag}'
+    if agent_server_image_repository and agent_server_image_tag:
+        return f'{agent_server_image_repository}:{agent_server_image_tag}'
+    return AGENT_SERVER_IMAGE
 
 
 def is_custom_agent_server_image() -> bool:
-    """True only when an admin pinned a custom sandbox image.
-
-    Official release-tag env vars can linger across app upgrades. Treat stale
-    official release tags as the current release default so the app and
-    agent-server SDK versions stay aligned. Non-release tags (for example SDK PR
-    image SHAs) and non-official repositories remain custom and version-checked.
-    """
-    repository = os.getenv('AGENT_SERVER_IMAGE_REPOSITORY')
+    """True only when an admin pinned a custom sandbox image (tag differs from the
+    release-default tag). Default/upgrade installs keep the release tag, never gated."""
     tag = os.getenv('AGENT_SERVER_IMAGE_TAG')
-    if not tag or tag == AGENT_SERVER_IMAGE_TAG:
-        return False
-    return not _is_stale_official_release_image(repository, tag)
+    return bool(tag) and tag != AGENT_SERVER_IMAGE.rsplit(':', 1)[-1]
 
 
 # Prefixes for environment variables that should be auto-forwarded to agent-server
