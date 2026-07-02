@@ -173,6 +173,42 @@ class TestDeviceToken:
         )
 
 
+class TestDeviceFlowResult:
+    """The DeviceFlowResult dataclass must enforce the success/error invariant."""
+
+    def test_success_result_accepts_api_key_and_user_id(self):
+        from server.routes.oauth_device import DeviceFlowResult
+
+        result = DeviceFlowResult(api_key='k', user_id='u')
+        assert result.api_key == 'k'
+        assert result.user_id == 'u'
+        assert result.error is None
+
+    def test_error_result_requires_empty_api_key_and_user_id(self):
+        from server.routes.oauth_device import DeviceFlowResult
+
+        # The error is the actual JSONResponse we'd return; the success
+        # fields must be empty strings so callers cannot accidentally use them.
+        result = DeviceFlowResult(
+            api_key='', user_id='', error=JSONResponse(content={'error': 'x'})
+        )
+        assert result.error is not None
+
+    def test_rejects_success_missing_api_key(self):
+        from server.routes.oauth_device import DeviceFlowResult
+
+        with pytest.raises(ValueError, match='api_key and user_id'):
+            DeviceFlowResult(api_key='', user_id='u')
+
+    def test_rejects_error_with_api_key_set(self):
+        from server.routes.oauth_device import DeviceFlowResult
+
+        with pytest.raises(ValueError, match='must be empty'):
+            DeviceFlowResult(
+                api_key='k', user_id='', error=JSONResponse(content={'error': 'x'})
+            )
+
+
 class TestDeviceCookie:
     """Test the /cookie endpoint that delivers the API key as an HttpOnly cookie."""
 
@@ -236,6 +272,15 @@ class TestDeviceCookie:
         assert 'Secure' in cookie_header
         assert 'SameSite=strict' in cookie_header
         assert 'Domain=example.com' in cookie_header
+        # Cookie lifetime must match the server-side API-key TTL (7 days =
+        # 604_800 seconds) and the path must be / so the cookie is sent
+        # to every /api/... route, not just the one that set it.
+        assert 'Max-Age=604800' in cookie_header
+        assert 'Path=/' in cookie_header
+
+        # Pin the device-code lookup so a future regression that re-fetches
+        # the entry (the previous implementation did this) is caught here.
+        mock_store.get_by_device_code.assert_called_once_with('test-device-code')
 
         # Verify the helper reused the same device-specific API key name.
         mock_api_key_store.retrieve_api_key_by_name.assert_called_once_with(

@@ -1,5 +1,6 @@
 """OAuth 2.0 Device Flow endpoints for CLI authentication."""
 
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Optional
 
@@ -67,6 +68,39 @@ class DeviceTokenErrorResponse(BaseModel):
     interval: Optional[int] = None  # Required for slow_down error
 
 
+@dataclass(frozen=True)
+class DeviceFlowResult:
+    """Result of resolving a device-code poll into a usable API key.
+
+    Exactly one of the two cases holds:
+
+    - Success: ``error`` is ``None``, and ``api_key`` / ``user_id`` are
+      populated with the per-device API key and its owning Keycloak user id.
+    - Error:   ``error`` carries the ``JSONResponse`` to return to the
+      client, and ``api_key`` / ``user_id`` are empty strings (the caller
+      must not look at them).
+
+    The dataclass is frozen and validates the invariant in ``__post_init__``
+    so a future maintainer cannot construct a half-populated result.
+    """
+
+    api_key: str
+    user_id: str
+    error: Optional[JSONResponse] = None
+
+    def __post_init__(self) -> None:
+        if self.error is None and (not self.api_key or not self.user_id):
+            raise ValueError(
+                'DeviceFlowResult requires both api_key and user_id when '
+                'error is None.'
+            )
+        if self.error is not None and (self.api_key or self.user_id):
+            raise ValueError(
+                'DeviceFlowResult.api_key and user_id must be empty when '
+                'error is set.'
+            )
+
+
 # ---------------------------------------------------------------------------
 # Router + stores
 # ---------------------------------------------------------------------------
@@ -97,31 +131,37 @@ def _oauth_error(
     )
 
 
-async def _resolve_device_api_key(
-    device_code: str,
-) -> 'str | JSONResponse':
-    """Run the shared device-flow validation and return the API key.
+async def _resolve_device_api_key(device_code: str) -> DeviceFlowResult:
+    """Run the shared device-flow validation and return the resolved API key.
 
     Both ``/token`` and ``/cookie`` need to enforce exactly the same
     rate-limit, status, and lookup semantics. Centralising it here keeps the
     two endpoints in lock-step and avoids drifting error responses when one
     endpoint grows new checks.
 
-    Returns the API key string on success or a ``JSONResponse`` error when
-    the caller should short-circuit with an OAuth-style error. Callers narrow
-    the union with an ``isinstance(result, JSONResponse)`` check; the helper
-    performs its own side effects on the device code store (poll-time
-    updates, etc.) so callers must not call it twice for the same
-    ``device_code`` — the second call would see the rate-limit state already
-    mutated.
+    The result is a :class:`DeviceFlowResult`; callers check ``result.error``
+    and return it directly, or read ``result.api_key`` / ``result.user_id``
+    on success. The dataclass enforces the "exactly one of success / error
+    is populated" invariant, so the caller cannot accidentally read the
+    wrong field.
+
+    The helper also performs the side effect of updating the device code
+    store's poll-time state for rate limiting, so each call counts as one
+    poll on the client's behalf. The store fetch is done once here and
+    ``user_id`` is returned alongside ``api_key`` so the caller does not
+    have to re-read the device-code entry.
     """
     device_code_entry = await device_code_store.get_by_device_code(device_code)
 
     if not device_code_entry:
-        return _oauth_error(
-            status.HTTP_400_BAD_REQUEST,
-            'invalid_grant',
-            'Invalid device code',
+        return DeviceFlowResult(
+            api_key='',
+            user_id='',
+            error=_oauth_error(
+                status.HTTP_400_BAD_REQUEST,
+                'invalid_grant',
+                'Invalid device code',
+            ),
         )
 
     # Check rate limiting (RFC 8628 section 3.5)
@@ -135,35 +175,51 @@ async def _resolve_device_api_key(
                 'new_interval': current_interval,
             },
         )
-        return _oauth_error(
-            status.HTTP_400_BAD_REQUEST,
-            'slow_down',
-            f'Polling too frequently. Wait at least {current_interval} seconds between requests.',
-            interval=current_interval,
+        return DeviceFlowResult(
+            api_key='',
+            user_id='',
+            error=_oauth_error(
+                status.HTTP_400_BAD_REQUEST,
+                'slow_down',
+                f'Polling too frequently. Wait at least {current_interval} seconds between requests.',
+                interval=current_interval,
+            ),
         )
 
     # Update poll time for successful rate limit check
     await device_code_store.update_poll_time(device_code, increase_interval=False)
 
     if device_code_entry.is_expired():
-        return _oauth_error(
-            status.HTTP_400_BAD_REQUEST,
-            'expired_token',
-            'Device code has expired',
+        return DeviceFlowResult(
+            api_key='',
+            user_id='',
+            error=_oauth_error(
+                status.HTTP_400_BAD_REQUEST,
+                'expired_token',
+                'Device code has expired',
+            ),
         )
 
     if device_code_entry.status == 'denied':
-        return _oauth_error(
-            status.HTTP_400_BAD_REQUEST,
-            'access_denied',
-            'User denied the authorization request',
+        return DeviceFlowResult(
+            api_key='',
+            user_id='',
+            error=_oauth_error(
+                status.HTTP_400_BAD_REQUEST,
+                'access_denied',
+                'User denied the authorization request',
+            ),
         )
 
     if device_code_entry.status == 'pending':
-        return _oauth_error(
-            status.HTTP_400_BAD_REQUEST,
-            'authorization_pending',
-            'User has not yet completed authorization',
+        return DeviceFlowResult(
+            api_key='',
+            user_id='',
+            error=_oauth_error(
+                status.HTTP_400_BAD_REQUEST,
+                'authorization_pending',
+                'User has not yet completed authorization',
+            ),
         )
 
     if device_code_entry.status == 'authorized':
@@ -172,10 +228,14 @@ async def _resolve_device_api_key(
                 'Authorized device code missing user_id',
                 extra={'user_code': device_code_entry.user_code},
             )
-            return _oauth_error(
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
-                'server_error',
-                'User identification missing',
+            return DeviceFlowResult(
+                api_key='',
+                user_id='',
+                error=_oauth_error(
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    'server_error',
+                    'User identification missing',
+                ),
             )
 
         api_key_store = ApiKeyStore.get_instance()
@@ -192,23 +252,34 @@ async def _resolve_device_api_key(
                     'user_code': device_code_entry.user_code,
                 },
             )
-            return _oauth_error(
-                status.HTTP_500_INTERNAL_SERVER_ERROR,
-                'server_error',
-                'API key not found',
+            return DeviceFlowResult(
+                api_key='',
+                user_id='',
+                error=_oauth_error(
+                    status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    'server_error',
+                    'API key not found',
+                ),
             )
 
-        return device_api_key
+        return DeviceFlowResult(
+            api_key=device_api_key,
+            user_id=device_code_entry.keycloak_user_id,
+        )
 
     # Fallback for unexpected status values
     logger.error(
         'Unknown device code status',
         extra={'status': device_code_entry.status},
     )
-    return _oauth_error(
-        status.HTTP_500_INTERNAL_SERVER_ERROR,
-        'server_error',
-        'Unknown device code status',
+    return DeviceFlowResult(
+        api_key='',
+        user_id='',
+        error=_oauth_error(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            'server_error',
+            'Unknown device code status',
+        ),
     )
 
 
@@ -221,6 +292,12 @@ def _set_api_key_cookie(response: Response, request: Request, api_key: str) -> N
     plain HTTP in production, and ``SameSite=Strict`` (or ``Lax`` in
     local/staging) for CSRF protection.
 
+    The lifetime is pinned to :data:`KEY_EXPIRATION_TIME` (7 days) so the
+    browser never holds an API key that the server has already invalidated;
+    a session cookie would silently keep the user "signed in" past the
+    server-side expiry. ``path='/'`` ensures the cookie is sent to every
+    ``/api/...`` route, not just the path the response was served from.
+
     The API key is a short opaque token (well under the 4096-byte single
     cookie cap), so a plain ``set_cookie`` is sufficient and avoids the
     chunked-cookie machinery used for the much larger Keycloak JWS.
@@ -229,6 +306,8 @@ def _set_api_key_cookie(response: Response, request: Request, api_key: str) -> N
     response.set_cookie(
         key=API_KEY_COOKIE_NAME,
         value=api_key,
+        max_age=int(KEY_EXPIRATION_TIME.total_seconds()),
+        path='/',
         domain=get_cookie_domain(),
         secure=secure,
         httponly=True,
@@ -283,11 +362,9 @@ async def device_token(device_code: str = Form(...)):
     """Poll for a token until the user authorizes or the code expires."""
     try:
         result = await _resolve_device_api_key(device_code)
-        if isinstance(result, JSONResponse):
-            return result
-
-        # Return the API key as access_token
-        return DeviceTokenResponse(access_token=result)
+        if result.error is not None:
+            return result.error
+        return DeviceTokenResponse(access_token=result.api_key)
 
     except Exception as e:
         logger.exception('Error in device token: %s', str(e))
@@ -318,26 +395,14 @@ async def device_cookie(
     """
     try:
         result = await _resolve_device_api_key(device_code)
-        if isinstance(result, JSONResponse):
-            return result
-        api_key = result
-
-        # We need the user_id to surface in the response body; re-resolve it
-        # from the device code so the helper stays a pure (key, error)
-        # function. The store call is cheap and the rate-limit / status
-        # state has already been mutated by ``_resolve_device_api_key``.
-        device_code_entry = await device_code_store.get_by_device_code(device_code)
-        user_id = (
-            device_code_entry.keycloak_user_id
-            if device_code_entry and device_code_entry.keycloak_user_id
-            else ''
-        )
+        if result.error is not None:
+            return result.error
 
         response = JSONResponse(
             status_code=status.HTTP_200_OK,
-            content=DeviceCookieResponse(user_id=user_id).model_dump(),
+            content=DeviceCookieResponse(user_id=result.user_id).model_dump(),
         )
-        _set_api_key_cookie(response, http_request, api_key)
+        _set_api_key_cookie(response, http_request, result.api_key)
         return response
 
     except Exception as e:
