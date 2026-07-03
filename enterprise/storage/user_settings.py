@@ -10,7 +10,11 @@ from sqlalchemy import DateTime, Identity, String
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import Mapped, mapped_column
 from storage.base import Base
-from storage.encrypt_utils import decrypt_legacy_value, encrypt_legacy_value
+from storage.encrypt_utils import (
+    decrypt_legacy_value,
+    encrypt_legacy_value,
+    get_settings_cipher_context,
+)
 
 from openhands.app_server.settings.settings_models import MarketplaceRegistration
 
@@ -117,8 +121,11 @@ class UserSettings(Base):
             source_name='user settings',
         )
 
-        return Settings(
-            agent_settings=self.agent_settings or {},
-            conversation_settings=self.conversation_settings or {},
-            registered_marketplaces=marketplaces,
+        return Settings.model_validate(
+            {
+                'agent_settings': self.agent_settings or {},
+                'conversation_settings': self.conversation_settings or {},
+                'registered_marketplaces': marketplaces,
+            },
+            context=get_settings_cipher_context(),
         )

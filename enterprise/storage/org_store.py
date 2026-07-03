@@ -360,9 +360,11 @@ class OrgStore:
             ).model_dump(mode='json', context={'expose_secrets': True})
             return apply_agent_settings_diff(base_settings, settings_diff)
 
-        base_settings = _load_persisted_conversation_settings(current_settings)  # type: ignore[assignment]
+        base_conversation_settings = _load_persisted_conversation_settings(
+            current_settings
+        )
         merged_settings = deep_merge(
-            base_settings.model_dump(mode='json'), settings_diff
+            base_conversation_settings.model_dump(mode='json'), settings_diff
         )
         return ConversationSettings.model_validate(merged_settings)
 
