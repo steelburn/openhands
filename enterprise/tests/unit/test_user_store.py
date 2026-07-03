@@ -132,8 +132,9 @@ async def test_create_user_with_llm_profiles_does_not_crash_and_preserves_secret
     assert user.llm_profiles['active'] == 'work'
     assert user.llm_profiles['profiles']['work']['api_key'] != 'work-secret-key'
 
-    from openhands.app_server.settings.llm_profiles import LLMProfiles
     from storage.encrypt_utils import get_settings_cipher_context
+
+    from openhands.app_server.settings.llm_profiles import LLMProfiles
 
     profiles = LLMProfiles.model_validate(
         user.llm_profiles, context=get_settings_cipher_context()

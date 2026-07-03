@@ -289,6 +289,8 @@ def _load_persisted_agent_settings(
     if isinstance(data, dict) and 'mcp_config' in data:
         data = dict(data)
         data['mcp_config'] = normalize_mcp_config_payload(data['mcp_config'])
+    if context is None:
+        return validate_agent_settings(data or {})
     return validate_agent_settings(data or {}, context=context)
 
 
