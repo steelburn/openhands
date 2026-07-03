@@ -1,6 +1,6 @@
 import uuid
 from contextlib import asynccontextmanager
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import ANY, AsyncMock, MagicMock, patch
 
 import pytest
 from server.routes.org_models import OrgUpdate
@@ -181,7 +181,7 @@ def test_get_org_settings_from_org_use_persisted_loaders():
         assert OrgStore.get_agent_settings_from_org(org).agent == 'MigratedAgent'
         assert OrgStore.get_conversation_settings_from_org(org).max_iterations == 77
 
-    agent_loader.assert_called_once_with({'legacy': True})
+    agent_loader.assert_called_once_with({'legacy': True}, context=ANY)
     conversation_loader.assert_called_once_with({'legacy': True})
 
 
