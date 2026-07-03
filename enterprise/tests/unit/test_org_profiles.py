@@ -1,5 +1,6 @@
 """Unit and integration tests for organization LLM profiles router."""
 
+import json
 import uuid
 from unittest.mock import MagicMock, patch
 
@@ -83,6 +84,29 @@ class TestLoadProfiles:
         names = [s['name'] for s in summaries]
         assert 'my-profile' in names
         assert 'backup' in names
+
+    def test_load_profiles_with_encrypted_leaf_secrets(self, sample_org):
+        from pydantic import SecretStr
+        from storage.encrypt_utils import get_settings_storage_context
+
+        from openhands.sdk.llm import LLM
+
+        profiles = LLMProfiles(active='secure')
+        profiles.save(
+            'secure',
+            LLM(
+                model='anthropic/claude-sonnet-4-5-20250929',
+                api_key=SecretStr('encrypted-profile-key'),
+            ),
+        )
+        sample_org.llm_profiles = profiles.model_dump(
+            mode='json', context=get_settings_storage_context()
+        )
+
+        loaded = _load_profiles(sample_org)
+        assert loaded.require('secure').api_key.get_secret_value() == (
+            'encrypted-profile-key'
+        )
 
     def test_load_profiles_invalid_data(self, sample_org):
         """Test loading profiles when org has invalid data."""
@@ -301,6 +325,24 @@ class TestProfileLifecycleIntegration:
                 )
             ),
             user_id=str(ADMIN_USER_ID),
+        )
+
+        from sqlalchemy import text
+
+        async with async_session_maker() as session:
+            rows = (
+                await session.execute(text('SELECT id, llm_profiles FROM org'))
+            ).all()
+        raw = next(
+            (r[1] for r in rows if str(r[0]).replace('-', '') == org_id.hex), None
+        )
+        assert raw is not None
+        assert 'secret-value' not in raw
+        assert json.loads(raw)['profiles']['work']['api_key'] != 'secret-value'
+
+        saved_org = await _read_org(async_session_maker, org_id)
+        assert _load_profiles(saved_org).require('work').api_key.get_secret_value() == (
+            'secret-value'
         )
 
         detail = await get_profile(

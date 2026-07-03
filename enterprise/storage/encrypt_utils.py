@@ -27,7 +27,8 @@ class _SettingsReadCipher:
             return None
         if not secret.startswith(_FERNET_TOKEN_PREFIX):
             return SecretStr(secret)
-        return self._cipher.decrypt(secret)
+        decrypted = self._cipher.try_decrypt_str(secret)
+        return SecretStr(decrypted if decrypted is not None else secret)
 
     def try_decrypt_str(self, secret: str) -> str | None:
         return self._cipher.try_decrypt_str(secret)
