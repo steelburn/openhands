@@ -1197,8 +1197,9 @@ async def test_load_persists_seeded_default_profile_onto_org(
     assert persisted_default['base_url'] == 'https://api.anthropic.com/v1'
     assert persisted_default['api_key'] != 'seed-key'
 
-    from openhands.app_server.settings.llm_profiles import LLMProfiles
     from storage.encrypt_utils import get_settings_cipher_context
+
+    from openhands.app_server.settings.llm_profiles import LLMProfiles
 
     profiles = LLMProfiles.model_validate(
         org.llm_profiles, context=get_settings_cipher_context()
@@ -1272,8 +1273,9 @@ async def test_llm_profiles_are_encrypted_at_rest(
 
     # Sanity: ORM read returns JSON with encrypted leaves; model validation with
     # the storage cipher decrypts those leaves for runtime use.
-    from openhands.app_server.settings.llm_profiles import LLMProfiles
     from storage.encrypt_utils import get_settings_cipher_context
+
+    from openhands.app_server.settings.llm_profiles import LLMProfiles
 
     async with async_session_maker() as session:
         user = (

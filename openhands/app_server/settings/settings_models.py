@@ -286,6 +286,8 @@ def _load_persisted_agent_settings(
     discriminated :data:`AgentSettingsConfig` union. ``context`` is forwarded
     to SDK validators so encrypted secret fields can be decrypted on load.
     """
+    if context is None:
+        return validate_agent_settings(data or {})
     return validate_agent_settings(data or {}, context=context)
 
 
