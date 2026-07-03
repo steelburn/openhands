@@ -273,11 +273,17 @@ def _transform_mcp_config_secrets(
 
 
 def _encrypt_secret_value(value: Any) -> Any:
-    if not isinstance(value, str) or value.startswith(_FERNET_TOKEN_PREFIX):
+    if not isinstance(value, str):
         return value
     from storage.encrypt_utils import get_settings_cipher
 
-    return get_settings_cipher().encrypt(SecretStr(value))
+    cipher = get_settings_cipher()
+    if (
+        value.startswith(_FERNET_TOKEN_PREFIX)
+        and cipher.try_decrypt_str(value) is not None
+    ):
+        return value
+    return cipher.encrypt(SecretStr(value))
 
 
 def _decrypt_secret_value(value: Any) -> Any:

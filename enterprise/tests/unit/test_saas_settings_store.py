@@ -915,13 +915,21 @@ def test_persisted_agent_settings_encrypt_secret_fields_without_llm_api_key():
                     'aws_session_token': 'aws-session-token',
                 },
                 'verification': {'critic_api_key': 'critic-secret-key'},
+                'agent_context': {
+                    'secrets': {'AGENT_CONTEXT_TOKEN': 'agent-context-secret'}
+                },
                 'mcp_config': {
                     'mcpServers': {
                         'secure': {
                             'url': 'https://secure-mcp.example.com',
                             'transport': 'sse',
                             'headers': {'Authorization': 'Bearer mcp-secret-token'},
-                        }
+                        },
+                        'stdio': {
+                            'command': 'node',
+                            'args': ['server.js'],
+                            'env': {'MCP_ENV_TOKEN': 'mcp-env-secret'},
+                        },
                     }
                 },
             }
@@ -938,7 +946,9 @@ def test_persisted_agent_settings_encrypt_secret_fields_without_llm_api_key():
         'aws-secret-key',
         'aws-session-token',
         'critic-secret-key',
+        'agent-context-secret',
         'mcp-secret-token',
+        'mcp-env-secret',
     ):
         assert secret not in serialized
 
@@ -953,11 +963,19 @@ def test_persisted_agent_settings_encrypt_secret_fields_without_llm_api_key():
     assert loaded.agent_settings.llm.aws_secret_access_key.get_secret_value() == (
         'aws-secret-key'
     )
+    assert loaded.agent_settings.llm.aws_session_token.get_secret_value() == (
+        'aws-session-token'
+    )
     assert loaded.agent_settings.verification.critic_api_key.get_secret_value() == (
         'critic-secret-key'
     )
+    assert loaded.agent_settings.agent_context.secrets == {
+        'AGENT_CONTEXT_TOKEN': 'agent-context-secret'
+    }
     secure_server = loaded.agent_settings.mcp_config.mcpServers['secure']
     assert secure_server.headers['Authorization'] == 'Bearer mcp-secret-token'
+    stdio_server = loaded.agent_settings.mcp_config.mcpServers['stdio']
+    assert stdio_server.env['MCP_ENV_TOKEN'] == 'mcp-env-secret'
 
 
 @pytest.mark.asyncio
@@ -1080,6 +1098,24 @@ async def test_store_and_load_llm_profiles_round_trip(
     personal = loaded.llm_profiles.require('personal')
     assert personal.model == 'openai/gpt-5.2'
     assert personal.api_key.get_secret_value() == 'personal-key'
+
+    with patch('storage.saas_settings_store.a_session_maker', async_session_maker):
+        await admin_store.store(loaded)
+
+    with (
+        patch('storage.saas_settings_store.a_session_maker', async_session_maker),
+        patch('storage.user_store.a_session_maker', async_session_maker),
+        patch('storage.org_store.a_session_maker', async_session_maker),
+    ):
+        reloaded = await admin_store.load()
+
+    assert reloaded is not None
+    assert (
+        reloaded.llm_profiles.require('work').api_key.get_secret_value() == 'work-key'
+    )
+    assert reloaded.llm_profiles.require('personal').api_key.get_secret_value() == (
+        'personal-key'
+    )
 
 
 @pytest.mark.parametrize(
@@ -1243,6 +1279,9 @@ async def test_llm_profiles_are_encrypted_at_rest(
             model='anthropic/claude-sonnet-4-5-20250929',
             base_url='https://api.anthropic.com/v1',
             api_key=SecretStr('super-secret-byok'),
+            aws_access_key_id=SecretStr('profile-aws-access'),
+            aws_secret_access_key=SecretStr('profile-aws-secret'),
+            aws_session_token=SecretStr('profile-aws-session'),
         ),
     )
     with patch('storage.saas_settings_store.a_session_maker', async_session_maker):
@@ -1259,8 +1298,13 @@ async def test_llm_profiles_are_encrypted_at_rest(
         None,
     )
     assert raw is not None
-    # The plaintext secret must not appear anywhere in the at-rest payload.
-    assert 'super-secret-byok' not in raw
+    for secret in (
+        'super-secret-byok',
+        'profile-aws-access',
+        'profile-aws-secret',
+        'profile-aws-session',
+    ):
+        assert secret not in raw
 
     import json as _json
 
@@ -1269,7 +1313,11 @@ async def test_llm_profiles_are_encrypted_at_rest(
     assert raw_profiles['profiles']['work']['model'] == (
         'anthropic/claude-sonnet-4-5-20250929'
     )
-    assert raw_profiles['profiles']['work']['api_key'] != 'super-secret-byok'
+    raw_work = raw_profiles['profiles']['work']
+    assert raw_work['api_key'] != 'super-secret-byok'
+    assert raw_work['aws_access_key_id'] != 'profile-aws-access'
+    assert raw_work['aws_secret_access_key'] != 'profile-aws-secret'
+    assert raw_work['aws_session_token'] != 'profile-aws-session'
 
     # Sanity: ORM read returns JSON with encrypted leaves; model validation with
     # the storage cipher decrypts those leaves for runtime use.
@@ -1285,7 +1333,11 @@ async def test_llm_profiles_are_encrypted_at_rest(
     profiles = LLMProfiles.model_validate(
         user.llm_profiles, context=get_settings_cipher_context()
     )
-    assert profiles.require('work').api_key.get_secret_value() == 'super-secret-byok'
+    work = profiles.require('work')
+    assert work.api_key.get_secret_value() == 'super-secret-byok'
+    assert work.aws_access_key_id.get_secret_value() == 'profile-aws-access'
+    assert work.aws_secret_access_key.get_secret_value() == 'profile-aws-secret'
+    assert work.aws_session_token.get_secret_value() == 'profile-aws-session'
 
 
 @pytest.mark.asyncio
