@@ -415,6 +415,17 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             ):
                 yield updated_task
 
+            _logger.info(
+                'app_conversation_start:building_start_request',
+                extra={
+                    'user_id': user_id,
+                    'task_id': str(task.id),
+                    'conversation_id': str(conversation_id),
+                    'agent_type': request.agent_type.value,
+                    'llm_model_override': request.llm_model,
+                },
+            )
+
             # Build the start request
             start_conversation_request = (
                 await self._build_start_conversation_request_for_user(
@@ -1258,7 +1269,22 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         current member's stored managed key. BYOK/custom keys and OSS/local
         deployments are left untouched.
         """
+        _logger.info(
+            'managed_llm_key_refresh:evaluate',
+            extra={
+                'app_mode': self.app_mode,
+                'user_id': user.id,
+                'model': llm.model,
+                'base_url': str(llm.base_url or ''),
+                'has_api_key': bool(llm.api_key),
+            },
+        )
+
         if self.app_mode != 'saas':
+            _logger.info(
+                'managed_llm_key_refresh:skip_non_saas',
+                extra={'app_mode': self.app_mode, 'user_id': user.id},
+            )
             return llm
 
         if not user.id or not llm.api_key:
@@ -1509,6 +1535,17 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         """
         # Configure LLM
         llm = self._configure_llm(user, llm_model)
+        _logger.info(
+            'managed_llm_key_refresh:configured_llm',
+            extra={
+                'user_id': user.id,
+                'conversation_id': str(conversation_id),
+                'model': llm.model,
+                'base_url': str(llm.base_url or ''),
+                'has_api_key': bool(llm.api_key),
+                'llm_model_override': llm_model,
+            },
+        )
         llm = await self._maybe_refresh_managed_llm_key(user, llm)
 
         # Configure MCP - SDK expects format: {'mcpServers': {'server_name': {...}}}
@@ -1791,10 +1828,33 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 and git providers), with API-provided secrets taking
                 precedence.
         """
+
         user = await self.user_context.get_user_info()
+        llm_settings = getattr(user.agent_settings, 'llm', None)
+        _logger.info(
+            'managed_llm_key_refresh:build_request_context',
+            extra={
+                'user_id': user.id,
+                'conversation_id': str(conversation_id),
+                'agent_settings_type': type(user.agent_settings).__name__,
+                'model': getattr(llm_settings, 'model', None),
+                'base_url': str(getattr(llm_settings, 'base_url', None) or ''),
+                'has_api_key': bool(getattr(llm_settings, 'api_key', None)),
+            },
+        )
 
         # Route ACP agent settings to the ACP-specific builder
         if isinstance(user.agent_settings, ACPAgentSettings):
+            _logger.info(
+                'managed_llm_key_refresh:skip_acp_agent_settings',
+                extra={
+                    'user_id': user.id,
+                    'conversation_id': str(conversation_id),
+                    'model': getattr(llm_settings, 'model', None),
+                    'base_url': str(getattr(llm_settings, 'base_url', None) or ''),
+                    'has_api_key': bool(getattr(llm_settings, 'api_key', None)),
+                },
+            )
             acp_request = await self._build_acp_start_conversation_request(
                 sandbox=sandbox,
                 conversation_id=conversation_id,

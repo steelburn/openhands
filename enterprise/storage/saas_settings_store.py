@@ -98,8 +98,10 @@ class ManagedLlmKeyRotation:
 def managed_llm_key_config_from_model(
     llm_model: str | None, llm_base_url: str | None
 ) -> ManagedLlmKeyConfig | None:
-    """Classify an effective LLM config as managed, using the same model/base_url
-    logic as ``store()`` and ``OrgStore._maybe_get_managed_llm_key_for_user``.
+    """Classify an effective LLM config as managed.
+
+    Uses the same model/base_url logic as ``store()`` and
+    ``OrgStore._maybe_get_managed_llm_key_for_user``.
 
     Returns ``None`` when the config is not a managed LiteLLM/OpenHands-provider
     configuration (e.g. member/org BYOK pointing at a third-party base_url).
@@ -133,13 +135,14 @@ class SaasSettingsStore(SettingsStore):
     effective_org_id: UUID | None = None
 
     def _resolve_org_id(self, user: User) -> UUID:
-        """Return the effective org id for this request, or the user's
-        current org id as a fallback. The caller still needs to verify
-        that the user is a member of the returned org (handled in load/
-        store by the existing org_members lookup).
+        """Return the effective org id for this request.
 
-        `user.current_org_id` is non-nullable on the ORM model, so the
-        result is always a UUID.
+        Falls back to the user's current org id. The caller still needs to verify
+        that the user is a member of the returned org (handled in load/store by
+        the existing org_members lookup).
+
+        `user.current_org_id` is non-nullable on the ORM model, so the result is
+        always a UUID.
         """
         return self.effective_org_id or user.current_org_id
 
@@ -432,6 +435,16 @@ class SaasSettingsStore(SettingsStore):
                 normalized_llm_base_url == normalized_managed_base_url
                 or (normalized_llm_base_url is None and is_openhands_model(llm_model))
             )
+            logger.info(
+                'saas_settings_store:store:managed_llm_config_decision',
+                extra={
+                    'user_id': self.user_id,
+                    'org_id': str(org_id),
+                    'model': llm_model,
+                    'base_url': llm_base_url or '',
+                    'uses_managed_llm_key': uses_managed_llm_key,
+                },
+            )
 
             if uses_managed_llm_key:
                 await self._ensure_api_key(
@@ -567,14 +580,41 @@ class SaasSettingsStore(SettingsStore):
         is valid in LiteLLM. If valid, reuses it. Otherwise, generates a new key.
         """
         llm_api_key = item.agent_settings.llm.api_key
+        logger.info(
+            'saas_settings_store:ensure_api_key:evaluate',
+            extra={
+                'user_id': self.user_id,
+                'org_id': org_id,
+                'openhands_type': openhands_type,
+                'has_api_key': bool(llm_api_key),
+            },
+        )
 
-        # First, check if our current key is valid
-        if llm_api_key and not await LiteLlmManager.verify_existing_key(
+        if not llm_api_key:
+            logger.info(
+                'saas_settings_store:ensure_api_key:skip_missing_api_key',
+                extra={'user_id': self.user_id, 'org_id': org_id},
+            )
+            return
+
+        existing_key_valid = await LiteLlmManager.verify_existing_key(
             llm_api_key.get_secret_value(),  # type: ignore[union-attr]
             self.user_id,
             org_id,
             openhands_type=openhands_type,
-        ):
+        )
+        logger.info(
+            'saas_settings_store:ensure_api_key:verify_existing_key',
+            extra={
+                'user_id': self.user_id,
+                'org_id': org_id,
+                'openhands_type': openhands_type,
+                'existing_key_valid': existing_key_valid,
+            },
+        )
+
+        # First, check if our current key is valid
+        if not existing_key_valid:
             # Both branches mint one managed key per (user, org) under the same
             # deterministic alias, deleting any prior key first — so switching
             # the default to/from an openhands/* model never orphans a key.
@@ -590,7 +630,11 @@ class SaasSettingsStore(SettingsStore):
             item.agent_settings.llm.api_key = SecretStr(generated_key)
             logger.info(
                 'saas_settings_store:store:generated_openhands_key',
-                extra={'user_id': self.user_id},
+                extra={
+                    'user_id': self.user_id,
+                    'org_id': org_id,
+                    'openhands_type': openhands_type,
+                },
             )
 
     async def get_current_managed_llm_key(self) -> str | None:
