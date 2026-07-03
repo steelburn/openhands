@@ -629,16 +629,15 @@ async def test_store_updates_org_defaults_and_all_members_for_shared_keys(
 
 
 @pytest.mark.asyncio
-async def test_store_does_not_broadcast_resolved_profile_settings(
+async def test_store_rejects_resolved_profile_settings_view(
     session_maker, async_session_maker, org_with_multiple_members_fixture
 ):
-    """A routine settings PATCH made while the acting member has an active
-    Agent Profile must not bake that profile's *resolved* LLM/api key into
-    org-level defaults nor broadcast it to every other member.
+    """``store()`` refuses a resolved Agent-Profile launch view outright.
 
-    ``item.agent_settings`` here stands in for what ``load()`` returns when
-    an active profile resolves (see ``_resolve_active_agent_profile``): the
-    resolved dump, not composed settings the member edited directly.
+    A resolved view (``load(resolve_agent_profile=True)`` / an override) is
+    the profile's dump — ref-filtered ``mcp_config``, the referenced LLM
+    profile's key — not user-authored settings. Persisting it would corrupt
+    the member/org rows, so ``store()`` raises before writing anything.
     """
     from sqlalchemy import select
     from storage.org import Org
@@ -655,21 +654,27 @@ async def test_store_does_not_broadcast_resolved_profile_settings(
         api_key='profile-resolved-secret-key',
     )
     # Marks agent_settings as profile-resolved, exactly as load() would when
-    # the acting member has an active Agent Profile.
+    # the caller requested resolution and the member has an active profile.
     resolved_settings.active_agent_profile_id = 'profile-1'
     resolved_settings.active_agent_profile_revision = 3
-    # Caller only meant to change an unrelated field (e.g. toggling a
-    # notification), mirroring settings_router.store_settings's
-    # load() -> update() -> store() round trip.
     resolved_settings.enable_sound_notifications = True
 
     with patch('storage.saas_settings_store.a_session_maker', async_session_maker):
-        await store.store(resolved_settings)
+        with pytest.raises(ValueError, match='resolved Agent-Profile'):
+            await store.store(resolved_settings)
+
+        # The private marker alone (a resolved load that fell back carries no
+        # active_agent_profile_id) must also be refused.
+        marked_settings = _make_settings(model='gpt-4o')
+        marked_settings._resolved_view = True
+        with pytest.raises(ValueError, match='resolved Agent-Profile'):
+            await store.store(marked_settings)
 
     with session_maker() as session:
         org = session.execute(select(Org).where(Org.id == org_id)).scalars().first()
         assert org is not None
-        assert org.agent_settings.get('llm', {}).get('model') != (
+        # Nothing was written before the guard fired.
+        assert (org.agent_settings or {}).get('llm', {}).get('model') != (
             'anthropic/claude-sonnet-4'
         )
 
@@ -683,8 +688,7 @@ async def test_store_does_not_broadcast_resolved_profile_settings(
         }
         member1 = members[str(fixture['member1_user_id'])]
         member2 = members[str(fixture['member2_user_id'])]
-        # Other members must keep their own pre-existing LLM, not inherit
-        # the resolved profile's.
+        # Other members keep their own pre-existing LLM, untouched.
         assert member1.agent_settings_diff['llm']['model'] == 'old-model-v2'
         assert member2.agent_settings_diff['llm']['model'] == 'old-model-v3'
 

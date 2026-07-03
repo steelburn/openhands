@@ -406,6 +406,13 @@ async def rename_profile(
         profiles,
     ):
         agent_profiles = load_agent_profiles(org)
+        # Loading is best-effort (invalid entries are dropped), so only write
+        # the collection back when the cascade actually repointed a ref — an
+        # unconditional write-back would erase a stored profile that merely
+        # failed to parse.
+        before = agent_profiles.model_dump(
+            mode='json', context={'expose_secrets': True}
+        )
         try:
             rename_llm_profile(
                 agent_profiles,
@@ -423,9 +430,9 @@ async def rename_profile(
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
             )
         # The cascade may have repointed agent-profile refs — persist them too.
-        org.agent_profiles = agent_profiles.model_dump(
-            mode='json', context={'expose_secrets': True}
-        )
+        after = agent_profiles.model_dump(mode='json', context={'expose_secrets': True})
+        if after != before:
+            org.agent_profiles = after
 
     return ProfileMutationResponse(
         name=request.new_name,

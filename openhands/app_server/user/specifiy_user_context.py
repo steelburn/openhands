@@ -23,7 +23,10 @@ class SpecifyUserContext(UserContext):
         return None
 
     async def get_user_info(
-        self, override_agent_profile_id: str | None = None
+        self,
+        *,
+        resolve_agent_profile: bool = False,
+        override_agent_profile_id: str | None = None,
     ) -> UserInfo:
         raise NotImplementedError()
 

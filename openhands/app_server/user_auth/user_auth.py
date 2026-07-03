@@ -45,6 +45,9 @@ class UserAuth(ABC):
     """
 
     _settings: Settings | None
+    # Separate memo for the resolved (effective launch) view; a class-level
+    # default so subclasses need not declare it.
+    _resolved_settings: Settings | None = None
 
     @abstractmethod
     async def get_user_id(self) -> str | None:
@@ -67,19 +70,36 @@ class UserAuth(ABC):
         """Get the settings store for the current user."""
 
     async def get_user_settings(
-        self, override_agent_profile_id: str | None = None
+        self,
+        *,
+        resolve_agent_profile: bool = False,
+        override_agent_profile_id: str | None = None,
     ) -> Settings | None:
         """Get the user settings for the current user.
 
-        ``override_agent_profile_id`` is a one-off launch override (e.g. a
-        per-conversation-start request) and bypasses the ``_settings`` cache
-        in both directions: it never reads a previously-cached plain load,
-        and its own result is never cached, so a later uncached call still
-        gets the member's ordinary ambient settings.
+        The default is the PERSISTED settings view (memoized in
+        ``_settings``) — what settings round-trips edit and ``store()``
+        accepts. ``resolve_agent_profile=True`` returns the *effective*
+        launch view (the active Agent Profile resolved into
+        ``agent_settings``), memoized separately in ``_resolved_settings``.
+        ``override_agent_profile_id`` is a one-off launch override: it
+        implies resolution and bypasses both memos in both directions, so a
+        later call still gets the ordinary ambient result.
         """
         if override_agent_profile_id is not None:
             settings_store = await self.get_user_settings_store()
-            return await settings_store.load(override_agent_profile_id)
+            return await settings_store.load(
+                resolve_agent_profile=True,
+                override_agent_profile_id=override_agent_profile_id,
+            )
+        if resolve_agent_profile:
+            settings = self._resolved_settings
+            if settings:
+                return settings
+            settings_store = await self.get_user_settings_store()
+            settings = await settings_store.load(resolve_agent_profile=True)
+            self._resolved_settings = settings
+            return settings
         settings = self._settings
         if settings:
             return settings

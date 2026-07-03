@@ -942,3 +942,312 @@ class TestResolveActiveAgentProfile:
 
         member_after = await _read_member(async_session_maker, org_id, USER_ID)
         assert member_after.active_agent_profile_id is None
+
+
+# ── Persisted vs resolved settings views ────────────────────────────────────
+
+
+async def _read_org_raw(async_session_maker, org_id):
+    async with async_session_maker() as session:
+        result = await session.execute(select(Org).where(Org.id == org_id))
+        return result.scalars().first()
+
+
+MEMBER_MCP_SERVERS = {
+    'a': {'url': 'https://a.example/mcp'},
+    'b': {'url': 'https://b.example/mcp'},
+    'c': {'url': 'https://c.example/mcp'},
+}
+
+
+class TestPersistedVsResolvedSettingsView:
+    """Plain load() is the persisted view; resolution is a launch-only opt-in
+    whose result store() refuses, so a profile's resolved dump (ref-filtered
+    mcp_config, the referenced LLM profile's key) can never round-trip into
+    the member/org rows."""
+
+    async def _setup_active_profile(self, async_session_maker, org_id, mcp_server_refs):
+        """Profile with the given refs, member pointed at it, member
+        mcp_config with three servers, full load() viable."""
+        ap = AgentProfiles()
+        profile = save_profile_preserving_identity(
+            ap,
+            OpenHandsAgentProfile(
+                name='reviewer',
+                llm_profile_ref='Default',
+                mcp_server_refs=mcp_server_refs,
+            ),
+        )
+        await _set_agent_profiles(async_session_maker, org_id, ap)
+        async with async_session_maker() as session:
+            user = await session.get(User, USER_ID)
+            user.enable_sound_notifications = True
+            member = (
+                (
+                    await session.execute(
+                        select(OrgMember).where(
+                            OrgMember.org_id == org_id,
+                            OrgMember.user_id == USER_ID,
+                        )
+                    )
+                )
+                .scalars()
+                .first()
+            )
+            member.active_agent_profile_id = str(profile.id)
+            member.agent_settings_diff = {
+                'llm': {
+                    'model': 'gpt-4o',
+                    'base_url': 'https://api.openai.com/v1',
+                },
+                'mcp_config': {'mcpServers': dict(MEMBER_MCP_SERVERS)},
+            }
+            await session.commit()
+        return profile
+
+    def _store_patches(self, async_session_maker):
+        from contextlib import ExitStack
+
+        stack = ExitStack()
+        stack.enter_context(
+            patch('storage.saas_settings_store.a_session_maker', async_session_maker)
+        )
+        stack.enter_context(
+            patch('storage.user_store.a_session_maker', async_session_maker)
+        )
+        stack.enter_context(
+            patch('storage.org_store.a_session_maker', async_session_maker)
+        )
+        return stack
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize('refs', [['a'], []])
+    async def test_plain_load_round_trip_preserves_member_mcp_config(
+        self, async_session_maker, patch_agent_routes, refs
+    ):
+        """F1: a routine load() -> store() round-trip (e.g. a settings PATCH
+        touching an unrelated field) while a ref-filtering profile is active
+        must not rewrite the member's mcp_config with the filtered view."""
+        org_id = patch_agent_routes
+        uid = str(USER_ID)
+        await self._setup_active_profile(async_session_maker, org_id, refs)
+
+        from storage.saas_settings_store import SaasSettingsStore
+
+        with self._store_patches(async_session_maker):
+            store = SaasSettingsStore(uid, effective_org_id=org_id)
+            settings = await store.load()
+
+            # The persisted view: no profile resolution happened.
+            assert settings is not None
+            assert settings.active_agent_profile_id is None
+            assert settings.agent_settings.mcp_config is not None
+            assert set(settings.agent_settings.mcp_config.mcpServers) == {
+                'a',
+                'b',
+                'c',
+            }
+
+            settings.enable_sound_notifications = False  # the unrelated edit
+            await store.store(settings)
+
+        member = await _read_member(async_session_maker, org_id, USER_ID)
+        stored_mcp = member.agent_settings_diff.get('mcp_config') or {}
+        assert set(stored_mcp.get('mcpServers') or {}) == {'a', 'b', 'c'}
+
+    @pytest.mark.asyncio
+    async def test_plain_round_trip_keeps_member_llm_key(
+        self, async_session_maker, patch_agent_routes
+    ):
+        """F2: a routine save while a profile is active must not overwrite the
+        member's own LLM key with the referenced LLM profile's key."""
+        from storage.encrypt_utils import decrypt_value
+
+        org_id = patch_agent_routes
+        uid = str(USER_ID)
+        await self._setup_active_profile(async_session_maker, org_id, ['a'])
+
+        from storage.saas_settings_store import SaasSettingsStore
+
+        with self._store_patches(async_session_maker):
+            store = SaasSettingsStore(uid, effective_org_id=org_id)
+            settings = await store.load()
+            assert settings is not None
+            # The persisted view carries the member's effective key, not the
+            # 'Default' LLM profile's key ('k').
+            assert settings.agent_settings.llm.api_key is not None
+            assert (
+                settings.agent_settings.llm.api_key.get_secret_value() == 'initial-key'
+            )
+
+            settings.enable_sound_notifications = False
+            await store.store(settings)
+
+        member = await _read_member(async_session_maker, org_id, USER_ID)
+        assert decrypt_value(member._llm_api_key) == 'initial-key'
+
+    @pytest.mark.asyncio
+    async def test_shared_agent_settings_edit_persists_while_profile_active(
+        self, async_session_maker, patch_agent_routes
+    ):
+        """F3: with a profile active, org-level agent-settings edits made
+        through the settings API must still persist (no silent write-drop)."""
+        org_id = patch_agent_routes
+        uid = str(USER_ID)
+        await self._setup_active_profile(async_session_maker, org_id, ['a'])
+
+        from storage.saas_settings_store import SaasSettingsStore
+
+        with self._store_patches(async_session_maker):
+            store = SaasSettingsStore(uid, effective_org_id=org_id)
+            settings = await store.load()
+            assert settings is not None
+            settings.agent_settings = settings.agent_settings.model_copy(
+                update={'enable_sub_agents': True}
+            )
+            await store.store(settings)
+
+        org = await _read_org_raw(async_session_maker, org_id)
+        assert (org.agent_settings or {}).get('enable_sub_agents') is True
+
+    @pytest.mark.asyncio
+    async def test_resolved_load_is_launch_view_and_store_refuses_it(
+        self, async_session_maker, patch_agent_routes
+    ):
+        """resolve_agent_profile=True returns the resolved launch view (the
+        profile replaces agent_settings) and store() refuses that object."""
+        org_id = patch_agent_routes
+        uid = str(USER_ID)
+        profile = await self._setup_active_profile(async_session_maker, org_id, ['a'])
+
+        from storage.saas_settings_store import SaasSettingsStore
+
+        with self._store_patches(async_session_maker):
+            store = SaasSettingsStore(uid, effective_org_id=org_id)
+            settings = await store.load(resolve_agent_profile=True)
+
+            assert settings is not None
+            assert settings.active_agent_profile_id == str(profile.id)
+            assert settings.active_agent_profile_revision == profile.revision
+            # mcp_server_refs=['a'] filtered the member's three servers.
+            assert settings.agent_settings.mcp_config is not None
+            assert set(settings.agent_settings.mcp_config.mcpServers) == {'a'}
+            # The resolved LLM is the referenced 'Default' org LLM profile.
+            assert settings.agent_settings.llm.model == 'gpt-4o'
+
+            with pytest.raises(ValueError, match='resolved Agent-Profile'):
+                await store.store(settings)
+
+    @pytest.mark.asyncio
+    async def test_resolver_crash_falls_back_to_composed_settings(
+        self, async_session_maker, patch_agent_routes
+    ):
+        """F5: an unexpected resolver exception (e.g. an SDK signature change
+        raising TypeError) degrades to the composed settings, never a 500."""
+        org_id = patch_agent_routes
+        uid = str(USER_ID)
+        await self._setup_active_profile(async_session_maker, org_id, ['a'])
+
+        from storage.saas_settings_store import SaasSettingsStore
+
+        with (
+            self._store_patches(async_session_maker),
+            patch(
+                'storage.saas_settings_store.resolve_agent_profile',
+                side_effect=TypeError(
+                    'resolve_agent_profile() missing 1 required '
+                    "keyword-only argument: 'available_skills'"
+                ),
+            ),
+        ):
+            store = SaasSettingsStore(uid, effective_org_id=org_id)
+            settings = await store.load(resolve_agent_profile=True)
+
+        assert settings is not None
+        assert settings.active_agent_profile_id is None
+        assert settings.agent_settings.mcp_config is not None
+        assert set(settings.agent_settings.mcp_config.mcpServers) == {'a', 'b', 'c'}
+
+
+# ── Best-effort load must not amplify into data loss ────────────────────────
+
+
+class TestNoWriteBackWithoutMutation:
+    @pytest.mark.asyncio
+    async def test_activate_preserves_unparseable_profile(
+        self, async_session_maker, patch_agent_routes
+    ):
+        """F4: /activate is pointer-only — it must not serialize the (best-
+        effort loaded) collection back, which would silently erase a stored
+        profile that merely failed to parse."""
+        org_id = patch_agent_routes
+        uid = str(USER_ID)
+
+        await save_agent_profile(
+            name='reviewer',
+            body={'llm_profile_ref': 'Default'},
+            effective_org_id=org_id,
+            user_id=uid,
+        )
+        listing = await list_agent_profiles(effective_org_id=org_id, user_id=uid)
+        valid_id = listing.profiles[0].id
+
+        # Simulate schema drift: a stored entry the current model rejects
+        # (name violates min_length) — _skip_invalid_profiles drops it on load.
+        invalid_id = str(uuid.uuid4())
+        org = await _read_org_raw(async_session_maker, org_id)
+        blob_before = dict(org.agent_profiles)
+        blob_before['profiles'] = {
+            **blob_before['profiles'],
+            invalid_id: {'name': '', 'agent_kind': 'openhands'},
+        }
+        async with async_session_maker() as session:
+            org = (
+                (await session.execute(select(Org).where(Org.id == org_id)))
+                .scalars()
+                .first()
+            )
+            org.agent_profiles = blob_before
+            await session.commit()
+
+        result = await activate_agent_profile(
+            profile_id=valid_id, effective_org_id=org_id, user_id=uid
+        )
+        assert isinstance(result, ActivateAgentProfileResponse)
+
+        member = await _read_member(async_session_maker, org_id, USER_ID)
+        assert member.active_agent_profile_id == valid_id
+        org = await _read_org_raw(async_session_maker, org_id)
+        # The blob is byte-for-byte untouched: the unparseable entry survives.
+        assert org.agent_profiles == blob_before
+        assert invalid_id in org.agent_profiles['profiles']
+
+    @pytest.mark.asyncio
+    async def test_materialize_survives_dry_run_crash(
+        self, async_session_maker, patch_agent_routes
+    ):
+        """F5 (router): a dry-run resolver crash surfaces as an invalid
+        diagnostics report, not a 500."""
+        org_id = patch_agent_routes
+        uid = str(USER_ID)
+
+        await save_agent_profile(
+            name='reviewer',
+            body={'llm_profile_ref': 'Default'},
+            effective_org_id=org_id,
+            user_id=uid,
+        )
+
+        with patch(
+            'server.routes.agent_profiles.resolve_agent_profile_dry_run',
+            side_effect=TypeError(
+                'resolve_agent_profile_dry_run() missing 1 required '
+                "keyword-only argument: 'available_skills'"
+            ),
+        ):
+            diagnostics = await materialize_agent_profile(
+                name='reviewer', effective_org_id=org_id, user_id=uid
+            )
+
+        assert diagnostics.valid is False
+        assert any('Failed to resolve profile' in e for e in diagnostics.errors)

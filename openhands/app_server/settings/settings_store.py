@@ -21,13 +21,21 @@ class SettingsStore(ABC):
 
     @abstractmethod
     async def load(
-        self, override_agent_profile_id: str | None = None
+        self,
+        *,
+        resolve_agent_profile: bool = False,
+        override_agent_profile_id: str | None = None,
     ) -> Settings | None:
         """Load session init data.
 
-        ``override_agent_profile_id`` is an optional one-off launch override
-        for the active Agent Profile (cloud-only concept); implementations
-        without that concept ignore it.
+        By default returns the PERSISTED (user-authored) settings — the view
+        every load() -> store() round-trip must operate on.
+        ``resolve_agent_profile=True`` opts into the *effective* launch view:
+        the active Agent Profile (cloud-only concept) resolves and replaces
+        ``agent_settings``; the result must never be passed to ``store()``.
+        ``override_agent_profile_id`` is a one-off launch override and implies
+        resolution. Implementations without the Agent Profile concept ignore
+        both.
         """
 
     @abstractmethod

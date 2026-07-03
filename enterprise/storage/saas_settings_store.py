@@ -40,11 +40,7 @@ from openhands.app_server.utils.llm import is_openhands_model
 from openhands.sdk.llm.utils.openhands_provider import (
     canonicalize_openhands_llm_payload,
 )
-from openhands.sdk.profiles import (
-    DanglingMcpServerRef,
-    ProfileNotFound,
-    resolve_agent_profile,
-)
+from openhands.sdk.profiles import resolve_agent_profile
 
 # Agent-settings keys private to each org member: never written to
 # org-level defaults nor broadcast across the org. Covers ``mcp_config``
@@ -215,7 +211,33 @@ class SaasSettingsStore(SettingsStore):
             resolved = resolve_agent_profile(
                 profile, llm_store=llm_store, mcp_config=mcp_config, cipher=None
             )
-        except (ProfileNotFound, DanglingMcpServerRef, ValueError) as exc:
+
+            # Apply the cloud managed-key / base-url overlay to the resolved LLM
+            # (OpenHands kind only), so managed OpenHands keys and provider-default
+            # base URLs behave exactly as the non-profile path. Reuses the existing
+            # resolve_profile_llm helper rather than re-deriving key resolution.
+            if resolved.agent_kind == 'openhands':
+                resolved = resolved.model_copy(
+                    update={
+                        'llm': resolve_profile_llm(
+                            resolved.llm,
+                            managed_proxy_url=LITE_LLM_API_URL,
+                            fallback_api_key=effective_llm_api_key,
+                        )
+                    }
+                )
+
+            # expose_secrets so the resolved LLM key lands in agent_settings the
+            # same way the composed path sets
+            # merged_agent_settings['llm']['api_key'].
+            resolved_dump = resolved.model_dump(
+                mode='json', context={'expose_secrets': True}
+            )
+        except Exception as exc:
+            # Never-brick contract: catch broadly, not just the known resolver
+            # errors — SDK contract drift (e.g. a new required kwarg raising
+            # TypeError) must degrade to the composed settings, not 500 every
+            # settings load.
             logger.warning(
                 'Failed to resolve active agent profile %r for user %s: %s; '
                 'falling back to composed settings',
@@ -224,39 +246,33 @@ class SaasSettingsStore(SettingsStore):
                 exc,
             )
             return None
-
-        # Apply the cloud managed-key / base-url overlay to the resolved LLM
-        # (OpenHands kind only), so managed OpenHands keys and provider-default
-        # base URLs behave exactly as the non-profile path. Reuses the existing
-        # resolve_profile_llm helper rather than re-deriving key resolution.
-        if resolved.agent_kind == 'openhands':
-            resolved = resolved.model_copy(
-                update={
-                    'llm': resolve_profile_llm(
-                        resolved.llm,
-                        managed_proxy_url=LITE_LLM_API_URL,
-                        fallback_api_key=effective_llm_api_key,
-                    )
-                }
-            )
-
-        # expose_secrets so the resolved LLM key lands in agent_settings the same
-        # way the composed path sets merged_agent_settings['llm']['api_key'].
-        resolved_dump = resolved.model_dump(
-            mode='json', context={'expose_secrets': True}
-        )
         return resolved_dump, str(profile.id), profile.revision
 
     async def load(
-        self, override_agent_profile_id: str | None = None
+        self,
+        *,
+        resolve_agent_profile: bool = False,
+        override_agent_profile_id: str | None = None,
     ) -> Settings | None:
-        """Load settings, optionally overriding the active Agent Profile.
+        """Load settings; opt into the resolved Agent-Profile launch view.
+
+        The default returns the PERSISTED (composed org + member) settings —
+        the view every load() -> store() round-trip must operate on, so an
+        active Agent Profile's *resolved* dump (ref-filtered ``mcp_config``,
+        the referenced LLM profile's key) can never masquerade as
+        user-authored settings and get written back.
+
+        ``resolve_agent_profile=True`` is the conversation-start opt-in: the
+        active Agent Profile resolves and REPLACES ``agent_settings`` (the
+        sole launch authority, #15044 §3), and the result is marked
+        ``_resolved_view`` — ``store()`` refuses it. Falls back to the
+        composed settings when no pointer is set or the pointer is stale /
+        unresolvable, so a broken pointer can never brick the load.
 
         ``override_agent_profile_id`` is a one-off launch override (e.g. a
-        per-conversation-start request): it changes which profile resolves
-        for *this call only* and is never persisted to
-        ``org_member.active_agent_profile_id``. Omit it for the ordinary
-        ambient-pointer behavior.
+        per-conversation-start request): it implies resolution, changes which
+        profile resolves for *this call only*, and is never persisted to
+        ``org_member.active_agent_profile_id``.
         """
         user = await UserStore.get_user_by_id(self.user_id)
         if not user:
@@ -380,26 +396,33 @@ class SaasSettingsStore(SettingsStore):
                 # Settings.llm_profiles falls back to its default_factory.
                 kwargs.pop('llm_profiles', None)
 
-        # Agent Profiles: when the member has an active agent profile, resolve it
-        # and let the result REPLACE the composed agent_settings — the active
-        # Agent Profile is the sole launch authority (#15044 §3), superseding the
-        # legacy active-LLM materialization. Falls through to the composed
-        # settings when no pointer is set (pre-migration) or the pointer is stale
-        # / unresolvable, so a broken pointer can never brick the settings load.
-        resolved = self._resolve_active_agent_profile(
-            org,
-            org_member,
-            merged_agent_settings,
-            effective_llm_api_key,
-            override_agent_profile_id,
+        # Agent Profiles: only on a resolve-requested load (conversation
+        # start), resolve the active agent profile and let the result REPLACE
+        # the composed agent_settings — the active Agent Profile is the sole
+        # launch authority (#15044 §3). Plain loads keep the persisted
+        # composed settings so settings round-trips never see (and never
+        # write back) a profile's resolved dump.
+        resolution_requested = (
+            resolve_agent_profile or override_agent_profile_id is not None
         )
-        if resolved is not None:
-            resolved_dump, resolved_id, resolved_revision = resolved
-            kwargs['agent_settings'] = resolved_dump
-            kwargs['active_agent_profile_id'] = resolved_id
-            kwargs['active_agent_profile_revision'] = resolved_revision
+        if resolution_requested:
+            resolved = self._resolve_active_agent_profile(
+                org,
+                org_member,
+                merged_agent_settings,
+                effective_llm_api_key,
+                override_agent_profile_id,
+            )
+            if resolved is not None:
+                resolved_dump, resolved_id, resolved_revision = resolved
+                kwargs['agent_settings'] = resolved_dump
+                kwargs['active_agent_profile_id'] = resolved_id
+                kwargs['active_agent_profile_revision'] = resolved_revision
 
         settings = Settings(**kwargs)
+        if resolution_requested:
+            # Launch view (even when resolution fell back): never persistable.
+            settings._resolved_view = True
 
         # The seed above is in-memory only. Persist it onto the org row so the
         # legacy LLM becomes a real stored profile — otherwise the profiles
@@ -452,6 +475,18 @@ class SaasSettingsStore(SettingsStore):
             await session.commit()
 
     async def store(self, item: Settings):
+        if item is not None and (
+            item._resolved_view or item.active_agent_profile_id is not None
+        ):
+            # A resolved Agent-Profile launch view (from
+            # load(resolve_agent_profile=True) / an override) is the profile's
+            # dump, not user-authored settings: persisting it would bake the
+            # ref-filtered mcp_config and the referenced LLM profile's key into
+            # the member/org rows. Only plain load() results may round-trip.
+            raise ValueError(
+                'Refusing to persist a resolved Agent-Profile settings view; '
+                'store() only accepts persisted settings from a plain load()'
+            )
         async with a_session_maker() as session:
             if not item:
                 return None
@@ -529,17 +564,6 @@ class SaasSettingsStore(SettingsStore):
             shared_agent_settings_diff, private_agent_settings_diff = (
                 _split_member_private_keys(effective_agent_settings_diff)
             )
-
-            if item.active_agent_profile_id is not None:
-                # ``item.agent_settings`` is the profile-resolved dump that
-                # ``load()`` computed (see ``_resolve_active_agent_profile``),
-                # not composed settings the member edited directly. Agent
-                # Profiles are managed through their own CRUD
-                # (server/routes/agent_profiles.py) — a routine settings PATCH
-                # (e.g. toggling an unrelated field) must never write the
-                # resolved profile's LLM/api_key back into org-level defaults
-                # nor broadcast it to every other org member.
-                shared_agent_settings_diff = {}
 
             # Strip any pre-existing private keys from the org dump before
             # merging, so legacy values written by older code paths are

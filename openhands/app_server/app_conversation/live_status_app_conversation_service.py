@@ -499,14 +499,15 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             # from settings (e.g. grouping) that may change before delete.
             tags[ARCHIVE_WORKSPACE_PATH_TAG_KEY] = working_dir
             # Stamp Agent Profile provenance. The launched profile resolved into
-            # the launched ``agent_settings`` (SaasSettingsStore.load carries its
-            # id + revision onto UserInfo); ride the tags dict so it round-trips
-            # and surfaces as the ``launched_agent_profile`` computed field.
-            # Re-resolves with the same override the launch itself used, so
-            # provenance reflects what actually ran even when the request
-            # carried a one-off ``agent_profile_id``.
+            # the launched ``agent_settings`` (a resolve-requested load carries
+            # its id + revision onto UserInfo); ride the tags dict so it
+            # round-trips and surfaces as the ``launched_agent_profile``
+            # computed field. Resolves with the same override the launch itself
+            # used, so provenance reflects what actually ran even when the
+            # request carried a one-off ``agent_profile_id``.
             profile_user = await self.user_context.get_user_info(
-                override_agent_profile_id=request.agent_profile_id
+                resolve_agent_profile=True,
+                override_agent_profile_id=request.agent_profile_id,
             )
             launched_profile_id = getattr(profile_user, 'active_agent_profile_id', None)
             if isinstance(launched_profile_id, str) and launched_profile_id:
@@ -1644,8 +1645,12 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 conversation only (cloud-only; does not change the member's
                 active pointer). ``None`` uses the ambient active profile.
         """
+        # Conversation start builds the agent, so it consumes the RESOLVED
+        # (effective launch) view; plain settings reads/round-trips elsewhere
+        # stay on the persisted view.
         user = await self.user_context.get_user_info(
-            override_agent_profile_id=agent_profile_id
+            resolve_agent_profile=True,
+            override_agent_profile_id=agent_profile_id,
         )
 
         # Route ACP agent settings to the ACP-specific builder
@@ -1955,7 +1960,8 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 active pointer). ``None`` uses the ambient active profile.
         """
         user = await self.user_context.get_user_info(
-            override_agent_profile_id=agent_profile_id
+            resolve_agent_profile=True,
+            override_agent_profile_id=agent_profile_id,
         )
 
         project_dir = get_project_dir(working_dir, selected_repository)

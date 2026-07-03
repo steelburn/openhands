@@ -39,13 +39,18 @@ class UserContext(ABC):
 
     @abstractmethod
     async def get_user_info(
-        self, override_agent_profile_id: str | None = None
+        self,
+        *,
+        resolve_agent_profile: bool = False,
+        override_agent_profile_id: str | None = None,
     ) -> UserInfo:
         """Get the user info.
 
-        ``override_agent_profile_id`` is a one-off launch override for the
-        active Agent Profile (cloud-only concept); implementations without
-        that concept ignore it.
+        Defaults to the PERSISTED settings view. ``resolve_agent_profile=True``
+        opts into the effective launch view (the active Agent Profile resolved
+        into ``agent_settings`` — cloud-only concept);
+        ``override_agent_profile_id`` is a one-off launch override and implies
+        resolution. Implementations without the concept ignore both.
         """
 
     @abstractmethod

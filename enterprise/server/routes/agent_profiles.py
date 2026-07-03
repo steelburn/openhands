@@ -180,6 +180,12 @@ async def _agent_profiles_transaction(
     the helper serializes the collection back onto the org row and commits. This
     DB row lock *is* the store's ``lock()`` — hence the in-memory model's
     re-entrant no-op ``lock()``.
+
+    The collection is written back ONLY when the caller actually changed it.
+    Loading is best-effort (``_skip_invalid_profiles`` drops entries that fail
+    to validate, e.g. after schema drift), so an unconditional write-back would
+    let a mutation-free call such as ``/activate`` silently erase a stored
+    profile it merely failed to parse.
     """
     await _get_org(org_id, user_id)
     async with a_session_maker() as session:
@@ -193,12 +199,13 @@ async def _agent_profiles_transaction(
                 detail=f'Organization {org_id} not found',
             )
         profiles = load_agent_profiles(org)
-        yield session, org, profiles
         # The EncryptedJSON column is the at-rest boundary: dump with secrets
         # exposed so skills[].mcp_tools ride in cleartext inside the blob.
-        org.agent_profiles = profiles.model_dump(
-            mode='json', context={'expose_secrets': True}
-        )
+        before = profiles.model_dump(mode='json', context={'expose_secrets': True})
+        yield session, org, profiles
+        after = profiles.model_dump(mode='json', context={'expose_secrets': True})
+        if after != before:
+            org.agent_profiles = after
         await session.commit()
 
 
@@ -539,10 +546,11 @@ async def activate_agent_profile(
     """Activate a profile for the calling member — pointer only.
 
     Writes the per-member ``OrgMember.active_agent_profile_id`` and nothing else
-    (no ``agent_settings`` materialization; #15044 §3). Member-facing, so it
-    requires only ``VIEW_ORG_SETTINGS`` (each member picks their own active
-    profile); profile CRUD requires ``EDIT_ORG_SETTINGS``. 404 if no stored
-    profile has that id.
+    (no ``agent_settings`` materialization, and the profiles collection itself
+    is untouched — the transaction helper skips the write-back when nothing
+    mutated; #15044 §3). Member-facing, so it requires only
+    ``VIEW_ORG_SETTINGS`` (each member picks their own active profile); profile
+    CRUD requires ``EDIT_ORG_SETTINGS``. 404 if no stored profile has that id.
     """
     async with _agent_profiles_transaction(effective_org_id, user_id) as (
         session,
@@ -598,6 +606,22 @@ async def materialize_agent_profile(
     mcp_config = member_mcp_config(member) if member is not None else None
     llm_store = OrgLLMProfileLoader(load_llm_profiles(org))
 
-    return resolve_agent_profile_dry_run(
-        profile, llm_store=llm_store, mcp_config=mcp_config, cipher=None
-    )
+    try:
+        return resolve_agent_profile_dry_run(
+            profile, llm_store=llm_store, mcp_config=mcp_config, cipher=None
+        )
+    except Exception as exc:
+        # The dry-run is contractually total, but SDK contract drift (e.g. a
+        # new required kwarg raising TypeError) must surface as an invalid
+        # diagnostics report, not a 500.
+        logger.warning(
+            "Agent profile dry-run resolve failed for '%s' in org %s: %s",
+            name,
+            effective_org_id,
+            exc,
+        )
+        return AgentProfileDiagnostics(
+            agent_kind=profile.agent_kind,
+            valid=False,
+            errors=[f'Failed to resolve profile: {exc}'],
+        )

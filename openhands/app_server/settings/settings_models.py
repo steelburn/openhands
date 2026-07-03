@@ -19,6 +19,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    PrivateAttr,
     SecretStr,
     SerializationInfo,
     field_serializer,
@@ -164,13 +165,22 @@ class Settings(BaseModel):
         ),
     )
     # Active Agent Profile provenance (cloud SaaS), surfaced by
-    # ``SaasSettingsStore.load`` when a member's active agent profile resolves.
+    # ``SaasSettingsStore.load`` only when the caller requested profile
+    # resolution (``resolve_agent_profile=True`` / an explicit override).
     # ``active_agent_profile_id`` mirrors the SDK persisted-settings pointer;
     # the revision rides alongside so conversation-start can stamp
     # ``LaunchedAgentProfile``. Neither is a persisted setting — they default to
-    # None and ``store()`` never writes them (no backing column).
+    # None and ``store()`` refuses instances that carry them (no backing column).
     active_agent_profile_id: str | None = None
     active_agent_profile_revision: int | None = None
+
+    # True when this instance came from a resolve-requested load: its
+    # agent_settings are the *effective* launch view (possibly an Agent
+    # Profile's resolved dump), not user-authored persisted settings, so it
+    # must never be passed back to ``store()``. Survives ``model_copy`` but
+    # not dump/reconstruct — ``store()`` also guards on
+    # ``active_agent_profile_id`` for reconstructed copies.
+    _resolved_view: bool = PrivateAttr(default=False)
 
     model_config = ConfigDict(populate_by_name=True)
 
