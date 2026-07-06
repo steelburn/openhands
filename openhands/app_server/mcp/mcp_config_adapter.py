@@ -14,16 +14,23 @@ from typing import Any, cast
 from fastmcp.mcp_config import MCPConfig as FastMCPConfig
 from pydantic import BaseModel
 
+NativeMCPServer: Any
+
+dump_native_mcp_config: Any
+
 try:
     from openhands.sdk.mcp.config import (
-        MCPServer as NativeMCPServer,
+        MCPServer as _NativeMCPServer,
     )
     from openhands.sdk.mcp.config import (
-        dump_mcp_config as dump_native_mcp_config,
+        dump_mcp_config as _dump_native_mcp_config,
     )
+
+    NativeMCPServer = _NativeMCPServer
+    dump_native_mcp_config = _dump_native_mcp_config
 except ImportError:  # SDK < software-agent-sdk#3964
-    NativeMCPServer = None  # type: ignore[assignment]
-    dump_native_mcp_config = None  # type: ignore[assignment]
+    NativeMCPServer = None
+    dump_native_mcp_config = None
 
 
 def native_mcp_config_supported() -> bool:

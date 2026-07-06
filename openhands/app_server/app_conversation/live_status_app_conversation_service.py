@@ -509,7 +509,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             # from settings (e.g. grouping) that may change before delete.
             tags[ARCHIVE_WORKSPACE_PATH_TAG_KEY] = working_dir
             if request_agent.agent_kind == 'acp':
-                llm_model = request_agent.acp_model
+                llm_model = cast(Any, request_agent).acp_model
                 agent_kind = 'acp'
                 # Persist the active ACP provider key so the conversation UI
                 # can resolve a brand label ("Claude Code", "Codex", …) via
@@ -1900,11 +1900,12 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
     ) -> StartConversationRequest:
         """Load workspace skills onto a conversation request's agent.
 
-        Used by both the LLM and ACP arms of
-        ``_build_start_conversation_request_for_user`` so that skill-loading
-        semantics only need to change in one place.
+        Used for regular SDK agents. ACP agents do not accept SDK skill updates
+        through the regular Agent context path.
         """
         try:
+            if not isinstance(request.agent, Agent):
+                return request
             updated_agent = await self._load_skills_and_update_agent(
                 sandbox,
                 request.agent,

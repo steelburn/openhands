@@ -390,9 +390,7 @@ async def start_app_conversation(
                     ctx = await resolve_analytics_context(user_id)
                     analytics.track_conversation_created(
                         ctx=ctx,
-                        conversation_id=str(result.app_conversation_id)
-                        if result.app_conversation_id
-                        else result.id,
+                        conversation_id=str(result.app_conversation_id or result.id),
                         trigger=start_request.trigger.value
                         if start_request.trigger
                         else None,

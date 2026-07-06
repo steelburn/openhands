@@ -109,7 +109,7 @@ def test_member_settings_persist_full_effective_agent_settings():
     assert settings.conversation_settings.security_analyzer == "llm"
 
 
-def test_persisted_agent_settings_preserves_private_mcp_auth_headers():
+def test_persisted_agent_settings_preserves_private_mcp_auth_credentials():
     settings = Settings()
     settings.update(
         {
@@ -131,11 +131,12 @@ def test_persisted_agent_settings_preserves_private_mcp_auth_headers():
 
     persisted = SaasSettingsStore._get_persisted_agent_settings(settings)
     servers = mcp_config_server_map(persisted["mcp_config"])
+    server = servers["integrations-hub"]
 
-    assert (
-        servers["integrations-hub"]["headers"]["Authorization"]
-        == "Bearer ih-secret-key"
-    )
+    if "headers" in server:
+        assert server["headers"]["Authorization"] == "Bearer ih-secret-key"
+    else:
+        assert server["auth"] == {"strategy": "bearer", "value": "ih-secret-key"}
     assert "api_key" not in persisted["llm"]
 
 
