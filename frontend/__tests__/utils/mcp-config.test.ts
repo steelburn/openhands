@@ -150,7 +150,9 @@ describe("parseMcpConfig", () => {
       name: "oauth-server",
       url: "https://example.com",
     });
-    expect((result.sse_servers[0] as { api_key?: string }).api_key).toBeUndefined();
+    expect(
+      (result.sse_servers[0] as { api_key?: string }).api_key,
+    ).toBeUndefined();
   });
 
   it("should parse timeout for shttp servers", () => {
@@ -247,7 +249,11 @@ describe("toSdkMcpConfig", () => {
       ],
       stdio_servers: [],
       shttp_servers: [
-        { name: "shttp", url: "https://shttp.example", api_key: "shttp-secret" },
+        {
+          name: "shttp",
+          url: "https://shttp.example",
+          api_key: "shttp-secret",
+        },
       ],
     };
 

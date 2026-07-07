@@ -13,7 +13,30 @@ const EMPTY_MCP_CONFIG: MCPConfig = {
 };
 
 type SdkMcpServerConfig = Record<string, SettingsValue>;
-type SdkMcpConfig = Record<string, SdkMcpServerConfig>;
+
+function unwrapMcpServers(
+  value: Record<string, unknown>,
+): Record<string, unknown> {
+  if (
+    "mcpServers" in value &&
+    value.mcpServers &&
+    typeof value.mcpServers === "object" &&
+    !Array.isArray(value.mcpServers)
+  ) {
+    return value.mcpServers as Record<string, unknown>;
+  }
+  return value;
+}
+
+function isParsedMcpConfigShape(value: Record<string, unknown>): boolean {
+  const keys = Object.keys(value);
+  return (
+    keys.length === 3 &&
+    Array.isArray(value.sse_servers) &&
+    Array.isArray(value.stdio_servers) &&
+    Array.isArray(value.shttp_servers)
+  );
+}
 
 function apiKeyFromAuthorizationHeader(value: unknown): string | undefined {
   if (Array.isArray(value)) {
@@ -27,17 +50,12 @@ function apiKeyFromAuthorizationHeader(value: unknown): string | undefined {
   return bearer ? bearer[1] : value;
 }
 
-/**
- * Recover a remote server's API key from either the canonical
- * ``headers.Authorization`` bearer token or the legacy ``auth`` field (kept
- * for back-compat with settings persisted before the header migration).
- */
 function apiKeyFromServerConfig(
   serverConfig: Record<string, unknown>,
 ): string | undefined {
   const { headers } = serverConfig;
   const authorization =
-    headers && typeof headers === "object"
+    headers && typeof headers === "object" && !Array.isArray(headers)
       ? ((headers as Record<string, unknown>).Authorization ??
         (headers as Record<string, unknown>).authorization)
       : undefined;
@@ -48,11 +66,6 @@ function apiKeyFromServerConfig(
   return typeof auth === "string" && auth !== "oauth" ? auth : undefined;
 }
 
-/**
- * Serialize an API key as an ``Authorization`` bearer header. The SDK only
- * redacts/encrypts ``headers`` (and ``env``), not ``auth``, so a key written
- * to ``auth`` would persist in plaintext — write the header form instead.
- */
 function getAuthorizationHeaders(apiKey: string | undefined) {
   if (!apiKey) return {};
   return {
@@ -62,10 +75,6 @@ function getAuthorizationHeaders(apiKey: string | undefined) {
   };
 }
 
-/**
- * Generate a unique name for an MCP server, avoiding collisions with existing names.
- * Only adds a suffix if there's an actual collision.
- */
 function getUniqueName(base: string, usedNames: Set<string>): string {
   if (!usedNames.has(base)) {
     return base;
@@ -77,50 +86,40 @@ function getUniqueName(base: string, usedNames: Set<string>): string {
   return `${base}_${suffix}`;
 }
 
-/**
- * Parse an SDK mcp_config server map and convert it
- * to the frontend MCPConfig format used by UI components.
- * Preserves server names for round-trip serialization.
- */
 export function parseMcpConfig(value: unknown): MCPConfig {
   if (!value || typeof value !== "object") {
     return { ...EMPTY_MCP_CONFIG };
   }
 
   const obj = value as Record<string, unknown>;
-  if (
-    Array.isArray(obj.sse_servers) ||
-    Array.isArray(obj.stdio_servers) ||
-    Array.isArray(obj.shttp_servers)
-  ) {
+
+  if (isParsedMcpConfigShape(obj)) {
     return {
-      sse_servers: Array.isArray(obj.sse_servers)
-        ? (obj.sse_servers as MCPConfig["sse_servers"])
-        : [],
-      stdio_servers: Array.isArray(obj.stdio_servers)
-        ? (obj.stdio_servers as MCPConfig["stdio_servers"])
-        : [],
-      shttp_servers: Array.isArray(obj.shttp_servers)
-        ? (obj.shttp_servers as MCPConfig["shttp_servers"])
-        : [],
+      sse_servers: obj.sse_servers as (string | MCPSSEServer)[],
+      stdio_servers: obj.stdio_servers as MCPStdioServer[],
+      shttp_servers: obj.shttp_servers as (string | MCPSHTTPServer)[],
     };
   }
+
+  const mcpServers = unwrapMcpServers(obj);
 
   const sseServers: (string | MCPSSEServer)[] = [];
   const stdioServers: MCPStdioServer[] = [];
   const shttpServers: (string | MCPSHTTPServer)[] = [];
 
-  const rawServers =
-    "mcpServers" in obj && obj.mcpServers && typeof obj.mcpServers === "object"
-      ? obj.mcpServers
-      : obj;
-  const mcpServers = rawServers as Record<string, Record<string, unknown>>;
+  for (const [serverName, rawServerConfig] of Object.entries(mcpServers)) {
+    if (
+      !rawServerConfig ||
+      typeof rawServerConfig !== "object" ||
+      Array.isArray(rawServerConfig)
+    ) {
+      // eslint-disable-next-line no-continue
+      continue;
+    }
 
-  for (const [serverName, serverConfig] of Object.entries(mcpServers)) {
-    // eslint-disable-next-line no-continue
-    if (!serverConfig || typeof serverConfig !== "object") continue;
-
-    const url = serverConfig.url as string | undefined;
+    const serverConfig = rawServerConfig as Record<string, unknown>;
+    const url =
+      typeof serverConfig.url === "string" ? serverConfig.url : undefined;
 
     if (url) {
       const transport = serverConfig.transport as string | undefined;
@@ -147,7 +146,7 @@ export function parseMcpConfig(value: unknown): MCPConfig {
     } else if (typeof serverConfig.command === "string") {
       const stdioServer: MCPStdioServer = {
         name: serverName,
-        command: serverConfig.command as string,
+        command: serverConfig.command,
       };
       if (serverConfig.args) {
         stdioServer.args = serverConfig.args as string[];
@@ -166,16 +165,12 @@ export function parseMcpConfig(value: unknown): MCPConfig {
   };
 }
 
-/**
- * Convert the frontend MCPConfig format back to the SDK server-map
- * shape expected by agent_settings.mcp_config on the backend.
- * Uses preserved names when available, only generates names for new servers.
- */
-export function toSdkMcpConfig(config: MCPConfig): SdkMcpConfig | null {
+export function toSdkMcpConfig(
+  config: MCPConfig,
+): Record<string, SdkMcpServerConfig> | null {
   const mcpServers: Record<string, SdkMcpServerConfig> = {};
   const usedNames = new Set<string>();
 
-  // SSE servers - use preserved name or generate
   for (const entry of config.sse_servers) {
     const server: SdkMcpServerConfig = {};
     if (typeof entry === "string") {
@@ -193,7 +188,6 @@ export function toSdkMcpConfig(config: MCPConfig): SdkMcpConfig | null {
     mcpServers[name] = server;
   }
 
-  // shttp servers - use preserved name or generate
   for (const entry of config.shttp_servers) {
     const server: SdkMcpServerConfig = {};
     if (typeof entry === "string") {
@@ -211,7 +205,6 @@ export function toSdkMcpConfig(config: MCPConfig): SdkMcpConfig | null {
     mcpServers[name] = server;
   }
 
-  // stdio servers - use preserved name or generate
   for (const entry of config.stdio_servers) {
     const server: SdkMcpServerConfig = {
       command: entry.command,

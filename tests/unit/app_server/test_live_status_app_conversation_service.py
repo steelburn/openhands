@@ -50,6 +50,7 @@ from openhands.app_server.user.user_context import UserContext
 from openhands.app_server.utils.redis_lock import RedisLockUnavailable
 from openhands.sdk import Agent, AgentContext, Event
 from openhands.sdk.llm import LLM
+from openhands.sdk.mcp.config import MCPServer
 from openhands.sdk.secret import LookupSecret, StaticSecret
 from openhands.sdk.settings import ConversationSettings, OpenHandsAgentSettings
 from openhands.sdk.workspace.remote.async_remote_workspace import AsyncRemoteWorkspace
@@ -672,17 +673,13 @@ class TestLiveStatusAppConversationService:
         assert llm.usage_id == 'agent'
 
         assert 'default' in mcp_config
+        default_server = mcp_config['default']
         assert (
-            _server_field(mcp_config['default'], 'url')
-            == 'https://test.example.com/mcp/mcp'
+            _server_field(default_server, 'url') == 'https://test.example.com/mcp/mcp'
         )
-        assert _server_field(mcp_config['default'], 'headers')[
-            'X-OpenHands-ServerConversation-ID'
-        ] == str(self.conversation_id)
-        assert (
-            _server_field(mcp_config['default'], 'headers')['X-Session-API-Key']
-            == 'mcp_api_key'
-        )
+        headers = _server_field(default_server, 'headers')
+        assert headers['X-OpenHands-ServerConversation-ID'] == str(self.conversation_id)
+        assert headers['X-Session-API-Key'] == 'mcp_api_key'
 
     @pytest.mark.asyncio
     async def test_configure_llm_and_mcp_uses_user_llm_settings(self):
@@ -772,9 +769,13 @@ class TestLiveStatusAppConversationService:
         assert llm.base_url == 'https://provider.example.com'
 
     @pytest.mark.asyncio
-    async def test_configure_llm_and_mcp_openhands_model_no_base_urls(self):
+    async def test_configure_llm_and_mcp_openhands_model_no_base_urls(
+        self, monkeypatch
+    ):
         """openhands/* model is kept public when no explicit base URL exists."""
         # Arrange
+        monkeypatch.delenv('LLM_BASE_URL', raising=False)
+        monkeypatch.delenv('OPENHANDS_PROVIDER_BASE_URL', raising=False)
         self.mock_user.llm_model = 'openhands/default'
         self.mock_user.llm_base_url = None
         self.service.openhands_provider_base_url = None
@@ -2274,7 +2275,6 @@ class TestLiveStatusAppConversationService:
         )
 
         assert isinstance(llm, LLM)
-
         mcp_servers = mcp_config
         assert 'default' in mcp_servers
         assert 'linear' in mcp_servers
@@ -2374,8 +2374,8 @@ class TestLiveStatusAppConversationService:
         assert 'default' in mcp_servers
 
     @pytest.mark.asyncio
-    async def test_configure_llm_and_mcp_returns_server_map(self):
-        """Test _configure_llm_and_mcp returns an SDK-native server map."""
+    async def test_configure_llm_and_mcp_returns_flat_server_map(self):
+        """Test _configure_llm_and_mcp returns an SDK-native flat server map."""
         # Arrange
         self.mock_user_context.get_mcp_api_key.return_value = 'mcp_key'
 
@@ -2384,13 +2384,12 @@ class TestLiveStatusAppConversationService:
             self.mock_user, None, self.conversation_id
         )
 
+        assert 'mcpServers' not in mcp_config
         assert isinstance(mcp_config, dict)
 
         for server_name, server_config in mcp_config.items():
             assert isinstance(server_name, str)
-            assert isinstance(server_config, dict) or hasattr(
-                server_config, 'model_dump'
-            )
+            assert isinstance(server_config, MCPServer)
 
     @pytest.mark.asyncio
     async def test_configure_llm_and_mcp_empty_custom_config(self):

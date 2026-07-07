@@ -25,6 +25,11 @@ describe("MCP Server Mutation Hooks", () => {
     );
   };
 
+  // SDK 1.31.x dropped the ``mcpServers`` wrapper from ``model_dump``, so the
+  // settings endpoint now returns a flat server map. ``parseMcpConfig`` still
+  // accepts the legacy wrapped shape, and ``toSdkMcpConfig`` now emits the
+  // flat shape. Tests below cover both directions.
+
   describe("useAddMcpServer", () => {
     it("fetches fresh settings at mutation time", async () => {
       const getSettingsSpy = vi
@@ -55,6 +60,46 @@ describe("MCP Server Mutation Hooks", () => {
       });
 
       expect(getSettingsSpy).toHaveBeenCalledTimes(1);
+      expect(saveSettingsSpy).toHaveBeenCalledWith({
+        agent_settings_diff: {
+          mcp_config: expect.objectContaining({
+            existing: expect.objectContaining({ url: "https://existing.com" }),
+          }),
+        },
+      });
+      const savedConfig = (
+        saveSettingsSpy.mock.calls[0][0] as {
+          agent_settings_diff: { mcp_config: Record<string, unknown> };
+        }
+      ).agent_settings_diff.mcp_config;
+      expect(savedConfig).not.toHaveProperty("mcpServers");
+    });
+
+    it("also accepts the legacy wrapped shape on read", async () => {
+      vi.spyOn(SettingsService, "getSettings").mockResolvedValue({
+        agent_settings: {
+          mcp_config: {
+            mcpServers: {
+              existing: { url: "https://existing.com", transport: "sse" },
+            },
+          },
+        },
+      } as any);
+
+      const saveSettingsSpy = vi
+        .spyOn(SettingsService, "saveSettings")
+        .mockResolvedValue(true);
+
+      const { result } = renderHook(() => useAddMcpServer(), {
+        wrapper: createWrapper(),
+      });
+
+      result.current.mutate({ type: "sse", url: "https://new-server.com" });
+
+      await waitFor(() => {
+        expect(result.current.isSuccess).toBe(true);
+      });
+
       expect(saveSettingsSpy).toHaveBeenCalledWith({
         agent_settings_diff: {
           mcp_config: expect.objectContaining({
