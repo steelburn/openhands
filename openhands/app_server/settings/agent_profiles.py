@@ -157,14 +157,14 @@ class AgentProfiles(BaseModel):
         self,
         profile: _AgentProfile,
         *,
-        cipher: Any = None,
         max_profiles: int | None = None,
     ) -> None:
         """Store ``profile`` under ``str(profile.id)``, overwriting any namesake.
 
-        The id is set by the caller (``save_profile_preserving_identity``);
-        ``cipher`` is unused because the ``org.agent_profiles`` ``EncryptedJSON``
-        column is the at-rest encryption boundary (parity with ``org.llm_profiles``).
+        The id is set by the caller (``save_profile_preserving_identity``). No
+        cipher is involved — the profile is secret-free at rest (#4017), and
+        the ``org.agent_profiles`` ``EncryptedJSON`` column is the encryption
+        boundary regardless (parity with ``org.llm_profiles``).
         """
         pid = str(profile.id)
         if (
@@ -175,7 +175,7 @@ class AgentProfiles(BaseModel):
             raise ProfileLimitExceeded(f'Profile limit reached ({max_profiles}).')
         self.profiles[pid] = profile
 
-    def load(self, name: str, *, cipher: Any = None) -> _AgentProfile:
+    def load(self, name: str) -> _AgentProfile:
         entry = self._entry_for_name(name)
         if entry is None:
             raise FileNotFoundError(f'Agent profile {name!r} not found')
@@ -227,9 +227,9 @@ class AgentProfiles(BaseModel):
         profiles: dict[str, _AgentProfile],
         info: SerializationInfo,
     ) -> dict[str, Any]:
-        # Thread the serialization context (``expose_secrets``) so the
-        # EncryptedJSON column writeback emits cleartext skills[].mcp_tools
-        # (the column is the encryption boundary), and a plain dump masks them.
+        # Thread the serialization context through — a no-op for AgentProfile
+        # today (secret-free since #4017), kept for parity with LLMProfiles'
+        # write-back pattern.
         return {
             pid: profile.model_dump(mode='json', context=info.context)
             for pid, profile in profiles.items()
