@@ -66,15 +66,14 @@ from openhands.sdk.profiles import (
     validate_agent_profile,
 )
 from openhands.sdk.profiles.agent_profile_store import PROFILE_NAME_PATTERN
+from openhands.sdk.utils.pydantic_secrets import REDACTED_SECRET_VALUE
 
-# ``Skill.mcp_tools`` env/headers are masked by ``sanitize_dict``
-# (openhands.sdk.utils.redact), which replaces every value under an
-# ``env``/``headers`` key with the literal ``"<redacted>"`` — NOT the
+# ``Skill.mcp_tools`` env/headers are ``MCPServer``-validated as of
+# openhands-sdk 1.32.0 (#3964), so they are masked with the same
 # ``REDACTED_SECRET_VALUE`` ("**********") sentinel used for SecretStr-typed
-# fields like the LLM api_key. There is no public constant for this
-# mcp_tools-specific sentinel to import, so it is duplicated here; keep in
-# sync with ``_redact_all_values`` in the SDK.
-MCP_REDACTED_VALUE = '<redacted>'
+# fields like the LLM api_key (previously a mcp_tools-specific "<redacted>"
+# sentinel from ``sanitize_dict``, pre-1.32.0).
+MCP_REDACTED_VALUE = REDACTED_SECRET_VALUE
 
 router = APIRouter(prefix='/api/agent-profiles', tags=['Agent Profiles'])
 
@@ -214,7 +213,7 @@ def _restore_masked_mcp_server(new_server: Any, old_server: Any) -> tuple[Any, b
 
     Returns ``(server, changed)``. Per masked entry: restore it from the stored
     namesake server when one exists (the Edit round-trip), else drop it — a
-    ``<redacted>`` mask with nothing to restore from (e.g. a Duplicate saved
+    ``**********`` mask with nothing to restore from (e.g. a Duplicate saved
     under a new name) must never persist as a literal secret. Real values the
     client sent alongside the mask are kept. This mirrors the LLM ``**********``
     sentinel, which the LLM model nullifies to ``None``.
@@ -242,42 +241,73 @@ def _restore_masked_mcp_server(new_server: Any, old_server: Any) -> tuple[Any, b
     return {**new_server, **updates}, True
 
 
-def _restore_masked_skill_secrets(
-    new_profile: OpenHandsAgentProfile | ACPAgentProfile,
+def _extract_mcp_server_map(mcp_tools: Any) -> dict[str, Any]:
+    """Accept both the flat ``{server: cfg}`` and legacy wrapped
+    ``{mcpServers: {server: cfg}}`` shapes on RAW (pre-validation) input —
+    mirrors the SDK's own ``coerce_mcp_config`` shape detection, but this runs
+    on a plain dict since ``Skill.mcp_tools`` validation hasn't happened yet."""
+    if not isinstance(mcp_tools, dict):
+        return {}
+    wrapped = mcp_tools.get('mcpServers')
+    return wrapped if isinstance(wrapped, dict) else mcp_tools
+
+
+def _restore_masked_skill_secrets_raw(
+    body: dict[str, Any],
     existing: OpenHandsAgentProfile | ACPAgentProfile | None,
-) -> OpenHandsAgentProfile | ACPAgentProfile:
-    """Reconcile masked ``skills[].mcp_tools`` secrets before a save persists them.
+) -> dict[str, Any]:
+    """Reconcile masked ``skills[].mcp_tools`` secrets in the RAW client
+    payload, before SDK validation.
+
+    Must run pre-validation: openhands-sdk 1.32.0 made ``Skill.mcp_tools``
+    ``MCPServer``-typed (#3964), and ``MCPServer.env``/``headers`` silently
+    *drops* any key whose value is the ``**********`` sentinel — so by the
+    time a validated ``Skill`` exists, both the masked marker and the key name
+    that carried it are already gone, with nothing left to restore from.
+    Operating on the raw dict here sidesteps that: the real value (or the
+    drop) is substituted before the SDK ever sees a sentinel value.
 
     GET masks ``mcp_tools`` env/headers (the API never returns raw secrets); a
     client that round-trips a fetched profile would otherwise persist the
-    ``<redacted>`` sentinel as a literal secret. Per masked value: restore it
+    ``**********`` sentinel as a literal secret. Per masked value: restore it
     from the stored namesake skill+server when one exists (Edit — the
     agent-profile analogue of ``org_profiles``' ``preserve_existing_api_key``),
     else drop it (a Duplicate/create under a *new* name has no namesake, so the
-    mask degrades to an empty secret instead of corrupting one — mirroring the
-    LLM ``**********`` sentinel the LLM model nullifies to ``None``). Sibling
-    servers, and real values the client sent, are left untouched.
+    mask degrades to a dropped secret instead of corrupting one — mirroring
+    the LLM ``**********`` sentinel the LLM model nullifies to ``None``).
+    Sibling servers, and real values the client sent, are left untouched.
     """
-    if not isinstance(new_profile, OpenHandsAgentProfile):
-        return new_profile
-    existing_by_name = (
-        {s.name: s for s in existing.skills}
+    skills = body.get('skills')
+    if not isinstance(skills, list) or not skills:
+        return body
+    existing_dump = (
+        existing.model_dump(mode='json', context={'expose_secrets': True})
         if isinstance(existing, OpenHandsAgentProfile)
+        else None
+    )
+    existing_skills_by_name = (
+        {
+            s['name']: s
+            for s in existing_dump.get('skills', [])
+            if isinstance(s, dict)
+        }
+        if existing_dump
         else {}
     )
-    profile_changed = False
+    changed = False
     new_skills = []
-    for skill in new_profile.skills:
-        new_servers = (skill.mcp_tools or {}).get('mcpServers')
-        if not isinstance(new_servers, dict):
+    for skill in skills:
+        if not isinstance(skill, dict):
             new_skills.append(skill)
             continue
-        old = existing_by_name.get(skill.name)
-        old_servers = (old.mcp_tools if old is not None and old.mcp_tools else {}).get(
-            'mcpServers'
+        new_servers = _extract_mcp_server_map(skill.get('mcp_tools'))
+        if not new_servers:
+            new_skills.append(skill)
+            continue
+        old_skill = existing_skills_by_name.get(skill.get('name'))
+        old_servers = _extract_mcp_server_map(
+            old_skill.get('mcp_tools') if old_skill else None
         )
-        if not isinstance(old_servers, dict):
-            old_servers = {}
         skill_changed = False
         restored_servers = {}
         for server_name, server in new_servers.items():
@@ -289,12 +319,11 @@ def _restore_masked_skill_secrets(
         if not skill_changed:
             new_skills.append(skill)
             continue
-        new_mcp_tools = {**(skill.mcp_tools or {}), 'mcpServers': restored_servers}
-        new_skills.append(skill.model_copy(update={'mcp_tools': new_mcp_tools}))
-        profile_changed = True
-    if not profile_changed:
-        return new_profile
-    return new_profile.model_copy(update={'skills': new_skills})
+        new_skills.append({**skill, 'mcp_tools': restored_servers})
+        changed = True
+    if not changed:
+        return body
+    return {**body, 'skills': new_skills}
 
 
 async def _seed_default_agent_profile(org_id: UUID, user_id: str) -> str | None:
@@ -395,10 +424,14 @@ async def get_agent_profile(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Agent profile '{name}' not found",
         )
-    # Default (no expose_secrets) context => mcp_tools env/headers masked.
-    return AgentProfileDetailResponse(
-        name=name, profile=profile.model_dump(mode='json')
-    )
+    # Pass the already-validated instance, not a re-dumped dict: pydantic's
+    # default revalidate_instances='never' means FastAPI's response
+    # serialization is then the ONLY mask pass. A dict here would force a
+    # second validate-then-dump cycle through AgentProfileDetailResponse's
+    # own field type, and the SDK's mcp_tools env/headers masking (SecretStr,
+    # openhands-sdk 1.32.0, #3964) treats an already-masked "**********"
+    # value as nothing to restore and drops it — silently losing the field.
+    return AgentProfileDetailResponse(name=name, profile=profile)
 
 
 @router.post(
@@ -419,21 +452,6 @@ async def save_agent_profile(
     Returns 422 on invalid payloads (secret-safe detail) and 409 when creating a
     new profile would exceed ``MAX_AGENT_PROFILES``.
     """
-    try:
-        profile = validate_agent_profile({**body, 'name': name})
-    except ValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=safe_validation_error_detail(e),
-        )
-    except Exception:
-        # SkillValidationError / schema errors are client errors, never a 500;
-        # stay generic — these messages can embed the input.
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail='Invalid agent profile',
-        )
-
     async with _agent_profiles_transaction(effective_org_id, user_id) as (
         _session,
         _org,
@@ -442,7 +460,25 @@ async def save_agent_profile(
         existing = None
         with contextlib.suppress(FileNotFoundError):
             existing = profiles.load(name)
-        profile = _restore_masked_skill_secrets(profile, existing)
+
+        # Must restore masked mcp_tools secrets on the RAW body, before SDK
+        # validation — see _restore_masked_skill_secrets_raw's docstring.
+        restored_body = _restore_masked_skill_secrets_raw(body, existing)
+        try:
+            profile = validate_agent_profile({**restored_body, 'name': name})
+        except ValidationError as e:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=safe_validation_error_detail(e),
+            )
+        except Exception:
+            # SkillValidationError / schema errors are client errors, never a
+            # 500; stay generic — these messages can embed the input.
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail='Invalid agent profile',
+            )
+
         try:
             save_profile_preserving_identity(
                 profiles, profile, max_profiles=MAX_AGENT_PROFILES
@@ -603,12 +639,16 @@ async def materialize_agent_profile(
             detail=f"Agent profile '{name}' not found",
         )
 
-    mcp_config = member_mcp_config(member) if member is not None else None
+    mcp_config = member_mcp_config(member) if member is not None else {}
     llm_store = OrgLLMProfileLoader(load_llm_profiles(org))
 
     try:
         return resolve_agent_profile_dry_run(
-            profile, llm_store=llm_store, mcp_config=mcp_config, cipher=None
+            profile,
+            llm_store=llm_store,
+            mcp_config=mcp_config,
+            available_skills=None,
+            cipher=None,
         )
     except Exception as exc:
         # The dry-run is contractually total, but SDK contract drift (e.g. a

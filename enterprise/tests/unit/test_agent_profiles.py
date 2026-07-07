@@ -383,8 +383,9 @@ class TestMaskedMcpSecretRestore:
             user_id=uid,
         )
 
-        # GET masks server-a's secret with the mcp_tools-specific sentinel
-        # ("<redacted>" — NOT the SecretStr "**********" sentinel).
+        # GET masks server-a's secret with the standard SecretStr "**********"
+        # sentinel (openhands-sdk 1.32.0, #3964 — mcp_tools is now
+        # MCPServer-validated, same masking as any other SecretStr field).
         detail = await get_agent_profile(
             name='with-mcp', effective_org_id=org_id, user_id=uid
         )
@@ -392,12 +393,11 @@ class TestMaskedMcpSecretRestore:
         fetched = detail.profile.model_dump(mode='json')
         fetched_skill = fetched['skills'][0]
         assert (
-            fetched_skill['mcp_tools']['mcpServers']['server-a']['env']['API_KEY']
-            == '<redacted>'
+            fetched_skill['mcp_tools']['server-a']['env']['API_KEY'] == '**********'
         )
 
         # Client adds a brand-new, unmasked server alongside the masked one.
-        fetched_skill['mcp_tools']['mcpServers']['server-b'] = {
+        fetched_skill['mcp_tools']['server-b'] = {
             'command': 'server-b-bin',
             'env': {'OTHER_KEY': 'brand-new-secret'},
         }
@@ -421,10 +421,16 @@ class TestMaskedMcpSecretRestore:
                 .first()
             )
         stored = load_agent_profiles(org).load('with-mcp')
-        stored_servers = stored.skills[0].mcp_tools['mcpServers']
-        assert stored_servers['server-a']['env']['API_KEY'] == 'super-secret'
+        stored_servers = stored.skills[0].mcp_tools
+        assert (
+            stored_servers['server-a'].env['API_KEY'].get_secret_value()
+            == 'super-secret'
+        )
         assert 'server-b' in stored_servers, 'newly-added server must not be dropped'
-        assert stored_servers['server-b']['env']['OTHER_KEY'] == 'brand-new-secret'
+        assert (
+            stored_servers['server-b'].env['OTHER_KEY'].get_secret_value()
+            == 'brand-new-secret'
+        )
 
     @pytest.mark.asyncio
     async def test_duplicate_under_new_name_drops_unrestorable_mask(
@@ -432,8 +438,8 @@ class TestMaskedMcpSecretRestore:
     ):
         # Duplicate flow: canvas GETs a profile (masking mcp_tools) and re-saves
         # it under a NEW name. There's no namesake to restore from, so the mask
-        # must be DROPPED rather than persisted as the literal '<redacted>'
-        # secret — mirroring the LLM '**********' sentinel the LLM model nulls.
+        # must be DROPPED rather than persisted as the literal '**********'
+        # secret — the same sentinel the LLM model nulls.
         org_id = patch_agent_routes
         uid = str(USER_ID)
         source_skill = {
@@ -460,8 +466,7 @@ class TestMaskedMcpSecretRestore:
         )
         masked_skill = detail.profile.model_dump(mode='json')['skills'][0]
         assert (
-            masked_skill['mcp_tools']['mcpServers']['server-a']['env']['API_KEY']
-            == '<redacted>'
+            masked_skill['mcp_tools']['server-a']['env']['API_KEY'] == '**********'
         )
         await save_agent_profile(
             name='source-copy',
@@ -480,12 +485,12 @@ class TestMaskedMcpSecretRestore:
             load_agent_profiles(org)
             .load('source-copy')
             .skills[0]
-            .mcp_tools['mcpServers']['server-a']
+            .mcp_tools['server-a']
         )
-        # The unrestorable masked entry is dropped; the now-empty env may be
-        # elided entirely by MCPConfig serialization — either way, no secret.
-        env = server.get('env', {})
-        assert '<redacted>' not in env.values(), 'mask must not persist as a secret'
+        # The unrestorable masked entry is dropped; ``env`` may be elided
+        # entirely (None) rather than an empty dict — either way, no secret.
+        env = server.env or {}
+        assert '**********' not in env.values(), 'mask must not persist as a secret'
         assert 'API_KEY' not in env, 'unrestorable masked entry must be dropped'
 
 
@@ -1042,7 +1047,7 @@ class TestPersistedVsResolvedSettingsView:
             assert settings is not None
             assert settings.active_agent_profile_id is None
             assert settings.agent_settings.mcp_config is not None
-            assert set(settings.agent_settings.mcp_config.mcpServers) == {
+            assert set(settings.agent_settings.mcp_config) == {
                 'a',
                 'b',
                 'c',
@@ -1053,7 +1058,7 @@ class TestPersistedVsResolvedSettingsView:
 
         member = await _read_member(async_session_maker, org_id, USER_ID)
         stored_mcp = member.agent_settings_diff.get('mcp_config') or {}
-        assert set(stored_mcp.get('mcpServers') or {}) == {'a', 'b', 'c'}
+        assert set(stored_mcp) == {'a', 'b', 'c'}
 
     @pytest.mark.asyncio
     async def test_plain_round_trip_keeps_member_llm_key(
@@ -1131,7 +1136,7 @@ class TestPersistedVsResolvedSettingsView:
             assert settings.active_agent_profile_revision == profile.revision
             # mcp_server_refs=['a'] filtered the member's three servers.
             assert settings.agent_settings.mcp_config is not None
-            assert set(settings.agent_settings.mcp_config.mcpServers) == {'a'}
+            assert set(settings.agent_settings.mcp_config) == {'a'}
             # The resolved LLM is the referenced 'Default' org LLM profile.
             assert settings.agent_settings.llm.model == 'gpt-4o'
 
@@ -1166,7 +1171,7 @@ class TestPersistedVsResolvedSettingsView:
         assert settings is not None
         assert settings.active_agent_profile_id is None
         assert settings.agent_settings.mcp_config is not None
-        assert set(settings.agent_settings.mcp_config.mcpServers) == {'a', 'b', 'c'}
+        assert set(settings.agent_settings.mcp_config) == {'a', 'b', 'c'}
 
 
 # ── Best-effort load must not amplify into data loss ────────────────────────

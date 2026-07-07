@@ -5,7 +5,6 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-from fastmcp.mcp_config import MCPConfig
 from pydantic import SecretStr
 from server.auth.token_manager import TokenManager
 from server.constants import LITE_LLM_API_URL
@@ -40,6 +39,7 @@ from openhands.app_server.utils.llm import is_openhands_model
 from openhands.sdk.llm.utils.openhands_provider import (
     canonicalize_openhands_llm_payload,
 )
+from openhands.sdk.mcp.config import MCPServer, coerce_mcp_config
 from openhands.sdk.profiles import resolve_agent_profile
 
 # Agent-settings keys private to each org member: never written to
@@ -198,18 +198,22 @@ class SaasSettingsStore(SettingsStore):
         except FileNotFoundError:
             return None
 
-        mcp_config: MCPConfig | None = None
+        mcp_config: dict[str, MCPServer] = {}
         mcp_raw = merged_agent_settings.get('mcp_config')
         if mcp_raw:
             try:
-                mcp_config = MCPConfig.model_validate(mcp_raw)
+                mcp_config = coerce_mcp_config(mcp_raw)
             except Exception:
-                mcp_config = None
+                mcp_config = {}
 
         llm_store = OrgLLMProfileLoader(load_llm_profiles(org))
         try:
             resolved = resolve_agent_profile(
-                profile, llm_store=llm_store, mcp_config=mcp_config, cipher=None
+                profile,
+                llm_store=llm_store,
+                mcp_config=mcp_config,
+                available_skills=None,
+                cipher=None,
             )
 
             # Apply the cloud managed-key / base-url overlay to the resolved LLM

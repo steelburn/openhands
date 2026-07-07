@@ -14,12 +14,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from fastmcp.mcp_config import MCPConfig
 from pydantic import ValidationError
 
 from openhands.app_server.settings.agent_profiles import AgentProfiles
 from openhands.app_server.settings.llm_profiles import LLMProfiles
 from openhands.app_server.utils.logger import openhands_logger as logger
+from openhands.sdk.mcp.config import MCPServer, coerce_mcp_config
 
 if TYPE_CHECKING:
     from storage.org import Org
@@ -91,20 +91,20 @@ class OrgLLMProfileMutator:
         self._profiles.rename(old_name, new_name)
 
 
-def member_mcp_config(member: OrgMember) -> MCPConfig | None:
-    """The acting member's globally-configured MCP servers as an ``MCPConfig``.
+def member_mcp_config(member: OrgMember) -> dict[str, MCPServer]:
+    """The acting member's globally-configured MCP servers as a server map.
 
     ``mcp_config`` is member-private (it lives only on the member's
     ``agent_settings_diff``; the org dump strips it — see
     ``MEMBER_PRIVATE_AGENT_KEYS``), so the member-effective set is exactly the
     member diff's ``mcp_config``. Used to resolve / filter ``mcp_server_refs``.
-    Returns ``None`` when the member configured no MCP servers.
+    Returns ``{}`` when the member configured no MCP servers.
     """
     raw = (member.agent_settings_diff or {}).get('mcp_config')
     if not raw:
-        return None
+        return {}
     try:
-        return MCPConfig.model_validate(raw)
+        return coerce_mcp_config(raw)
     except ValidationError as exc:
         logger.warning('Failed to parse member MCP config for resolve: %s', exc)
-        return None
+        return {}
