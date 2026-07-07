@@ -23,6 +23,45 @@ def _secret_value(settings: Settings, key: str):
     return secret.get_secret_value() if secret else None
 
 
+def _server_auth_secret(server):
+    def unwrap(value):
+        return value.get_secret_value() if isinstance(value, SecretStr) else value
+
+    headers = (
+        server.get("headers")
+        if isinstance(server, dict)
+        else getattr(server, "headers", None)
+    )
+    if headers and headers.get("Authorization"):
+        value = unwrap(headers["Authorization"])
+        return value.removeprefix("Bearer ")
+
+    auth = (
+        server.get("auth")
+        if isinstance(server, dict)
+        else getattr(server, "auth", None)
+    )
+    if isinstance(auth, dict):
+        value = auth.get("value")
+        if value is not None:
+            return unwrap(value)
+        headers = auth.get("headers")
+    else:
+        value = getattr(auth, "value", None)
+        if value is not None:
+            return unwrap(value)
+        headers = getattr(auth, "headers", None)
+
+    if headers and headers.get("Authorization"):
+        value = unwrap(headers["Authorization"])
+        return value.removeprefix("Bearer ")
+    return None
+
+
+def _assert_server_auth_secret(server, expected: str):
+    assert _server_auth_secret(server) == expected
+
+
 def _make_settings(
     model: str | None = None,
     base_url: str | None = None,
@@ -130,14 +169,16 @@ def test_persisted_agent_settings_preserves_private_mcp_auth_credentials():
     )
 
     persisted = SaasSettingsStore._get_persisted_agent_settings(settings)
-    servers = mcp_config_server_map(persisted["mcp_config"])
-    server = servers["integrations-hub"]
-
-    if "headers" in server:
-        assert server["headers"]["Authorization"] == "Bearer ih-secret-key"
-    else:
-        assert server["auth"] == {"strategy": "bearer", "value": "ih-secret-key"}
+    assert "ih-secret-key" not in str(persisted)
     assert "api_key" not in persisted["llm"]
+
+    from storage.encrypt_utils import get_settings_cipher_context
+
+    loaded = Settings.model_validate(
+        {"agent_settings": persisted}, context=get_settings_cipher_context()
+    )
+    server = mcp_config_server_map(loaded.agent_settings.mcp_config)["integrations-hub"]
+    _assert_server_auth_secret(server, "ih-secret-key")
 
 
 @pytest.fixture
@@ -800,7 +841,7 @@ async def test_store_keeps_mcp_config_private_to_acting_member(
     admin_server = admin_servers["user1"]
     assert admin_server["url"] == "https://user1-mcp-server.com"
     assert admin_server["transport"] == "sse"
-    assert admin_server["headers"]["Authorization"] != "Bearer private-mcp-token"
+    assert _server_auth_secret(admin_server) != "private-mcp-token"
     assert "mcp_config" not in members[member1_user_id].agent_settings_diff
     assert "mcp_config" not in members[member2_user_id].agent_settings_diff
 
@@ -928,7 +969,7 @@ async def test_store_and_load_mcp_config_via_agent_settings(
     servers = mcp_config_server_map(loaded.agent_settings.mcp_config)
     admin_server = servers["admin"]
     assert admin_server.url == "https://admin-private-server.com"
-    assert admin_server.headers["Authorization"] == "Bearer admin-mcp-token"
+    _assert_server_auth_secret(admin_server, "admin-mcp-token")
 
 
 def test_persisted_agent_settings_encrypt_secret_fields_without_llm_api_key():
@@ -1002,9 +1043,9 @@ def test_persisted_agent_settings_encrypt_secret_fields_without_llm_api_key():
     }
     servers = mcp_config_server_map(loaded.agent_settings.mcp_config)
     secure_server = servers["secure"]
-    assert secure_server.headers["Authorization"] == "Bearer mcp-secret-token"
+    _assert_server_auth_secret(secure_server, "mcp-secret-token")
     stdio_server = servers["stdio"]
-    assert stdio_server.env["MCP_ENV_TOKEN"] == "mcp-env-secret"
+    assert stdio_server.env["MCP_ENV_TOKEN"].get_secret_value() == "mcp-env-secret"
 
 
 @pytest.mark.asyncio
