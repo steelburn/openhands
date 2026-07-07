@@ -48,7 +48,7 @@ def upgrade() -> None:
         'org_member',
         ('org_id', 'user_id'),
         'agent_settings_diff',
-        _encrypt_agent_settings,
+        _encrypt_agent_settings_diff,
     )
     _validate_all_agent_settings(bind)
 
@@ -72,7 +72,7 @@ def downgrade() -> None:
         'org_member',
         ('org_id', 'user_id'),
         'agent_settings_diff',
-        _decrypt_agent_settings,
+        _decrypt_agent_settings_diff,
     )
     _validate_all_agent_settings(bind)
 
@@ -163,17 +163,42 @@ def _validate_composite_pk_agent_settings(
 def _validate_agent_settings_payload(
     value: Any, table_name: str, column_name: str, pk_values: Mapping[str, Any]
 ) -> None:
-    from storage.encrypt_utils import get_settings_cipher_context
-
-    from openhands.sdk.settings import validate_agent_settings
-
     try:
-        validate_agent_settings(value or {}, context=get_settings_cipher_context())
+        _validate_sdk_agent_settings(value)
     except Exception as exc:
         pk_display = ', '.join(f'{key}={value}' for key, value in pk_values.items())
         raise ValueError(
             f'Invalid agent settings in {table_name}.{column_name} ({pk_display})'
         ) from exc
+
+
+def _validate_sdk_agent_settings(value: Any):
+    from storage.encrypt_utils import get_settings_cipher_context
+
+    from openhands.sdk.settings import validate_agent_settings
+
+    return validate_agent_settings(value or {}, context=get_settings_cipher_context())
+
+
+def _dump_sdk_agent_settings(
+    value: Any, *, encrypt_secrets: bool, sparse_diff: bool = False
+) -> dict[str, Any]:
+    settings = _validate_sdk_agent_settings(value)
+    if encrypt_secrets:
+        from storage.encrypt_utils import get_settings_storage_context
+
+        context = get_settings_storage_context()
+    else:
+        context = {'expose_secrets': True}
+    dumped = settings.model_dump(mode='json', context=context, exclude_unset=True)
+    if (
+        sparse_diff
+        and isinstance(value, dict)
+        and 'agent_kind' not in value
+        and dumped.get('agent_kind') == 'openhands'
+    ):
+        dumped.pop('agent_kind', None)
+    return dumped
 
 
 def _profiles_to_json(value: Any) -> str | None:
@@ -216,7 +241,29 @@ def _encrypt_agent_settings(value: Any) -> Any:
     _encrypt_verification_secrets(data.get('verification'))
     _encrypt_agent_context_secrets(data.get('agent_context'))
     _encrypt_mcp_config_secrets(data.get('mcp_config'))
-    return data
+    return _dump_sdk_agent_settings(data, encrypt_secrets=True)
+
+
+def _encrypt_agent_settings_diff(value: Any) -> Any:
+    if not isinstance(value, dict):
+        return value
+    data = copy.deepcopy(value)
+    _encrypt_llm_secrets(data.get('llm'))
+    _encrypt_verification_secrets(data.get('verification'))
+    _encrypt_agent_context_secrets(data.get('agent_context'))
+    _encrypt_mcp_config_secrets(data.get('mcp_config'))
+    return _dump_sdk_agent_settings(data, encrypt_secrets=True, sparse_diff=True)
+
+
+def _decrypt_agent_settings_diff(value: Any) -> Any:
+    if not isinstance(value, dict):
+        return value
+    data = copy.deepcopy(value)
+    _decrypt_llm_secrets(data.get('llm'))
+    _decrypt_verification_secrets(data.get('verification'))
+    _decrypt_agent_context_secrets(data.get('agent_context'))
+    _decrypt_mcp_config_secrets(data.get('mcp_config'))
+    return _dump_sdk_agent_settings(data, encrypt_secrets=False, sparse_diff=True)
 
 
 def _decrypt_agent_settings(value: Any) -> Any:
@@ -227,7 +274,7 @@ def _decrypt_agent_settings(value: Any) -> Any:
     _decrypt_verification_secrets(data.get('verification'))
     _decrypt_agent_context_secrets(data.get('agent_context'))
     _decrypt_mcp_config_secrets(data.get('mcp_config'))
-    return data
+    return _dump_sdk_agent_settings(data, encrypt_secrets=False)
 
 
 def _encrypt_llm_profile_secrets(data: dict[str, Any]) -> dict[str, Any]:

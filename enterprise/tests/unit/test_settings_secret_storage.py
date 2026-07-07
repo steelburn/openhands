@@ -65,6 +65,45 @@ def test_migration_agent_settings_validation_fails_fast_with_row_location():
     assert 'user_id=user-1' in str(exc_info.value)
 
 
+def test_migration_saves_current_schema_without_expanding_empty_member_diff():
+    migration = _migration_module()
+
+    assert migration._encrypt_agent_settings_diff({}) == {'schema_version': 4}
+    assert migration._decrypt_agent_settings_diff({}) == {'schema_version': 4}
+
+
+def test_migration_saves_current_schema_for_sparse_member_diff():
+    migration = _migration_module()
+
+    migrated = migration._encrypt_agent_settings_diff(
+        {
+            'schema_version': 1,
+            'mcp_config': {
+                'mcpServers': {
+                    'secure': {
+                        'url': 'https://mcp.example.com/sse',
+                        'transport': 'sse',
+                        'headers': {'Authorization': 'Bearer sparse-token'},
+                    }
+                }
+            },
+        }
+    )
+
+    assert migrated['schema_version'] == 4
+    assert 'agent_kind' not in migrated
+    assert 'mcpServers' not in migrated['mcp_config']
+    assert 'sparse-token' not in json.dumps(migrated)
+
+    downgraded = migration._decrypt_agent_settings_diff(migrated)
+    assert downgraded['schema_version'] == 4
+    assert 'agent_kind' not in downgraded
+    assert (
+        downgraded['mcp_config']['secure']['auth']['headers']['Authorization']
+        == 'Bearer sparse-token'
+    )
+
+
 def test_secret_aware_json_reads_legacy_encrypted_blob_and_writes_leaf_encrypted_json():
     from storage.encrypt_utils import (
         SecretAwareJSON,
@@ -180,6 +219,9 @@ def test_migration_rewrites_legacy_profiles_and_agent_settings_secrets():
         },
     }
     encrypted_agent_settings = migration._encrypt_agent_settings(legacy_agent_settings)
+    assert encrypted_agent_settings['schema_version'] == 4
+    assert encrypted_agent_settings['agent_kind'] == 'openhands'
+    assert 'mcpServers' not in encrypted_agent_settings['mcp_config']
     agent_serialized = json.dumps(encrypted_agent_settings)
     for secret in (
         'agent-aws-access',
@@ -217,12 +259,12 @@ def test_migration_rewrites_legacy_profiles_and_agent_settings_secrets():
     assert servers['stdio'].env['MCP_ENV_TOKEN'].get_secret_value() == 'env-secret'
 
     downgraded = migration._decrypt_agent_settings(encrypted_agent_settings)
+    assert downgraded['schema_version'] == 4
+    assert downgraded['agent_kind'] == 'openhands'
     assert downgraded['agent_context']['secrets']['AGENT_TOKEN'] == (
         'agent-context-secret'
     )
-    assert downgraded['mcp_config']['mcpServers']['stdio']['env']['MCP_ENV_TOKEN'] == (
-        'env-secret'
-    )
+    assert downgraded['mcp_config']['stdio']['env']['MCP_ENV_TOKEN'] == 'env-secret'
 
     encrypted_once = get_settings_cipher().encrypt(SecretStr('already-encrypted'))
     assert migration._encrypt_secret_value(encrypted_once) == encrypted_once
@@ -328,17 +370,12 @@ def test_migration_rewrites_legacy_profiles_and_agent_settings_secrets():
         'native-state-client-secret'
     )
 
+    assert encrypted_native['schema_version'] == 4
+    assert encrypted_native['agent_kind'] == 'openhands'
+
     downgraded_native = migration._decrypt_agent_settings(encrypted_native)
-    assert downgraded_native['mcp_config']['legacy']['auth'] == 'legacy-bearer-secret'
-    assert (
-        downgraded_native['mcp_config']['legacy']['api_key'] == 'legacy-api-key-secret'
-    )
-    assert (
-        downgraded_native['mcp_config']['legacy']['oauth_credentials'][
-            'mcp-oauth-token'
-        ]['entry']['value']['access_token']
-        == 'legacy-access-token'
-    )
+    legacy_auth = downgraded_native['mcp_config']['legacy']['auth']
+    assert legacy_auth == {'strategy': 'bearer', 'value': 'legacy-bearer-secret'}
 
 
 def test_fernet_looking_plaintext_is_encrypted_and_leniently_readable():
