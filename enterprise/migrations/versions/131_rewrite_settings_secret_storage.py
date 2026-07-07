@@ -259,17 +259,88 @@ def _transform_mcp_config_secrets(
         return
     servers = mcp_config.get('mcpServers')
     if not isinstance(servers, dict):
-        return
+        servers = mcp_config
     for server in servers.values():
         if not isinstance(server, dict):
             continue
-        for field in ('env', 'headers'):
-            values = server.get(field)
-            if not isinstance(values, dict):
-                continue
-            for key, value in list(values.items()):
-                if isinstance(value, str):
-                    values[key] = transform(value)
+        _transform_mcp_server_secrets(server, transform)
+
+
+def _transform_mcp_server_secrets(
+    server: dict[str, Any], transform: Callable[[Any], Any]
+) -> None:
+    _transform_secret_mapping(server.get('env'), transform)
+    _transform_secret_mapping(server.get('headers'), transform)
+    auth = server.get('auth')
+    if isinstance(auth, str) and auth != 'oauth':
+        server['auth'] = transform(auth)
+    else:
+        _transform_mcp_auth_secrets(auth, transform)
+    _transform_mcp_oauth_authentication(server.get('authentication'), transform)
+    _transform_oauth_secret_tree(server.get('oauth_credentials'), transform)
+    if isinstance(server.get('api_key'), str):
+        server['api_key'] = transform(server['api_key'])
+
+
+def _transform_mcp_auth_secrets(auth: Any, transform: Callable[[Any], Any]) -> None:
+    if isinstance(auth, str):
+        return
+    if not isinstance(auth, dict):
+        return
+    for key in ('value', 'password'):
+        if isinstance(auth.get(key), str):
+            auth[key] = transform(auth[key])
+    _transform_secret_mapping(auth.get('headers'), transform)
+    _transform_mcp_oauth_authentication(auth.get('authentication'), transform)
+    _transform_mcp_oauth_state(auth.get('state'), transform)
+    _transform_oauth_secret_tree(auth.get('credentials'), transform)
+
+
+def _transform_mcp_oauth_authentication(
+    authentication: Any, transform: Callable[[Any], Any]
+) -> None:
+    if isinstance(authentication, dict) and isinstance(
+        authentication.get('client_secret'), str
+    ):
+        authentication['client_secret'] = transform(authentication['client_secret'])
+
+
+def _transform_mcp_oauth_state(state: Any, transform: Callable[[Any], Any]) -> None:
+    if not isinstance(state, dict):
+        return
+    tokens = state.get('tokens')
+    if isinstance(tokens, dict):
+        for key in ('access_token', 'refresh_token'):
+            if isinstance(tokens.get(key), str):
+                tokens[key] = transform(tokens[key])
+    client_info = state.get('client_info')
+    if isinstance(client_info, dict) and isinstance(
+        client_info.get('client_secret'), str
+    ):
+        client_info['client_secret'] = transform(client_info['client_secret'])
+
+
+def _transform_secret_mapping(values: Any, transform: Callable[[Any], Any]) -> None:
+    if not isinstance(values, dict):
+        return
+    for key, value in list(values.items()):
+        if isinstance(value, str):
+            values[key] = transform(value)
+
+
+def _transform_oauth_secret_tree(value: Any, transform: Callable[[Any], Any]) -> None:
+    if not isinstance(value, dict):
+        return
+    for key, child in list(value.items()):
+        if key in {'access_token', 'refresh_token', 'client_secret'} and isinstance(
+            child, str
+        ):
+            value[key] = transform(child)
+        elif isinstance(child, dict):
+            _transform_oauth_secret_tree(child, transform)
+        elif isinstance(child, list):
+            for item in child:
+                _transform_oauth_secret_tree(item, transform)
 
 
 def _encrypt_secret_value(value: Any) -> Any:

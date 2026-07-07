@@ -176,6 +176,119 @@ def test_migration_rewrites_legacy_profiles_and_agent_settings_secrets():
     encrypted_once = get_settings_cipher().encrypt(SecretStr('already-encrypted'))
     assert migration._encrypt_secret_value(encrypted_once) == encrypted_once
 
+    native_agent_settings = {
+        'mcp_config': {
+            'bearer': {
+                'url': 'https://bearer.example.com/mcp',
+                'transport': 'sse',
+                'auth': {'strategy': 'bearer', 'value': 'native-bearer-secret'},
+            },
+            'basic': {
+                'url': 'https://basic.example.com/mcp',
+                'transport': 'sse',
+                'auth': {
+                    'strategy': 'basic',
+                    'username': 'user',
+                    'password': 'native-basic-secret',
+                },
+            },
+            'header': {
+                'url': 'https://header.example.com/mcp',
+                'transport': 'sse',
+                'auth': {
+                    'strategy': 'header',
+                    'headers': {'X-API-Key': 'native-header-secret'},
+                },
+            },
+            'oauth': {
+                'url': 'https://oauth.example.com/mcp',
+                'transport': 'sse',
+                'auth': {
+                    'strategy': 'oauth2',
+                    'authentication': {
+                        'type': 'oauth',
+                        'client_secret': 'native-client-secret',
+                    },
+                    'state': {
+                        'tokens': {
+                            'access_token': 'native-access-token',
+                            'refresh_token': 'native-refresh-token',
+                        },
+                        'client_info': {'client_secret': 'native-state-client-secret'},
+                    },
+                },
+            },
+            'legacy': {
+                'url': 'https://legacy.example.com/mcp',
+                'transport': 'sse',
+                'auth': 'legacy-bearer-secret',
+                'api_key': 'legacy-api-key-secret',
+                'oauth_credentials': {
+                    'mcp-oauth-token': {
+                        'entry': {
+                            'value': {
+                                'access_token': 'legacy-access-token',
+                                'refresh_token': 'legacy-refresh-token',
+                            }
+                        }
+                    }
+                },
+            },
+        }
+    }
+    encrypted_native = migration._encrypt_agent_settings(native_agent_settings)
+    native_serialized = json.dumps(encrypted_native)
+    for secret in (
+        'native-bearer-secret',
+        'native-basic-secret',
+        'native-header-secret',
+        'native-client-secret',
+        'native-access-token',
+        'native-refresh-token',
+        'native-state-client-secret',
+        'legacy-bearer-secret',
+        'legacy-api-key-secret',
+        'legacy-access-token',
+        'legacy-refresh-token',
+    ):
+        assert secret not in native_serialized
+
+    loaded_native = Settings.model_validate(
+        {'agent_settings': encrypted_native},
+        context=get_settings_cipher_context(),
+    )
+    native_servers = mcp_config_server_map(loaded_native.agent_settings.mcp_config)
+    assert native_servers['bearer'].auth.value.get_secret_value() == (
+        'native-bearer-secret'
+    )
+    assert native_servers['basic'].auth.password.get_secret_value() == (
+        'native-basic-secret'
+    )
+    assert native_servers['header'].auth.headers['X-API-Key'].get_secret_value() == (
+        'native-header-secret'
+    )
+    oauth = native_servers['oauth'].auth
+    assert oauth.authentication.client_secret.get_secret_value() == (
+        'native-client-secret'
+    )
+    assert oauth.state.tokens.access_token.get_secret_value() == 'native-access-token'
+    assert oauth.state.tokens.refresh_token.get_secret_value() == 'native-refresh-token'
+    assert oauth.state.client_info.client_secret.get_secret_value() == (
+        'native-state-client-secret'
+    )
+
+    downgraded_native = migration._decrypt_agent_settings(encrypted_native)
+    assert downgraded_native['mcp_config']['legacy']['auth'] == 'legacy-bearer-secret'
+    assert (
+        downgraded_native['mcp_config']['legacy']['api_key'] == 'legacy-api-key-secret'
+    )
+    assert (
+        downgraded_native['mcp_config']['legacy']['oauth_credentials'][
+            'mcp-oauth-token'
+        ]['entry']['value']['access_token']
+        == 'legacy-access-token'
+    )
+
 
 def test_fernet_looking_plaintext_is_encrypted_and_leniently_readable():
     from storage.encrypt_utils import get_settings_cipher_context
