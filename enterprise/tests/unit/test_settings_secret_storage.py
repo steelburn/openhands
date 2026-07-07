@@ -1,6 +1,7 @@
 import importlib
 import json
 
+import pytest
 from pydantic import SecretStr
 
 from openhands.app_server.mcp.mcp_config_adapter import mcp_config_server_map
@@ -12,6 +13,56 @@ def _migration_module():
     return importlib.import_module(
         'migrations.versions.131_rewrite_settings_secret_storage'
     )
+
+
+def test_migration_agent_settings_validation_runs_sdk_migrations():
+    migration = _migration_module()
+
+    migration._validate_agent_settings_payload(
+        {
+            'schema_version': 1,
+            'agent_kind': 'llm',
+            'llm': {'model': 'openhands/claude-sonnet-4-5'},
+            'mcp_config': {
+                'mcpServers': {
+                    'secure': {
+                        'url': 'https://mcp.example.com/sse',
+                        'transport': 'sse',
+                        'headers': {'Authorization': 'Bearer validation-token'},
+                    }
+                }
+            },
+            'verification': {
+                'confirmation_mode': True,
+                'security_analyzer': 'legacy',
+            },
+        },
+        'org_member',
+        'agent_settings_diff',
+        {'org_id': 'org-1', 'user_id': 'user-1'},
+    )
+
+
+def test_migration_agent_settings_validation_fails_fast_with_row_location():
+    migration = _migration_module()
+
+    with pytest.raises(ValueError, match='org_member.agent_settings_diff') as exc_info:
+        migration._validate_agent_settings_payload(
+            {
+                'agent_kind': 'openhands',
+                'mcp_config': {
+                    'broken': {
+                        'transport': 'sse',
+                    }
+                },
+            },
+            'org_member',
+            'agent_settings_diff',
+            {'org_id': 'org-1', 'user_id': 'user-1'},
+        )
+
+    assert 'org_id=org-1' in str(exc_info.value)
+    assert 'user_id=user-1' in str(exc_info.value)
 
 
 def test_secret_aware_json_reads_legacy_encrypted_blob_and_writes_leaf_encrypted_json():

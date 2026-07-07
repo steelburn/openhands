@@ -50,6 +50,7 @@ def upgrade() -> None:
         'agent_settings_diff',
         _encrypt_agent_settings,
     )
+    _validate_all_agent_settings(bind)
 
 
 def downgrade() -> None:
@@ -73,6 +74,7 @@ def downgrade() -> None:
         'agent_settings_diff',
         _decrypt_agent_settings,
     )
+    _validate_all_agent_settings(bind)
 
 
 def _rewrite_single_pk_column(
@@ -117,6 +119,61 @@ def _rewrite_composite_pk_column(
         for pk_name in pk_names:
             query = query.where(table.c[pk_name] == row[pk_name])
         bind.execute(query.values({column_name: updated}))
+
+
+def _validate_all_agent_settings(bind) -> None:
+    _validate_single_pk_agent_settings(bind, 'user_settings', 'id', 'agent_settings')
+    _validate_single_pk_agent_settings(bind, 'org', 'id', 'agent_settings')
+    _validate_composite_pk_agent_settings(
+        bind, 'org_member', ('org_id', 'user_id'), 'agent_settings_diff'
+    )
+
+
+def _validate_single_pk_agent_settings(
+    bind, table_name: str, pk_name: str, column_name: str
+) -> None:
+    table = sa.table(table_name, sa.column(pk_name), sa.column(column_name))
+    rows = bind.execute(sa.select(table.c[pk_name], table.c[column_name])).mappings()
+    for row in rows:
+        _validate_agent_settings_payload(
+            row[column_name], table_name, column_name, {pk_name: row[pk_name]}
+        )
+
+
+def _validate_composite_pk_agent_settings(
+    bind,
+    table_name: str,
+    pk_names: Iterable[str],
+    column_name: str,
+) -> None:
+    columns = [sa.column(pk_name) for pk_name in pk_names]
+    table = sa.table(table_name, *columns, sa.column(column_name))
+    rows = bind.execute(
+        sa.select(*(table.c[pk_name] for pk_name in pk_names), table.c[column_name])
+    ).mappings()
+    for row in rows:
+        _validate_agent_settings_payload(
+            row[column_name],
+            table_name,
+            column_name,
+            {pk_name: row[pk_name] for pk_name in pk_names},
+        )
+
+
+def _validate_agent_settings_payload(
+    value: Any, table_name: str, column_name: str, pk_values: Mapping[str, Any]
+) -> None:
+    from storage.encrypt_utils import get_settings_cipher_context
+
+    from openhands.sdk.settings import validate_agent_settings
+
+    try:
+        validate_agent_settings(value or {}, context=get_settings_cipher_context())
+    except Exception as exc:
+        pk_display = ', '.join(f'{key}={value}' for key, value in pk_values.items())
+        raise ValueError(
+            f'Invalid agent settings in {table_name}.{column_name} ({pk_display})'
+        ) from exc
 
 
 def _profiles_to_json(value: Any) -> str | None:
