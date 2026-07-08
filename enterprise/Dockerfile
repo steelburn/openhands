@@ -36,6 +36,9 @@ RUN cd /tmp/enterprise && \
     sed -i '/^-e /d; /openhands-ai/d' requirements.txt && \
     # Install pinned dependencies from lock file
     /app/.venv/bin/pip install -r requirements.txt && \
+    # TEMPORARY: Override SDK with PR #4025 fix for single-skill plugins
+    /app/.venv/bin/pip install --force-reinstall --no-cache-dir \
+        "git+https://github.com/OpenHands/software-agent-sdk.git@e0246aae36c95acdc10d37eb6cd8540c71ff5b2c#subdirectory=openhands-sdk" && \
     # Cleanup - return to /app before removing /tmp/enterprise
     cd /app && \
     rm -rf /tmp/enterprise && \
