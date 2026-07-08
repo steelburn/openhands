@@ -267,8 +267,10 @@ async def list_agent_profiles(
         # the pre-seed snapshot taken above.
         org = await _get_org(effective_org_id, user_id)
         profiles = load_agent_profiles(org)
-        if seeded_id is not None:
-            active_id = seeded_id
+        # This request's own seeded id if it won the race; otherwise the
+        # org-wide pointer a concurrent winner committed (member_active was
+        # None or we would not have entered this block).
+        active_id = seeded_id or profiles.active
 
     return AgentProfileListResponse(
         profiles=[AgentProfileInfo(**s) for s in profiles.list_summaries()],

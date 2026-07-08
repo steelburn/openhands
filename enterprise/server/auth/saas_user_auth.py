@@ -115,6 +115,10 @@ class SaasUserAuth(UserAuth):
         self.settings_store = None
         self.secrets_store = None
         self._settings = None
+        # Org-scoped like _settings: the resolved launch view carries the
+        # referenced LLM key + ref-filtered mcp_config of *this* org's active
+        # profile, so it must not survive a re-scope to another org.
+        self._resolved_settings = None
         self._secrets = None
         self.provider_tokens = None
         self._org_id = None

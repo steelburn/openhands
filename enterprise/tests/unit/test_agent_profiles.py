@@ -481,6 +481,11 @@ class TestLazySeedMigration:
         winner_profile = save_profile_preserving_identity(
             store, OpenHandsAgentProfile(name='default', llm_profile_ref='Default')
         )
+        # The real winner also points the org-wide default at its seed
+        # (_seed_default_agent_profile sets profiles.active). The loser's own
+        # member pointer stays unset, so its effective active pointer is this
+        # org-wide one.
+        object.__setattr__(store, 'active', str(winner_profile.id))
 
         # The initial read (top of list_agent_profiles) sees an empty store,
         # so it enters the seed branch. Only once _seed_default_agent_profile
@@ -499,6 +504,9 @@ class TestLazySeedMigration:
 
         assert [p.name for p in listing.profiles] == ['default']
         assert listing.profiles[0].id == str(winner_profile.id)
+        # The race loser must surface the winner's org-wide active pointer, not
+        # a stale null from the pre-seed snapshot.
+        assert listing.active_agent_profile_id == str(winner_profile.id)
 
     @pytest.mark.asyncio
     async def test_second_member_resolves_org_default_after_seed(
@@ -728,6 +736,44 @@ class TestResolveActiveAgentProfile:
         assert dump['agent_kind'] == 'openhands'
         # The resolved LLM came from the referenced org LLM profile.
         assert dump['llm']['model'] == 'gpt-4o'
+
+    def test_resolve_canonicalizes_legacy_litellm_proxy_llm(self):
+        """A profile referencing an org LLM profile with a legacy
+        ``litellm_proxy/`` managed name must resolve to the canonical
+        ``openhands/`` name (proxy base_url dropped), matching the non-profile
+        composed path so a profile launch and a plain launch normalize an
+        org's pre-canonical llm_profiles identically."""
+        from server.constants import LITE_LLM_API_URL
+
+        store = self._store()
+        org = MagicMock(spec=Org)
+        org.id = ORG_ID
+        ap = AgentProfiles()
+        save_profile_preserving_identity(
+            ap, OpenHandsAgentProfile(name='reviewer', llm_profile_ref='Default')
+        )
+        pid = next(iter(ap.profiles))
+        org.agent_profiles = ap.model_dump(
+            mode='json', context={'expose_secrets': True}
+        )
+        org.llm_profiles = {
+            'profiles': {
+                'Default': {
+                    'model': 'litellm_proxy/claude-opus-4-8',
+                    'base_url': LITE_LLM_API_URL,
+                    'api_key': 'orgkey',
+                }
+            },
+            'active': 'Default',
+        }
+        member = MagicMock(spec=OrgMember)
+        member.active_agent_profile_id = pid
+
+        result = store._resolve_active_agent_profile(org, member, {}, None)
+        assert result is not None
+        dump, _resolved_id, _revision = result
+        assert dump['llm']['model'] == 'openhands/claude-opus-4-8'
+        assert dump['llm'].get('base_url') is None
 
     def test_override_id_wins_over_member_pointer(self):
         store = self._store()

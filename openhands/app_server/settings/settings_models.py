@@ -329,7 +329,19 @@ def grouped_workspace_dir(
 #   inputs, enforce the count cap, and take the per-user lock. Accepting a
 #   raw dict here both bypassed those guards and crashed downstream
 #   serialisation.
-_SETTINGS_UPDATE_IGNORED_FIELDS = frozenset(['secrets_store', 'llm_profiles'])
+# - ``active_agent_profile_id`` / ``active_agent_profile_revision`` are launch
+#   provenance, not persisted settings — ``store()`` refuses instances that
+#   carry them. The pointer is set via the agent-profiles activate endpoint, so
+#   a client echoing a non-null value back on a settings PUT must be ignored,
+#   not written (which would 500 in ``store()``).
+_SETTINGS_UPDATE_IGNORED_FIELDS = frozenset(
+    [
+        'secrets_store',
+        'llm_profiles',
+        'active_agent_profile_id',
+        'active_agent_profile_revision',
+    ]
+)
 
 
 class Settings(BaseModel):

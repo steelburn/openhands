@@ -237,6 +237,13 @@ class SaasSettingsStore(SettingsStore):
             resolved_dump = resolved.model_dump(
                 mode='json', context={'expose_secrets': True}
             )
+            # Canonicalize legacy managed OpenHands model names/base_urls on the
+            # resolved LLM, mirroring the composed path (merged_agent_settings
+            # ['llm'], line ~348) so a profile launch and a non-profile launch
+            # normalize an org's pre-canonical llm_profiles identically.
+            resolved_llm = resolved_dump.get('llm')
+            if isinstance(resolved_llm, dict):
+                resolved_dump['llm'] = canonicalize_openhands_llm_payload(resolved_llm)
         except Exception as exc:
             # Never-brick contract: catch broadly, not just the known resolver
             # errors — SDK contract drift (e.g. a new required kwarg raising
