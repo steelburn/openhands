@@ -220,6 +220,25 @@ def append_system_context(existing: str | None, block: str) -> str:
     return f'{existing.rstrip()}\n\n{block}'
 
 
+def effective_disabled_skills(user: UserInfo) -> list[str]:
+    """Union of the member-level and launched-profile-level skill deny-lists.
+
+    A skill disabled at EITHER level stays off. The member's deny-list rides
+    ``user.disabled_skills``; the launched Agent Profile's rides the resolved
+    ``agent_settings.agent_context.disabled_skills`` (the SDK resolver stamps the
+    profile's ``disabled_skills`` there — #4017). On a non-profile launch the
+    resolved context's deny-list is empty, so this is just the member's list.
+    Order-preserving de-dup. Because it is a deny-list, a name absent from the
+    discovered catalog is a harmless no-op, so no reconciliation is needed
+    between the two sources.
+    """
+    member = list(user.disabled_skills or [])
+    agent_settings = getattr(user, 'agent_settings', None)
+    agent_context = getattr(agent_settings, 'agent_context', None)
+    profile = list(getattr(agent_context, 'disabled_skills', None) or [])
+    return list(dict.fromkeys([*member, *profile]))
+
+
 @dataclass
 class LiveStatusAppConversationService(AppConversationServiceBase):
     """AppConversationService which combines live status info from the sandbox with stored data."""
@@ -1682,7 +1701,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                     remote_workspace,
                     selected_repository,
                     get_project_dir(working_dir, selected_repository),
-                    user.disabled_skills,
+                    effective_disabled_skills(user),
                     registered_marketplaces,
                 )
             return acp_request
@@ -1883,7 +1902,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 remote_workspace,
                 selected_repository,
                 project_dir,
-                user.disabled_skills,
+                effective_disabled_skills(user),
                 registered_marketplaces,
             )
 

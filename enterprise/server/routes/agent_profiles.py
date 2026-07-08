@@ -286,7 +286,8 @@ async def get_agent_profile(
 
     Unlike the LLM-profile GET in ``org_profiles``, there is no
     ``X-Expose-Secrets`` handling here at all: the profile carries only
-    references (``llm_profile_ref``, ``mcp_server_refs``, ``skill_refs``).
+    references (``llm_profile_ref``, ``mcp_server_refs``) and a
+    ``disabled_skills`` deny-list of names.
     """
     org = await _get_org(effective_org_id, user_id)
     profiles = load_agent_profiles(org)
@@ -406,8 +407,11 @@ async def rename_agent_profile(
     effective_org_id: UUID = EFFECTIVE_ORG_ID,
     user_id: str = Depends(require_permission(Permission.EDIT_ORG_SETTINGS)),
 ) -> AgentProfileMutationResponse:
-    """Rename a profile atomically. The stable id is preserved, so active
-    pointers (keyed on id) survive untouched."""
+    """Rename a profile atomically.
+
+    The stable id is preserved, so active pointers (keyed on id) survive
+    untouched.
+    """
     async with _agent_profiles_transaction(effective_org_id, user_id) as (
         _session,
         _org,
