@@ -3,7 +3,6 @@ import importlib.metadata
 import io
 import json
 import logging
-import os
 import zipfile
 from collections import defaultdict
 from collections.abc import Mapping
@@ -14,7 +13,6 @@ from uuid import UUID, uuid4
 
 import httpx
 from fastapi import Request
-from packaging.version import InvalidVersion, Version
 from pydantic import Field, SecretStr, TypeAdapter
 
 from openhands.agent_server.models import (
@@ -92,13 +90,19 @@ from openhands.app_server.sandbox.sandbox_models import (
 from openhands.app_server.sandbox.sandbox_service import SandboxService
 from openhands.app_server.sandbox.sandbox_spec_service import (
     SandboxSpecService,
-    get_agent_server_image,
-    is_custom_agent_server_image,
+    is_custom_sandbox_spec,
 )
 from openhands.app_server.services.injector import InjectorState
 from openhands.app_server.services.jwt_service import JwtService
 from openhands.app_server.settings.llm_profiles import resolve_profile_llm
-from openhands.app_server.settings.settings_models import grouped_workspace_dir
+from openhands.app_server.settings.marketplace_composition import (
+    load_composed_marketplaces,
+    marketplace_plugin_loading_enabled,
+)
+from openhands.app_server.settings.settings_models import (
+    MarketplaceRegistration,
+    grouped_workspace_dir,
+)
 from openhands.app_server.user.user_context import UserContext
 from openhands.app_server.user.user_models import UserInfo
 from openhands.app_server.utils.docker_utils import (
@@ -120,6 +124,7 @@ from openhands.sdk import Agent, AgentContext, LocalWorkspace
 from openhands.sdk.hooks import HookConfig
 from openhands.sdk.llm import LLM
 from openhands.sdk.llm.llm_profile_store import PROFILE_NAME_REGEX
+from openhands.sdk.mcp.config import MCPServer
 from openhands.sdk.plugin import PluginSource
 from openhands.sdk.secret import LookupSecret, StaticSecret
 from openhands.sdk.settings import ACPAgentSettings
@@ -375,12 +380,6 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             assert sandbox is not None
             agent_server_url = self._get_agent_server_url(sandbox)
 
-            # Custom sandbox images can ship an incompatible openhands-sdk; fail
-            # fast with a clear error instead of an opaque 500 on create.
-            await self._verify_agent_server_version(
-                agent_server_url, sandbox.session_api_key
-            )
-
             # Mirror the user's LLM profiles into the sandbox so the agent's
             # built-in switch_llm tool can resolve them (in SaaS profiles live
             # on the app-server, not the sandbox filesystem). Before conversation
@@ -429,6 +428,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                     trigger=request.trigger,
                     remote_workspace=remote_workspace,
                     selected_repository=request.selected_repository,
+                    selected_branch=request.selected_branch,
                     plugins=request.plugins,
                     api_secrets=request.secrets,
                 )
@@ -473,12 +473,12 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             except httpx.HTTPStatusError as exc:
                 # A custom image that 500s on create is usually an openhands-sdk
                 # mismatch /server_info couldn't reveal; add an actionable hint.
-                if is_custom_agent_server_image():
+                if is_custom_sandbox_spec(sandbox.sandbox_spec_id):
                     expected = _expected_sdk_version()
                     raise SandboxError(
                         f'Conversation create failed (HTTP '
                         f'{exc.response.status_code}) on custom sandbox image '
-                        f'{get_agent_server_image()}. Verify its openhands-sdk '
+                        f'{sandbox.sandbox_spec_id}. Verify its openhands-sdk '
                         f'matches this release'
                         + (f' ({expected})' if expected else '')
                         + '; rebuild/re-pin the image if not.'
@@ -903,57 +903,6 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             httpx_client=self.httpx_client,
         )
 
-    async def _verify_agent_server_version(
-        self, agent_server_url: str, session_api_key: str | None
-    ) -> None:
-        """Fail fast with a clear error when an admin-pinned custom sandbox image
-        runs a different openhands-sdk minor than this app, instead of the opaque
-        500 the agent-server returns on create. Best-effort: only custom images are
-        checked, and we fail open on anything we can't read."""
-        if os.getenv('OH_SKIP_AGENT_SERVER_VERSION_CHECK', '').strip().lower() in (
-            '1',
-            'true',
-            'yes',
-        ):
-            return
-        # Proxy-default images move with the release; only custom-pinned can drift.
-        if not is_custom_agent_server_image():
-            return
-        expected = _expected_sdk_version()
-        if not expected:
-            return
-        try:
-            headers = {'X-Session-API-Key': session_api_key} if session_api_key else {}
-            resp = await self.httpx_client.get(
-                f'{agent_server_url.rstrip("/")}/server_info',
-                headers=headers,
-                timeout=30.0,
-            )
-            resp.raise_for_status()
-            reported = str(resp.json().get('sdk_version', '')).strip()
-        except Exception:
-            # 404 (image predates /server_info) or transient errors: can't verify,
-            # so don't block — the create POST still surfaces a custom-image hint.
-            _logger.warning(
-                'Could not read /server_info to verify agent-server SDK version',
-                exc_info=True,
-            )
-            return
-        # Endpoint present but metadata missing -> nothing to compare against.
-        if reported in ('', 'unknown'):
-            return
-        try:
-            if Version(reported).release[:2] == Version(expected).release[:2]:
-                return
-        except InvalidVersion:
-            return
-        raise SandboxError(
-            f'Sandbox image {get_agent_server_image()} runs openhands-sdk '
-            f'{reported}, but this release requires {expected}. Rebuild/re-pin the '
-            'custom sandbox image to a matching openhands-sdk, or set '
-            'OH_SKIP_AGENT_SERVER_VERSION_CHECK=1 to bypass.'
-        )
-
     async def _seed_sandbox_profiles(
         self, agent_server_url: str, session_api_key: str | None
     ) -> None:
@@ -1245,11 +1194,13 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 'base_url': base_url,
                 'api_key': user.agent_settings.llm.api_key,
                 'usage_id': 'agent',
+                # Force streaming on (the SDK LLM defaults stream=False).
+                'stream': True,
             }
         )
 
     async def _add_system_mcp_servers(
-        self, mcp_servers: dict[str, Any], conversation_id: UUID
+        self, mcp_servers: dict[str, MCPServer], conversation_id: UUID
     ) -> None:
         """Add system-generated MCP servers (default OpenHands server).
 
@@ -1264,20 +1215,22 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         if not self.web_url:
             return
 
-        # Add default OpenHands MCP server (includes Tavily proxy if configured)
-        mcp_url = f'{self.web_url}/mcp/mcp'
-        mcp_servers['default'] = {
-            'url': mcp_url,
-            'headers': {'X-OpenHands-ServerConversation-ID': str(conversation_id)},
-        }
+        headers = {'X-OpenHands-ServerConversation-ID': SecretStr(str(conversation_id))}
 
         # Add API key if available
         mcp_api_key = await self.user_context.get_mcp_api_key()
         if mcp_api_key:
-            mcp_servers['default']['headers']['X-Session-API-Key'] = mcp_api_key
+            headers['X-Session-API-Key'] = SecretStr(mcp_api_key)
+
+        # Add default OpenHands MCP server (includes Tavily proxy if configured)
+        mcp_url = f'{self.web_url}/mcp/mcp'
+        mcp_servers['default'] = MCPServer(
+            url=mcp_url,
+            headers=headers,
+        )
 
     def _merge_custom_mcp_config(
-        self, mcp_servers: dict[str, Any], user: UserInfo
+        self, mcp_servers: dict[str, MCPServer], user: UserInfo
     ) -> None:
         """Merge custom MCP configuration from user settings.
 
@@ -1288,22 +1241,16 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         if isinstance(user.agent_settings, ACPAgentSettings):
             return
 
-        sdk_mcp = user.agent_settings.mcp_config
-        if not sdk_mcp or not sdk_mcp.mcpServers:
+        user_mcp = user.agent_settings.mcp_config
+        if not user_mcp:
             return
 
         try:
-            count = len(sdk_mcp.mcpServers)
+            count = len(user_mcp)
             _logger.info(
                 f'Loading custom MCP config from user settings: {count} servers'
             )
-
-            for name, server in sdk_mcp.mcpServers.items():
-                mcp_servers[name] = server.model_dump(exclude_none=True)
-
-            _logger.info(
-                f'Successfully merged custom MCP config: added {count} servers'
-            )
+            mcp_servers.update(user_mcp)
 
         except Exception as e:
             _logger.error(
@@ -1317,7 +1264,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
 
     async def _configure_llm_and_mcp(
         self, user: UserInfo, llm_model: str | None, conversation_id: UUID
-    ) -> tuple[LLM, dict]:
+    ) -> tuple[LLM, dict[str, MCPServer]]:
         """Configure LLM and MCP (Model Context Protocol) settings.
 
         Args:
@@ -1326,12 +1273,13 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             conversation_id: Conversation ID forwarded to the OpenHands MCP server
 
         Returns:
-            Tuple of (configured LLM instance, MCP config dictionary)
+            Tuple of (configured LLM instance, MCP config dict in the flat
+            ``{server_name: server_dict}`` shape the SDK 1.31.x
+            ``Agent.mcp_config`` field expects)
         """
         # Configure LLM
         llm = self._configure_llm(user, llm_model)
 
-        # Configure MCP - SDK expects format: {'mcpServers': {'server_name': {...}}}
         mcp_servers: dict[str, Any] = {}
 
         # Add system-generated servers (default MCP server with Tavily proxy)
@@ -1340,17 +1288,12 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         # Merge custom servers from user settings
         self._merge_custom_mcp_config(mcp_servers, user)
 
-        # Wrap in the mcpServers structure required by the SDK
-        mcp_config = {'mcpServers': mcp_servers} if mcp_servers else {}
-        _logger.info(f'Final MCP configuration: {sanitize_config(mcp_config)}')
-
-        return llm, mcp_config
+        return llm, mcp_servers
 
     @staticmethod
     def _apply_server_agent_overrides(
         agent: Agent,
         agent_type: AgentType,
-        mcp_config: dict,
         conversation_id: UUID,
         user_id: str | None,
     ) -> Agent:
@@ -1516,6 +1459,56 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             httpx_client=self.httpx_client,
         )
 
+    @staticmethod
+    async def _resolve_head_commit(
+        remote_workspace: AsyncRemoteWorkspace, project_dir: str
+    ) -> str:
+        """Best-effort post-clone HEAD sha for the Laminar trace; '' on failure.
+
+        ``--verify --quiet`` guarantees stdout is a validated object id (never
+        the literal ``HEAD`` an unborn repo would echo) and fails silently
+        rather than logging a ``fatal:`` line. The short timeout keeps this
+        trace-only lookup from delaying conversation startup if the workspace is
+        unresponsive — the metadata is simply dropped instead.
+        """
+        try:
+            result = await remote_workspace.execute_command(
+                'git rev-parse --verify --quiet HEAD', project_dir, timeout=10.0
+            )
+        except Exception as e:
+            _logger.debug('HEAD commit lookup for trace metadata failed: %s', e)
+            return ''
+        return result.stdout.strip() if not result.exit_code else ''
+
+    async def _build_observability_metadata(
+        self,
+        remote_workspace: AsyncRemoteWorkspace | None,
+        project_dir: str,
+        selected_repository: str | None,
+        selected_branch: str | None,
+        git_provider: ProviderType | None,
+    ) -> dict[str, str]:
+        """Repo identity for the Laminar trace so trajectories are searchable
+        by repo / branch / commit (the trace UI has no DB to join against).
+
+        Shared by the OpenHands and ACP request builders. The commit is the
+        post-clone HEAD, resolved best-effort from the (already-cloned)
+        workspace; omitted entirely for a repo-less conversation.
+        """
+        commit = ''
+        if selected_repository and remote_workspace is not None:
+            commit = await self._resolve_head_commit(remote_workspace, project_dir)
+        return {
+            key: value
+            for key, value in (
+                ('repo', selected_repository),
+                ('branch', selected_branch),
+                ('git_provider', git_provider.value if git_provider else None),
+                ('commit', commit),
+            )
+            if value
+        }
+
     async def _build_start_conversation_request_for_user(
         self,
         sandbox: SandboxInfo,
@@ -1529,6 +1522,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         trigger: ConversationTrigger | None = None,
         remote_workspace: AsyncRemoteWorkspace | None = None,
         selected_repository: str | None = None,
+        selected_branch: str | None = None,
         plugins: list[PluginSpec] | None = None,
         api_secrets: dict[str, SecretStr] | None = None,
     ) -> StartConversationRequest:
@@ -1562,6 +1556,11 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         """
         user = await self.user_context.get_user_info()
 
+        # Compose instance + org + user marketplaces once for both arms below.
+        # Enabled by default; inert (None) only when ENABLE_MARKETPLACE_PLUGIN_LOADING
+        # is explicitly disabled or no marketplaces are configured.
+        registered_marketplaces = await self._resolve_registered_marketplaces(user)
+
         # Route ACP agent settings to the ACP-specific builder
         if isinstance(user.agent_settings, ACPAgentSettings):
             acp_request = await self._build_acp_start_conversation_request(
@@ -1571,7 +1570,10 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 system_message_suffix=system_message_suffix,
                 trigger=trigger,
                 working_dir=working_dir,
+                git_provider=git_provider,
                 selected_repository=selected_repository,
+                selected_branch=selected_branch,
+                remote_workspace=remote_workspace,
                 plugins=plugins,
                 api_secrets=api_secrets,
             )
@@ -1583,6 +1585,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                     selected_repository,
                     get_project_dir(working_dir, selected_repository),
                     user.disabled_skills,
+                    registered_marketplaces,
                 )
             return acp_request
 
@@ -1661,13 +1664,11 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 agent_definitions = list(get_registered_agent_definitions())
 
         # --- build AgentSettings and create agent ---------------------------
-        from fastmcp.mcp_config import MCPConfig
-
         configured_agent_settings = user.agent_settings.model_copy(
             update={
                 'llm': llm,
                 'tools': tools,
-                'mcp_config': MCPConfig(**mcp_config) if mcp_config else None,
+                'mcp_config': mcp_config if mcp_config else {},
                 'agent_context': AgentContext(
                     system_message_suffix=effective_suffix,
                     secrets=secrets,
@@ -1700,7 +1701,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             )
 
         agent = self._apply_server_agent_overrides(
-            agent, agent_type, mcp_config, conversation_id, user.id
+            agent, agent_type, conversation_id, user.id
         )
 
         # --- hooks (require remote workspace; must precede request build) -----
@@ -1762,8 +1763,18 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         # injects it directly into the JSON body as a forward-compatible
         # fallback.
         laminar_user_id = await self.user_context.get_user_email() or user.id
+        observability_metadata = await self._build_observability_metadata(
+            remote_workspace,
+            project_dir,
+            selected_repository,
+            selected_branch,
+            git_provider,
+        )
+        create_kwargs: dict[str, Any] = {'agent': agent, 'user_id': laminar_user_id}
+        if observability_metadata:
+            create_kwargs['observability_metadata'] = observability_metadata
         request = conv_settings.create_request(
-            StartConversationRequest, agent=agent, user_id=laminar_user_id
+            StartConversationRequest, **create_kwargs
         )
 
         # --- skills (require remote workspace) ------------------------------
@@ -1775,9 +1786,37 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 selected_repository,
                 project_dir,
                 user.disabled_skills,
+                registered_marketplaces,
             )
 
         return request
+
+    async def _resolve_registered_marketplaces(
+        self, user: UserInfo
+    ) -> list[MarketplaceRegistration] | None:
+        """Compose instance + org + user marketplaces for conversation start.
+
+        Enabled by default; returns ``None`` (feature inert) when
+        ENABLE_MARKETPLACE_PLUGIN_LOADING is explicitly disabled. Never raises:
+        any failure degrades to no marketplaces so it can never block
+        conversation creation.
+        """
+        if not marketplace_plugin_loading_enabled():
+            return None
+        try:
+            from openhands.app_server.shared import SettingsStoreImpl
+
+            user_id = await self.user_context.get_user_id()
+            settings_store = await SettingsStoreImpl.get_instance(user_id)
+            composed = await load_composed_marketplaces(
+                user_id, user.registered_marketplaces, settings_store
+            )
+            return composed.all or None
+        except Exception as e:
+            _logger.warning(
+                'Failed to compose marketplaces for conversation start: %s', e
+            )
+            return None
 
     async def _load_skills_onto_request(
         self,
@@ -1787,6 +1826,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         selected_repository: str | None,
         project_dir: str,
         disabled_skills: list[str] | None,
+        registered_marketplaces: list[MarketplaceRegistration] | None = None,
     ) -> StartConversationRequest:
         """Load workspace skills onto a conversation request's agent.
 
@@ -1802,6 +1842,7 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
                 selected_repository,
                 project_dir,
                 disabled_skills=disabled_skills,
+                registered_marketplaces=registered_marketplaces,
             )
             return request.model_copy(update={'agent': updated_agent})
         except Exception as e:
@@ -1816,7 +1857,10 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         working_dir: str,
         system_message_suffix: str | None = None,
         trigger: ConversationTrigger | None = None,
+        git_provider: ProviderType | None = None,
         selected_repository: str | None = None,
+        selected_branch: str | None = None,
+        remote_workspace: AsyncRemoteWorkspace | None = None,
         plugins: list[PluginSpec] | None = None,
         api_secrets: dict[str, SecretStr] | None = None,
     ) -> StartConversationRequest:
@@ -1839,7 +1883,11 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
             working_dir: Working directory path
             system_message_suffix: Optional suffix for system message.
             trigger: Optional conversation trigger.
+            git_provider: Optional git provider type
             selected_repository: Optional repository name
+            selected_branch: Optional branch name
+            remote_workspace: Optional remote workspace instance, used to
+                resolve the HEAD commit for the Laminar trace metadata.
             plugins: Optional list of plugins to load
             api_secrets: Optional secrets passed directly via the API.
         """
@@ -1955,12 +2003,21 @@ class LiveStatusAppConversationService(AppConversationServiceBase):
         # prefer email over the internal id so Laminar traces are immediately
         # attributable, falling back to ``user.id`` when no email is available.
         laminar_user_id = await self.user_context.get_user_email() or user.id
-        return conv_settings.create_request(
-            StartConversationRequest,
-            agent=acp_agent,
-            user_id=laminar_user_id,
-            secrets=secrets,
+        observability_metadata = await self._build_observability_metadata(
+            remote_workspace,
+            project_dir,
+            selected_repository,
+            selected_branch,
+            git_provider,
         )
+        create_kwargs: dict[str, Any] = {
+            'agent': acp_agent,
+            'user_id': laminar_user_id,
+            'secrets': secrets,
+        }
+        if observability_metadata:
+            create_kwargs['observability_metadata'] = observability_metadata
+        return conv_settings.create_request(StartConversationRequest, **create_kwargs)
 
     async def _process_pending_messages(
         self,
