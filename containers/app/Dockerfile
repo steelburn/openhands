@@ -86,6 +86,10 @@ USER root
 RUN /usr/local/bin/python3 -m pip install --no-cache-dir "pip==${PIP_VERSION}" --break-system-packages
 USER openhands
 
+# TEMPORARY: Install SDK from PR #4025 to fix single-skill plugin loading
+RUN python -m pip install --no-cache-dir --force-reinstall \
+    "git+https://github.com/OpenHands/software-agent-sdk.git@e0246aae36c95acdc10d37eb6cd8540c71ff5b2c#subdirectory=openhands-sdk"
+
 COPY --chown=openhands:openhands --chmod=770 ./skills ./skills
 COPY --chown=openhands:openhands --chmod=770 ./openhands ./openhands
 COPY --chown=openhands:openhands pyproject.toml poetry.lock README.md MANIFEST.in LICENSE ./
